@@ -27,22 +27,17 @@ def number_of_used_vertices_energy(a, b, c):
     return inner
 
 
-def number_of_forks_energy(a, b, c):
-    def inner(v1, v2):
-        return 0.5 * (tensordot(v1, v1, [[0], [0]]).sum() - tensordot(v1, v1, 2) +
-                      tensordot(v1, v1, [[1], [1]]).sum() - tensordot(v1, v1, 2) +
-                      tensordot(v2, v2, [[0], [0]]).sum() - tensordot(v2, v2, 2) +
-                      tensordot(v2, v2, [[1], [1]]).sum() - tensordot(v2, v2, 2))
-
-    return inner
+def number_of_forks_energy(v):
+    join = 0.5 * (tensordot(v, v, [[1], [1]]).sum() - tensordot(v, v, 2))
+    fork = 0.5 * (tensordot(v, v, [[0], [0]]).sum() - tensordot(v, v, 2))
+    return fork + join
 
 
 def energy(a, b, c, alpha=1., beta=1., curvature_cosine_power=3):
     E1 = curvature_energy(a, b, c, power=curvature_cosine_power)
     t1 = number_of_used_vertices_energy(a, b, c)
-    t2 = number_of_forks_energy(a, b, c)
 
     def inner(v1, v2):
-        return E1(v1, v2) + alpha * t1(v1, v2) + beta * t2(v1, v2)
+        return E1(v1, v2) + alpha * t1(v1, v2) + beta * (number_of_forks_energy(v1)+number_of_forks_energy(v2))
 
     return inner
