@@ -24,20 +24,20 @@ def count_vertices(pos: Iterable[Tensor]) -> int:
     return sum(map(len, pos))
 
 
-def count_segments(activation: Iterable[Tensor]) -> Number:
+def count_segments(activation: Iterable[Tensor]) -> Tensor:
     return sum(v.sum() for v in activation)
 
 
-def number_of_used_vertices_energy(vertex_count, segment_count):
+def number_of_used_vertices_energy(vertex_count: int, segment_count: Tensor) -> Tensor:
     return 0.5 * (vertex_count - segment_count) ** 2
 
 
-def join_energy(activation: Tensor) -> Number:
+def join_energy(activation: Tensor) -> Tensor:
     v = activation
     return 0.5 * (tensordot(v, v, [[1], [1]]).sum() - tensordot(v, v, 2))
 
 
-def fork_energy(activation: Tensor) -> Number:
+def fork_energy(activation: Tensor) -> Tensor:
     v = activation
     return 0.5 * (tensordot(v, v, [[0], [0]]).sum() - tensordot(v, v, 2))
 
