@@ -1,7 +1,8 @@
-from typing import Callable
+from typing import Callable, Iterable
 
 import torch
 from torch import Tensor, cdist, einsum, tensordot
+from torch.types import Number
 
 
 def curvature_energy(a: Tensor, b: Tensor, c: Tensor, power: float = 3) -> Callable[[Tensor, Tensor], Tensor]:
@@ -18,14 +19,16 @@ def curvature_energy(a: Tensor, b: Tensor, c: Tensor, power: float = 3) -> Calla
     return inner
 
 
-def number_of_used_vertices_energy(a, b, c):
-    total_vertices = len(a) + len(b) + len(c)
+def count_vertices(pos: Iterable[Tensor]) -> int:
+    return sum(map(len, pos))
 
-    def inner(v1, v2):
-        total_segments = v1.sum() + v2.sum()
-        return 0.5 * (total_segments - total_vertices) ** 2
 
-    return inner
+def count_segments(activation: Iterable[Tensor]) -> Number:
+    return sum(v.sum() for v in activation)
+
+
+def number_of_used_vertices_energy(vertex_count, segment_count):
+    return 0.5 * (vertex_count - segment_count) ** 2
 
 
 def number_of_forks_energy(v):
@@ -36,9 +39,11 @@ def number_of_forks_energy(v):
 
 def energy(a, b, c, alpha=1., beta=1., curvature_cosine_power=3):
     E1 = curvature_energy(a, b, c, power=curvature_cosine_power)
-    t1 = number_of_used_vertices_energy(a, b, c)
+    n = count_vertices((a, b, c))
 
     def inner(v1, v2):
-        return E1(v1, v2) + alpha * t1(v1, v2) + beta * (number_of_forks_energy(v1) + number_of_forks_energy(v2))
+        return E1(v1, v2) + \
+               alpha * number_of_used_vertices_energy(n, count_segments((v1, v2))) + \
+               beta * (number_of_forks_energy(v1) + number_of_forks_energy(v2))
 
     return inner
