@@ -1,5 +1,8 @@
-from segment import number_of_forks_energy, number_of_used_vertices_energy
+from pytest import approx
+
+from segment import number_of_forks_energy, number_of_used_vertices_energy, curvature_energy
 from torch import tensor
+import numpy as np
 
 
 def test_number_of_forks_energy():
@@ -46,3 +49,18 @@ def test_number_of_used_vertices_energy():
     assert f(0.5 * track, 0.5 * track) == 12.5
     assert f(0.5 * join, 0.5 * join) == 8
     assert f(0.5 * full, 0.5 * full) == 2
+
+
+def test_curvature_energy():
+    a = tensor([[0., 0]])
+    b = tensor([[1., 0]])
+    c = tensor([[2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
+    f = curvature_energy(a, b, c)
+    first = tensor([[1]])
+    assert f(first, tensor([[1, 0, 0, 0, 0]])) == - 0.5
+    assert f(first, tensor([[0, 1, 0, 0, 0]])) == approx(- 1. / 8)
+    assert f(first, tensor([[0, 0, 1, 0, 0]])) == approx(- 1. / 8)
+    assert f(first, tensor([[0, 0, 0, 1, 0]])) == approx(- 1. / 4)
+    assert f(first, tensor([[0, 0, 0, 0, 1]])) == approx(- 1. / 16)
+    assert f(first, tensor([[1, 1, 1, 1, 1]])) == approx(- 17. / 16)
+    assert f(first, tensor([[.1, .1, .1, .1, .1]])) == approx(- 1.7 / 16)
