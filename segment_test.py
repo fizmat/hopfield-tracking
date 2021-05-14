@@ -1,31 +1,62 @@
 from pytest import approx
 from torch import tensor, zeros, ones
 
-from segment import number_of_forks_energy, number_of_used_vertices_energy, curvature_energy, count_vertices, \
-    count_segments
+from segment import track_crossing_energy, number_of_used_vertices_energy, curvature_energy, count_vertices, \
+    count_segments, fork_energy, join_energy
+
+none = tensor([[0, 0], [0, 0]])
+track = tensor([[1, 0], [0, 0]])
+parallel = tensor([[1, 0], [0, 1]])
+cross = tensor([[0, 1], [1, 0]])
+fork = tensor([[1, 1], [0, 0]])
+join = tensor([[1, 0], [1, 0]])
+zed = tensor([[1, 0], [1, 1]])
+full = tensor([[1, 1], [1, 1]])
 
 
-def test_number_of_forks_energy():
-    none = tensor([[0, 0], [0, 0]])
-    track = tensor([[1, 0], [0, 0]])
-    parallel = tensor([[1, 0], [0, 1]])
-    cross = tensor([[0, 1], [1, 0]])
-    fork = tensor([[1, 1], [0, 0]])
-    join = tensor([[0, 0], [1, 1]])
-    zed = tensor([[1, 0], [1, 1]])
-    full = tensor([[1, 1], [1, 1]])
-    assert number_of_forks_energy(none) == 0
-    assert number_of_forks_energy(track) == 0
-    assert number_of_forks_energy(parallel) == 0
-    assert number_of_forks_energy(cross) == 0
-    assert number_of_forks_energy(fork) == 1.
-    assert number_of_forks_energy(join) == 1.
-    assert number_of_forks_energy(zed) == 2.
-    assert number_of_forks_energy(full) == 4.
-    assert number_of_forks_energy(0.5 * fork) == 0.25
-    assert number_of_forks_energy(0.5 * join) == 0.25
-    assert number_of_forks_energy(0.5 * zed) == 0.5
-    assert number_of_forks_energy(0.5 * full) == 1.
+def test_fork_energy():
+    assert fork_energy(none) == 0
+    assert fork_energy(track) == 0
+    assert fork_energy(parallel) == 0
+    assert fork_energy(cross) == 0
+    assert fork_energy(fork) == 1.
+    assert fork_energy(join) == 0.
+    assert fork_energy(zed) == 1.
+    assert fork_energy(full) == 2.
+    assert fork_energy(0.5 * fork) == 0.25
+    assert fork_energy(0.5 * join) == 0
+    assert fork_energy(0.5 * zed) == 0.25
+    assert fork_energy(0.5 * full) == 0.5
+
+
+def test_join_energy():
+    assert join_energy(none) == 0
+    assert join_energy(track) == 0
+    assert join_energy(parallel) == 0
+    assert join_energy(cross) == 0
+    assert join_energy(fork) == 0
+    assert join_energy(join) == 1.
+    assert join_energy(zed) == 1.
+    assert join_energy(full) == 2.
+    assert join_energy(0.5 * fork) == 0
+    assert join_energy(0.5 * join) == 0.25
+    assert join_energy(0.5 * zed) == 0.25
+    assert join_energy(0.5 * full) == 0.5
+
+
+def test_track_crossing_energy():
+    assert track_crossing_energy(none) == 0
+    assert track_crossing_energy(track) == 0
+    assert track_crossing_energy(parallel) == 0
+    assert track_crossing_energy(cross) == 0
+    assert track_crossing_energy(fork) == 1.
+    assert track_crossing_energy(join) == 1.
+    assert track_crossing_energy(zed) == 2.
+    assert track_crossing_energy(full) == 4.
+    assert track_crossing_energy(0.5 * fork) == 0.25
+    assert track_crossing_energy(0.5 * join) == 0.25
+    assert track_crossing_energy(0.5 * zed) == 0.5
+    assert track_crossing_energy(0.5 * full) == 1.
 
 
 def test_count_vertices():

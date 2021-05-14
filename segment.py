@@ -31,10 +31,18 @@ def number_of_used_vertices_energy(vertex_count, segment_count):
     return 0.5 * (vertex_count - segment_count) ** 2
 
 
-def number_of_forks_energy(v):
-    join = 0.5 * (tensordot(v, v, [[1], [1]]).sum() - tensordot(v, v, 2))
-    fork = 0.5 * (tensordot(v, v, [[0], [0]]).sum() - tensordot(v, v, 2))
-    return fork + join
+def join_energy(activation: Tensor) -> Number:
+    v = activation
+    return 0.5 * (tensordot(v, v, [[1], [1]]).sum() - tensordot(v, v, 2))
+
+
+def fork_energy(activation: Tensor) -> Number:
+    v = activation
+    return 0.5 * (tensordot(v, v, [[0], [0]]).sum() - tensordot(v, v, 2))
+
+
+def track_crossing_energy(v):
+    return fork_energy(v) + join_energy(v)
 
 
 def energy(a, b, c, alpha=1., beta=1., curvature_cosine_power=3):
@@ -44,6 +52,6 @@ def energy(a, b, c, alpha=1., beta=1., curvature_cosine_power=3):
     def inner(v1, v2):
         return E1(v1, v2) + \
                alpha * number_of_used_vertices_energy(n, count_segments((v1, v2))) + \
-               beta * (number_of_forks_energy(v1) + number_of_forks_energy(v2))
+               beta * (track_crossing_energy(v1) + track_crossing_energy(v2))
 
     return inner
