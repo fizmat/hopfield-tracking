@@ -2,7 +2,7 @@ from pytest import approx
 from torch import tensor, zeros, ones
 
 from segment import track_crossing_energy, number_of_used_vertices_energy, curvature_energy, count_vertices, \
-    count_segments, fork_energy, join_energy
+    count_segments, fork_energy, join_energy, energy
 
 none = tensor([[0, 0], [0, 0]])
 track = tensor([[1, 0], [0, 0]])
@@ -101,3 +101,28 @@ def test_curvature_energy():
     assert f(first, tensor([[0, 0, 0, 0, 1]])) == approx(- 1. / 16)
     assert f(first, tensor([[1, 1, 1, 1, 1]])) == approx(- 17. / 16)
     assert f(first, tensor([[.1, .1, .1, .1, .1]])) == approx(- 1.7 / 16)
+
+
+def test_energy_empty():
+    assert energy([])([]) == 0
+
+
+def test_energy_two_hits():
+    # vertex count energy only
+    pos = [tensor([[0., 0]]),
+           tensor([[1, 0]])]
+    assert energy(pos)([tensor([[0.]])]) == 2
+    assert energy(pos)([tensor([[1.]])]) == 0.5
+
+
+def test_energy_four_hits():
+    pos = [tensor([[0., 0], [0, 1]]),
+           tensor([[1, 0], [1, 1]])]
+    e = energy(pos)
+    assert e([zeros(2, 2)]) == 8  # bad vertex count
+    assert e([ones(2, 2)]) == 4  # many forks
+
+
+def test_energy_one_track():
+    assert energy([tensor([[0., 0]]), tensor([[1., 0]]), tensor([[2., 0]])])([tensor([[1.]]), tensor([[1.]])]) == 0.5 + 0 - 0.5
+    assert energy([tensor([[0., 0]]), tensor([[1., 0]]), tensor([[2., 1]])])([tensor([[1.]]), tensor([[1.]])]) == 0.5 + 0 - 1./8

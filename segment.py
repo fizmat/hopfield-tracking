@@ -1,3 +1,4 @@
+from itertools import islice
 from typing import Callable, Iterable
 
 import torch
@@ -45,13 +46,15 @@ def track_crossing_energy(v):
     return fork_energy(v) + join_energy(v)
 
 
-def energy(a, b, c, alpha=1., beta=1., curvature_cosine_power=3):
-    E1 = curvature_energy(a, b, c, power=curvature_cosine_power)
-    n = count_vertices((a, b, c))
+def energy(pos: Iterable[Tensor], alpha: Number = 1., beta: Number = 1., curvature_cosine_power: Number = 3):
+    layers = pos, islice(pos, 1, None), islice(pos, 2, None)
+    curves = [curvature_energy(a, b, c, power=curvature_cosine_power) for a, b, c in zip(*layers)]
+    n = count_vertices(pos)
 
-    def inner(v1, v2):
-        return E1(v1, v2) + \
-               alpha * number_of_used_vertices_energy(n, count_segments((v1, v2))) + \
-               beta * (track_crossing_energy(v1) + track_crossing_energy(v2))
+    def inner(activation):
+        result = sum(curve(v1, v2) for curve, v1, v2 in zip(curves, activation, islice(activation, 1, None)))
+        result += alpha * number_of_used_vertices_energy(n, count_segments(activation))
+        result += beta * sum(track_crossing_energy(v) for v in activation)
+        return result
 
     return inner
