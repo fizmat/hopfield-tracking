@@ -19,10 +19,11 @@ def curvature_energy(a: Tensor, b: Tensor, c: Tensor, power: float = 3) -> Calla
 
 
 def number_of_used_vertices_energy(a, b, c):
-    N = len(a) + len(b) + len(c)
+    total_vertices = len(a) + len(b) + len(c)
 
     def inner(v1, v2):
-        return torch.square(0.5 * (v1.sum() + v2.sum() - N))
+        total_segments = v1.sum() + v2.sum()
+        return 0.5 * (total_segments - total_vertices) ** 2
 
     return inner
 
@@ -38,6 +39,6 @@ def energy(a, b, c, alpha=1., beta=1., curvature_cosine_power=3):
     t1 = number_of_used_vertices_energy(a, b, c)
 
     def inner(v1, v2):
-        return E1(v1, v2) + alpha * t1(v1, v2) + beta * (number_of_forks_energy(v1)+number_of_forks_energy(v2))
+        return E1(v1, v2) + alpha * t1(v1, v2) + beta * (number_of_forks_energy(v1) + number_of_forks_energy(v2))
 
     return inner
