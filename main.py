@@ -5,7 +5,7 @@ from torch import tensor, full
 
 from segment import energy
 
-# torch.set_default_tensor_type(torch.cuda.FloatTensor)
+torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
 raw = pd.read_csv('NeuralNetwork.txt', sep='\t', names=['x', 'y', 'z'])
 pos = [tensor(group.values, ) for _, group in raw.groupby('x')]
