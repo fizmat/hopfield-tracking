@@ -1,5 +1,6 @@
 torch
 pandas
+matplotlib
 
 pytest
 torch_testing
