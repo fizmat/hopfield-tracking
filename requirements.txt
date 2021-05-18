@@ -1,2 +1,5 @@
-pytorch
+torch
 pandas
+
+pytest
+torch_testing
