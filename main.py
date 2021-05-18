@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch import tensor, full
@@ -49,13 +50,15 @@ for i in range(7):
     a = act[i].cpu()
     print(i, '...')
     for j in range(100):
-        for k in range(100):
-            if a[j, k] < 0.5:
-                continue
-            xs = [p1[j, 0], p2[k, 0]]
-            ys = [p1[j, 1], p2[k, 1]]
-            zs = [p1[j, 2], p2[k, 2]]
-            ax.plot(xs, ys, zs,
-                    color='black',
-                    linewidth=0.5)
+        ks = range(100)
+        do_draw = a[j, ks] > 0.5
+        n = sum(do_draw)
+        point1 = np.repeat(p1[j], n, axis=-1)
+        point2 = p2[do_draw]
+        lines = np.concatenate((point1, point2), axis=-1)
+        xs, ys, zs = [lines[:, :, i] for i in range(3)]
+        ax.plot(xs, ys, zs,
+                color='black',
+                linewidth=0.5)
+        break
 plt.show()
