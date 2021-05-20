@@ -16,13 +16,8 @@ def curvature_energy_matrix(a: Tensor, b: Tensor, c: Tensor, power: float = 3.):
     return -0.5 * torch.pow(cosines, power) / rr  # ijk
 
 
-def curvature_energy(a, b, c, power=3.):
-    w_ijk = curvature_energy_matrix(a, b, c, power)
-
-    def inner(v1: Tensor, v2: Tensor) -> Tensor:
-        return (w_ijk * v1[:, :, None] * v2[None, :, :]).sum()
-
-    return inner
+def curvature_energy(w_ijk: Tensor, v_ij: Tensor, v_jk: Tensor):
+    return (w_ijk * v_ij[:, :, None] * v_jk[None, :, :]).sum()
 
 
 def count_vertices(pos: Iterable[Tensor]) -> int:
@@ -53,11 +48,11 @@ def track_crossing_energy(v):
 
 def energy(pos: Iterable[Tensor], alpha: Number = 1., beta: Number = 1., curvature_cosine_power: Number = 3):
     layers = pos, islice(pos, 1, None), islice(pos, 2, None)
-    curves = [curvature_energy(a, b, c, power=curvature_cosine_power) for a, b, c in zip(*layers)]
+    curvature_matrices = [curvature_energy_matrix(a, b, c, power=curvature_cosine_power) for a, b, c in zip(*layers)]
     n = count_vertices(pos)
 
     def inner(activation):
-        result = sum(curve(v1, v2) for curve, v1, v2 in zip(curves, activation, islice(activation, 1, None)))
+        result = sum(curvature_energy(w, v1, v2) for w, v1, v2 in zip(curvature_matrices, activation, islice(activation, 1, None)))
         result += alpha * number_of_used_vertices_energy(n, count_segments(activation))
         result += beta * sum(track_crossing_energy(v) for v in activation)
         return result

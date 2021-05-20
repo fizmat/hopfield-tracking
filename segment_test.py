@@ -178,25 +178,25 @@ def test_curvature_energy():
     a = tensor([[0., 0]])
     b = tensor([[1., 0]])
     c = tensor([[2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
-    f = curvature_energy(a, b, c)
+    w = curvature_energy_matrix(a, b, c)
     first = tensor([[1]])
-    assert f(first, tensor([[1, 0, 0, 0, 0]])) == - 0.5
-    assert f(first, tensor([[0, 1, 0, 0, 0]])) == approx(- 1. / 8)
-    assert f(first, tensor([[0, 0, 1, 0, 0]])) == approx(- 1. / 8)
-    assert f(first, tensor([[0, 0, 0, 1, 0]])) == approx(- 1. / 4)
-    assert f(first, tensor([[0, 0, 0, 0, 1]])) == approx(- 1. / 16)
-    assert f(first, tensor([[1, 1, 1, 1, 1]])) == approx(- 17. / 16)
-    assert f(first, tensor([[.1, .1, .1, .1, .1]])) == approx(- 1.7 / 16)
+    assert curvature_energy(w, first, tensor([[1, 0, 0, 0, 0]])) == - 0.5
+    assert curvature_energy(w, first, tensor([[0, 1, 0, 0, 0]])) == approx(- 1. / 8)
+    assert curvature_energy(w, first, tensor([[0, 0, 1, 0, 0]])) == approx(- 1. / 8)
+    assert curvature_energy(w, first, tensor([[0, 0, 0, 1, 0]])) == approx(- 1. / 4)
+    assert curvature_energy(w, first, tensor([[0, 0, 0, 0, 1]])) == approx(- 1. / 16)
+    assert curvature_energy(w, first, tensor([[1, 1, 1, 1, 1]])) == approx(- 17. / 16)
+    assert curvature_energy(w, first, tensor([[.1, .1, .1, .1, .1]])) == approx(- 1.7 / 16)
 
 
 def test_curvature_energy_grad():
     a = tensor([[0., 0]])
     b = tensor([[1., 0]])
     c = tensor([[2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
-    f = curvature_energy(a, b, c)
+    w = curvature_energy_matrix(a, b, c)
     first = tensor([[1.]], requires_grad=True)
     second = tensor([[1., 0, 0, 0, 0]], requires_grad=True)
-    f(first, second).backward()
+    curvature_energy(w, first, second).backward()
     assert first.grad == - 0.5
     tt.assert_almost_equal(second.grad, tensor([[- 0.5, -1./8, -1./8, -1./4, -1./16]]))
 
