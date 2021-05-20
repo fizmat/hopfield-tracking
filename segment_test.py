@@ -4,7 +4,7 @@ from pytest import approx
 from torch import tensor, zeros, ones
 
 from segment import track_crossing_energy, number_of_used_vertices_energy, curvature_energy, count_vertices, \
-    count_segments, fork_energy, join_energy, energy
+    count_segments, fork_energy, join_energy, energy, curvature_energy_matrix
 
 none = tensor([[0., 0], [0, 0]])
 track = tensor([[1., 0], [0, 0]])
@@ -164,6 +164,14 @@ def test_count_vertices_grad():
     v = tensor(8., requires_grad=True)
     number_of_used_vertices_energy(6, v).backward()
     assert v.grad == 2
+
+
+def test_curvature_energy_matrix():
+    a = tensor([[0., 0]])
+    b = tensor([[1., 0]])
+    c = tensor([[2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
+    w = curvature_energy_matrix(a, b, c)
+    tt.assert_almost_equal(w, tensor([[[-1./2, -1./8, -1./8, -1./4, -1./16]]]))
 
 
 def test_curvature_energy():

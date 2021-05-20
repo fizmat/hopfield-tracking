@@ -1,21 +1,26 @@
 from itertools import islice
-from typing import Callable, Iterable
+from typing import Iterable
 
 import torch
 from torch import Tensor, cdist, einsum, tensordot
 from torch.types import Number
 
 
-def curvature_energy(a: Tensor, b: Tensor, c: Tensor, power: float = 3) -> Callable[[Tensor, Tensor], Tensor]:
+def curvature_energy_matrix(a: Tensor, b: Tensor, c: Tensor, power: float = 3.):
     r1 = cdist(a, b)  # ij
     r2 = cdist(b, c)  # jk
     d1 = b[None, :, :] - a[:, None, :]  # ijc
     d2 = c[None, :, :] - b[:, None, :]  # jkc
-    rr = r1[:, :, None] * r2[None, :, :]
+    rr = r1[:, :, None] * r2[None, :, :]  # ijk
+    cosines = einsum('ijc,jkc->ijk', d1, d2) / rr  # ijk
+    return -0.5 * torch.pow(cosines, power) / rr  # ijk
+
+
+def curvature_energy(a, b, c, power=3.):
+    w_ijk = curvature_energy_matrix(a, b, c, power)
 
     def inner(v1: Tensor, v2: Tensor) -> Tensor:
-        cosines = einsum('ijc,jkc->ijk', d1, d2) / rr
-        return - 0.5 * (torch.pow(cosines, power) * v1[:, :, None] * v2[None, :, :] / rr).sum()
+        return (w_ijk * v1[:, :, None] * v2[None, :, :]).sum()
 
     return inner
 
