@@ -68,8 +68,8 @@ def energies(pos: Iterable[Tensor], alpha: Number = 1., beta: Number = 1.,
     def inner(activation):
         ec = sum(curvature_energy(w, v1, v2) for w, v1, v2 in
                  zip(curvature_matrices, activation, islice(activation, 1, None)))
-        en = alpha * number_of_used_vertices_energy(n, count_segments(activation))
-        ef = beta * sum(track_crossing_energy(v) for v in activation)
+        ef = alpha * sum(track_crossing_energy(v) for v in activation)
+        en = beta * number_of_used_vertices_energy(n, count_segments(activation))
         return ec, en, ef
 
     return inner
