@@ -3,14 +3,17 @@ import torch
 from matplotlib import pyplot as plt
 from torch import tensor, full
 
+from generator import gen_many_events
 from segment import energy
 
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
-raw = pd.read_csv('NeuralNetwork.txt', sep='\t', names=['x', 'y', 'z'])
-pos = [tensor(group.values, ) for _, group in raw.groupby('x')]
+pos = next(gen_many_events(1, 10))
+pos = [tensor(p) for p in pos]
 E = energy(pos, alpha=0.0001, beta=.0003, curvature_cosine_power=5)
 act = [full((len(a), len(b)), 0.1, requires_grad=True) for a, b in zip(pos, pos[1:])]
+perfect_act = [torch.eye(len(a)) for a in act]
+
 perfect_act = [torch.eye(len(a)) for a in act]
 
 T = 50.
