@@ -11,6 +11,7 @@ raw = pd.read_csv('NeuralNetwork.txt', sep='\t', names=['x', 'y', 'z'])
 pos = [tensor(group.values, ) for _, group in raw.groupby('x')]
 E = energy(pos, alpha=0.0001, beta=.0003, curvature_cosine_power=5)
 act = [full((len(a), len(b)), 0.1, requires_grad=True) for a, b in zip(pos, pos[1:])]
+perfect_act = [torch.eye(len(a)) for a in act]
 
 T = 50.
 
@@ -36,26 +37,42 @@ for i in range(7):
     plt.imshow(act[i].cpu().detach().numpy(), vmin=0, vmax=1, cmap='gray')
     plt.show()
 
+THRESHOLD = 0.5
+
+fig = plt.figure(figsize=(10, 10))
+ax = fig.add_subplot(1, 1, 1)
+
 fig = plt.figure(figsize=(10, 10))
 
 ax = fig.add_subplot(1, 1, 1, projection='3d')
 ax.set_zlabel('Z')
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
+count = 0
 
 for i in range(7):
     p1 = pos[i].cpu()
     p2 = pos[i + 1].cpu()
     a = act[i].cpu()
+    a_good = perfect_act[i].cpu()
     print(i, '...')
-    for j in range(100):
-        for k in range(100):
-            if a[j, k] < 0.5:
+    for j in range(len(p1)):
+        for k in range(len(p2)):
+            positive = a[j, k] > THRESHOLD
+            true = a_good[j, k] > THRESHOLD
+            if positive and true:
+                color = 'black'
+            elif positive and not true:
+                color = 'red'
+            elif not positive and true:
+                color = 'blue'
+            else:
                 continue
             xs = [p1[j, 0], p2[k, 0]]
             ys = [p1[j, 1], p2[k, 1]]
             zs = [p1[j, 2], p2[k, 2]]
             ax.plot(xs, ys, zs,
-                    color='black',
-                    linewidth=0.5)
+                    color=color,
+                    linewidth=1.,
+                    marker='.')
 plt.show()
