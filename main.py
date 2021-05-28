@@ -3,11 +3,11 @@ import torch
 from matplotlib import pyplot as plt
 from torch import tensor, full
 
-from generator import gen_many_events
+from generator import SimpleEventGenerator
 from reconstruct import annealing_curve, dist_act, mean_act, recall, update_layer, should_stop, precision
 from segment import energies as energies_
 
-event = next(gen_many_events(1, 10))
+event = next(SimpleEventGenerator(1).gen_many_events(1, 10))
 
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
