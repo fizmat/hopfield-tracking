@@ -55,6 +55,22 @@ def recall(act, perfect_act, threshold=0.5):
     return (n_true_positives / n_true).item()
 
 
+def plot_activation_hist(act):
+    fig = plt.figure(figsize=(64, 8))
+    plots = fig.subplots(1, 7)
+    for i in range(7):
+        plots[i].hist(act[i].flatten().cpu().detach().numpy())
+    fig.show()
+
+
+def draw_activation_values(act):
+    fig = plt.figure(figsize=(128, 16))
+    plots = fig.subplots(1, 7)
+    for i in range(7):
+        plots[i].imshow(act[i].cpu().detach().numpy(), vmin=0, vmax=1., cmap='gray')
+    plt.show()
+
+
 def draw_tracks(pos, act, perfect_act, THRESHOLD):
     fig = plt.figure(figsize=(10, 10))
 
@@ -90,24 +106,8 @@ def draw_tracks(pos, act, perfect_act, THRESHOLD):
     fig.show()
 
 
-def plot_activation_hist(act):
-    fig = plt.figure(figsize=(64, 8))
-    plots = fig.subplots(1, 7)
-    for i in range(7):
-        plots[i].hist(act[i].flatten().cpu().detach().numpy())
-    fig.show()
-
-
-def draw_activation_values(act):
-    fig = plt.figure(figsize=(128, 16))
-    plots = fig.subplots(1, 7)
-    for i in range(7):
-        plots[i].imshow(act[i].cpu().detach().numpy(), vmin=0, vmax=1., cmap='gray')
-    plt.show()
-
-
 def draw_tracks_projection(pos, act, perfect_act, THRESHOLD):
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
 
     for i in range(7):

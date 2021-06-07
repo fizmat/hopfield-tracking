@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 from torch import tensor, full
 
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, dist_act, mean_act, recall, update_layer, should_stop, precision, draw_tracks, \
-    draw_tracks_projection, draw_activation_values, plot_activation_hist
+from reconstruct import annealing_curve, update_layer, should_stop, draw_tracks, \
+    draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, mean_act, dist_act
 from segment import energies as energies_
 
 event = next(SimpleEventGenerator(1).gen_many_events(1, 10))
@@ -36,47 +36,48 @@ LEARNING_RATE = 0.2
 temp_curve = annealing_curve(TMIN, TMAX, ANNEAL_ITERATIONS, STABLE_ITERATIONS)
 plt.plot(temp_curve)
 
-history = pd.DataFrame({'temp': temp_curve})
+acts = []
 
 energies = energies_(pos, ALPHA, BETA, POWER, COS_MIN)
-
-history['energy'] = 0
-history['E_curve'] = 0
-history['E_fork'] = 0
-history['E_number'] = 0
-history['dist_perfect'] = 0
-history['mean_act'] = 0
-history['precision'] = 0
-history['recall'] = 0
-
-for i in history.index:
-    ec, en, ef = energies(act)
-    e_total = ec + ef + en
-    history.loc[i, 'energy'] = e_total.item()
-    history.loc[i, 'E_curve'] = -ec.item()
-    history.loc[i, 'E_fork'] = ef.item()
-    history.loc[i, 'E_number'] = en.item()
-    history.loc[i, 'dist_perfect'] = dist_act(act, perfect_act)
-    history.loc[i, 'mean_act'] = mean_act(act)
-    history.loc[i, 'precision'] = precision(act, perfect_act, THRESHOLD)
-    history.loc[i, 'recall'] = recall(act, perfect_act, THRESHOLD)
-
+for t in temp_curve:
+    acts.append([a.detach() for a in act])
+    e_total = sum(energies(act))
     e_total.backward()
     a_prev = act
-    act = [update_layer(a, history.temp[i], DROPOUT, LEARNING_RATE) for a in act]
+    act = [update_layer(a, t, DROPOUT, LEARNING_RATE) for a in a_prev]
     if should_stop(a_prev, act):
-        history = history.loc[:(i + 1)]
         break
 
-history.plot(y=['precision', 'recall', 'mean_act', 'dist_perfect'], figsize=(12, 12))
-history[['E_curve', 'E_fork', 'E_number']].plot(figsize=(12, 12), logy=True)
+energy_history = []
+for act in acts:
+    ec, en, ef = energies(act)
+    ec = -ec
+    energy_history.append([ec.item(), en.item(), ef.item()])
+energy_history = pd.DataFrame(energy_history, columns=['E_curve', 'E_number', 'E_fork'])
 
-plot_activation_hist(act)
+small_history = pd.DataFrame([
+    (
+        precision(act, perfect_act, THRESHOLD),
+        recall(act, perfect_act, THRESHOLD),
+        mean_act(act),
+        dist_act(act, perfect_act)
+    ) for act in acts],
+    columns=['precision', 'recall', 'mean_act', 'dist_perfect'])
 
-draw_activation_values(act)
+small_history.plot(figsize=(12, 12))
+energy_history.plot(figsize=(12, 12), logy=True)
 
-draw_activation_values([a > THRESHOLD for a in act])
+for i in range(0, len(acts), 50):
+    plot_activation_hist(acts[i])
 
-draw_tracks(pos, act, perfect_act, THRESHOLD)
+for i in range(0, len(acts), 50):
+    draw_activation_values(acts[i])
 
-draw_tracks_projection(pos, act, perfect_act, THRESHOLD)
+for i in range(0, len(acts), 50):
+    draw_activation_values([a > THRESHOLD for a in acts[i]])
+
+for i in range(0, len(acts), 50):
+    draw_tracks(pos, acts[i], perfect_act, THRESHOLD)
+
+for i in range(0, len(acts), 50):
+    draw_tracks_projection(pos, acts[i], perfect_act, THRESHOLD)
