@@ -4,7 +4,8 @@ from matplotlib import pyplot as plt
 from torch import tensor, full
 
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, dist_act, mean_act, recall, update_layer, should_stop, precision
+from reconstruct import annealing_curve, dist_act, mean_act, recall, update_layer, should_stop, precision, draw_tracks, \
+    draw_tracks_projection, draw_activation_values, plot_activation_hist
 from segment import energies as energies_
 
 event = next(SimpleEventGenerator(1).gen_many_events(1, 10))
@@ -70,84 +71,12 @@ for i in history.index:
 history.plot(y=['precision', 'recall', 'mean_act', 'dist_perfect'], figsize=(12, 12))
 history[['E_curve', 'E_fork', 'E_number']].plot(figsize=(12, 12), logy=True)
 
-fig = plt.figure(figsize=(64, 8))
-plots = fig.subplots(1, 7)
-for i in range(7):
-    plots[i].hist(act[i].flatten().cpu().detach().numpy())
-fig.show()
+plot_activation_hist(act)
 
-fig = plt.figure(figsize=(128, 16))
-plots = fig.subplots(1, 7)
-for i in range(7):
-    plots[i].imshow([a > THRESHOLD for a in act][i].cpu().detach().numpy(), vmin=0, vmax=1., cmap='gray')
-fig.show()
+draw_activation_values(act)
 
-fig = plt.figure(figsize=(128, 16))
-plots = fig.subplots(1, 7)
-for i in range(7):
-    plots[i].imshow(act[i].cpu().detach().numpy(), vmin=0, vmax=1., cmap='gray')
-plt.show()
+draw_activation_values([a > THRESHOLD for a in act])
 
-fig = plt.figure(figsize=(10, 10))
+draw_tracks(pos, act, perfect_act, THRESHOLD)
 
-ax = fig.add_subplot(1, 1, 1, projection='3d')
-ax.set_zlabel('Z')
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-count = 0
-
-for i in range(7):
-    p1 = pos[i].cpu()
-    p2 = pos[i + 1].cpu()
-    a = act[i].cpu()
-    a_good = perfect_act[i].cpu()
-    print(i, '...')
-    for j in range(len(p1)):
-        for k in range(len(p2)):
-            positive = a[j, k] > THRESHOLD
-            true = a_good[j, k] > THRESHOLD
-            if positive and true:
-                color = 'black'
-            elif positive and not true:
-                color = 'red'
-            elif not positive and true:
-                color = 'blue'
-            else:
-                continue
-            xs = [p1[j, 0], p2[k, 0]]
-            ys = [p1[j, 1], p2[k, 1]]
-            zs = [p1[j, 2], p2[k, 2]]
-            ax.plot(xs, ys, zs,
-                    color=color,
-                    linewidth=1.,
-                    marker='.')
-fig.show()
-
-fig = plt.figure(figsize=(10, 10))
-ax = fig.add_subplot(1, 1, 1)
-
-for i in range(7):
-    p1 = pos[i].cpu()
-    p2 = pos[i + 1].cpu()
-    a = act[i].cpu()
-    a_good = perfect_act[i].cpu()
-    print(i, '...')
-    for j in range(len(p1)):
-        for k in range(len(p2)):
-            positive = a[j, k] > THRESHOLD
-            true = a_good[j, k] > THRESHOLD
-            if positive and true:
-                color = 'black'
-            elif positive and not true:
-                color = 'red'
-            elif not positive and true:
-                color = 'blue'
-            else:
-                continue
-            ys = [p1[j, 1], p2[k, 1]]
-            zs = [p1[j, 2], p2[k, 2]]
-            ax.plot(ys, zs,
-                    color=color,
-                    linewidth=1.,
-                    marker='.')
-fig.show()
+draw_tracks_projection(pos, act, perfect_act, THRESHOLD)

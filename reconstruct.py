@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from torch import Tensor
 
 
@@ -52,3 +53,84 @@ def recall(act, perfect_act, threshold=0.5):
     positives = flatten_act(act) >= threshold
     n_true_positives = torch.count_nonzero(perfect_bool & positives)
     return (n_true_positives / n_true).item()
+
+
+def draw_tracks(pos, act, perfect_act, THRESHOLD):
+    fig = plt.figure(figsize=(10, 10))
+
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    ax.set_zlabel('Z')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+
+    for i in range(7):
+        p1 = pos[i].cpu()
+        p2 = pos[i + 1].cpu()
+        a = act[i].cpu()
+        a_good = perfect_act[i].cpu()
+        for j in range(len(p1)):
+            for k in range(len(p2)):
+                positive = a[j, k] > THRESHOLD
+                true = a_good[j, k] > THRESHOLD
+                if positive and true:
+                    color = 'black'
+                elif positive and not true:
+                    color = 'red'
+                elif not positive and true:
+                    color = 'blue'
+                else:
+                    continue
+                xs = [p1[j, 0], p2[k, 0]]
+                ys = [p1[j, 1], p2[k, 1]]
+                zs = [p1[j, 2], p2[k, 2]]
+                ax.plot(xs, ys, zs,
+                        color=color,
+                        linewidth=1.,
+                        marker='.')
+    fig.show()
+
+
+def plot_activation_hist(act):
+    fig = plt.figure(figsize=(64, 8))
+    plots = fig.subplots(1, 7)
+    for i in range(7):
+        plots[i].hist(act[i].flatten().cpu().detach().numpy())
+    fig.show()
+
+
+def draw_activation_values(act):
+    fig = plt.figure(figsize=(128, 16))
+    plots = fig.subplots(1, 7)
+    for i in range(7):
+        plots[i].imshow(act[i].cpu().detach().numpy(), vmin=0, vmax=1., cmap='gray')
+    plt.show()
+
+
+def draw_tracks_projection(pos, act, perfect_act, THRESHOLD):
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(1, 1, 1)
+
+    for i in range(7):
+        p1 = pos[i].cpu()
+        p2 = pos[i + 1].cpu()
+        a = act[i].cpu()
+        a_good = perfect_act[i].cpu()
+        for j in range(len(p1)):
+            for k in range(len(p2)):
+                positive = a[j, k] > THRESHOLD
+                true = a_good[j, k] > THRESHOLD
+                if positive and true:
+                    color = 'black'
+                elif positive and not true:
+                    color = 'red'
+                elif not positive and true:
+                    color = 'blue'
+                else:
+                    continue
+                ys = [p1[j, 1], p2[k, 1]]
+                zs = [p1[j, 2], p2[k, 2]]
+                ax.plot(ys, zs,
+                        color=color,
+                        linewidth=1.,
+                        marker='.')
+    fig.show()
