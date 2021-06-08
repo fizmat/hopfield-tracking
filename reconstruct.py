@@ -3,6 +3,8 @@ from typing import List
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
+from numpy import ndarray
+from scipy.stats import bernoulli
 from torch import Tensor
 
 
@@ -21,8 +23,19 @@ def update_layer(act: Tensor, t: float, dropout_rate: float = 0., learning_rate:
     return result
 
 
+def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float = 0.,
+                      learning_rate: float = 1.) -> ndarray:
+    next_act = 0.5 * (1 + np.tanh(- grad / t))
+    updated_act = next_act * learning_rate + act * (1. - learning_rate)
+    dropout = bernoulli.rvs(dropout_rate)
+    return np.where(dropout, act, updated_act)
+
+
 def flatten_act(act: List[Tensor]) -> Tensor:
-    return torch.cat(tuple(a.flatten() for a in act))
+    if type(act[0]) is ndarray:
+        return np.concatenate([a.flatten() for a in act])
+    else:
+        return torch.cat([a.flatten() for a in act])
 
 
 def mean_act(act: List[Tensor]) -> float:
@@ -36,30 +49,30 @@ def dist_act(act1: List[Tensor], act2: List[Tensor]) -> float:
 
 def should_stop(act_prev: List[Tensor], act: List[Tensor], eps: float = 1e-4) -> bool:
     diff = flatten_act(act) - flatten_act(act_prev)
-    return (diff.abs().sum() < eps).item()
+    return (np.abs(diff).sum() < eps).item()
 
 
 def precision(act, perfect_act, threshold=0.5):
     perfect_bool = flatten_act(perfect_act) > 0.5
     positives = flatten_act(act) >= threshold
-    n_positives = torch.count_nonzero(positives)
-    n_true_positives = torch.count_nonzero(perfect_bool & positives)
-    return (n_true_positives / n_positives).item()
+    n_positives = np.count_nonzero(positives)
+    n_true_positives = np.count_nonzero(perfect_bool & positives)
+    return (n_true_positives / n_positives) if n_positives else 0.
 
 
 def recall(act, perfect_act, threshold=0.5):
     perfect_bool = flatten_act(perfect_act) > 0.5
-    n_true = torch.count_nonzero(perfect_bool)
+    n_true = np.count_nonzero(perfect_bool)
     positives = flatten_act(act) >= threshold
-    n_true_positives = torch.count_nonzero(perfect_bool & positives)
-    return (n_true_positives / n_true).item()
+    n_true_positives = np.count_nonzero(perfect_bool & positives)
+    return (n_true_positives / n_true)
 
 
 def plot_activation_hist(act):
     fig = plt.figure(figsize=(64, 8))
     plots = fig.subplots(1, 7)
     for i in range(7):
-        plots[i].hist(act[i].flatten().cpu().detach().numpy())
+        plots[i].hist(act[i].flatten())
     fig.show()
 
 
@@ -67,7 +80,7 @@ def draw_activation_values(act):
     fig = plt.figure(figsize=(128, 16))
     plots = fig.subplots(1, 7)
     for i in range(7):
-        plots[i].imshow(act[i].cpu().detach().numpy(), vmin=0, vmax=1., cmap='gray')
+        plots[i].imshow(act[i], vmin=0, vmax=1., cmap='gray')
     plt.show()
 
 
@@ -80,10 +93,10 @@ def draw_tracks(pos, act, perfect_act, THRESHOLD):
     ax.set_ylabel('Y')
 
     for i in range(7):
-        p1 = pos[i].cpu()
-        p2 = pos[i + 1].cpu()
-        a = act[i].cpu()
-        a_good = perfect_act[i].cpu()
+        p1 = pos[i]
+        p2 = pos[i + 1]
+        a = act[i]
+        a_good = perfect_act[i]
         for j in range(len(p1)):
             for k in range(len(p2)):
                 positive = a[j, k] > THRESHOLD
@@ -111,10 +124,10 @@ def draw_tracks_projection(pos, act, perfect_act, THRESHOLD):
     ax = fig.add_subplot(1, 1, 1)
 
     for i in range(7):
-        p1 = pos[i].cpu()
-        p2 = pos[i + 1].cpu()
-        a = act[i].cpu()
-        a_good = perfect_act[i].cpu()
+        p1 = pos[i]
+        p2 = pos[i + 1]
+        a = act[i]
+        a_good = perfect_act[i]
         for j in range(len(p1)):
             for k in range(len(p2)):
                 positive = a[j, k] > THRESHOLD

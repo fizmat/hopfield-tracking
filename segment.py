@@ -84,8 +84,8 @@ def energy_gradient(*args, **kwargs):
     egs = energy_gradients(*args, **kwargs)
 
     def _energy_gradient(activation):
-        eg = egs(activation)
-        return [sum(eg123) for eg123 in eg]
+        ecg, eng, efg = egs(activation)
+        return [ecg[i] + eng[i] + efg[i] for i in range(len(activation))]
 
     return _energy_gradient
 

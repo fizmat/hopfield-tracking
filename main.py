@@ -1,20 +1,19 @@
+import numpy as np
 import pandas as pd
 import torch
 from matplotlib import pyplot as plt
-from torch import tensor, full
 
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, update_layer, should_stop, draw_tracks, \
-    draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, mean_act, dist_act
-from segment import energies as energies_
+from reconstruct import annealing_curve, should_stop, draw_tracks, \
+    draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, mean_act, dist_act, \
+    update_layer_grad
+from segment import energies as energies_, energy_gradient
 
 pos = next(SimpleEventGenerator(1).gen_many_events(1, 10))
 
-torch.set_default_tensor_type(torch.cuda.FloatTensor)
+act = [np.full((len(a), len(b)), 0.1) for a, b in zip(pos, pos[1:])]
 
-act = [full((len(a), len(b)), 0.1, requires_grad=True) for a, b in zip(pos, pos[1:])]
-
-perfect_act = [torch.eye(len(a)) for a in act]
+perfect_act = [np.eye(len(a)) for a in act]
 
 ALPHA = 5.  # наказание форков
 BETA = 0.01  # наказание за количество активных
@@ -36,19 +35,19 @@ plt.plot(temp_curve)
 
 acts = []
 
-energies = energies_(pos, ALPHA, BETA, POWER, COS_MIN)
+compute_gradient = energy_gradient(pos, ALPHA, BETA, POWER, COS_MIN)
 for t in temp_curve:
-    acts.append([a.detach() for a in act])
-    e_total = sum(energies(act))
-    e_total.backward()
+    acts.append(act)
+    grad = compute_gradient(act)
     a_prev = act
-    act = [update_layer(a, t, DROPOUT, LEARNING_RATE) for a in a_prev]
+    act = [update_layer_grad(a, g, t, DROPOUT, LEARNING_RATE) for a, g in zip(act, grad)]
     if should_stop(a_prev, act):
         break
 
+energies = energies_(torch.tensor(pos), ALPHA, BETA, POWER, COS_MIN)
 energy_history = []
 for act in acts:
-    ec, en, ef = energies(act)
+    ec, en, ef = energies(torch.tensor(act))
     ec = -ec
     energy_history.append([ec.item(), en.item(), ef.item()])
 energy_history = pd.DataFrame(energy_history, columns=['E_curve', 'E_number', 'E_fork'])
