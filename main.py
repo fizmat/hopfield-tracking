@@ -37,12 +37,12 @@ plt.plot(temp_curve)
 acts = []
 
 compute_gradient = energy_gradient(pos, ALPHA, BETA, POWER, COS_MIN, DROP_SELF_ACTIVATION_WEIGHTS)
-for t in temp_curve:
+for i, t in enumerate(temp_curve):
     acts.append(act)
     grad = compute_gradient(act)
     a_prev = act
     act = [update_layer_grad(a, g, t, DROPOUT, LEARNING_RATE) for a, g in zip(a_prev, grad)]
-    if should_stop(a_prev, act):
+    if should_stop(a_prev, act) and i > ANNEAL_ITERATIONS:
         break
 
 energies = energies_(pos, ALPHA, BETA, POWER, COS_MIN)
