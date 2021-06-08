@@ -13,8 +13,8 @@ def annealing_curve(t_min, t_max, cooling_steps, rest_steps):
 
 
 def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float = 0.,
-                      learning_rate: float = 1.) -> ndarray:
-    next_act = 0.5 * (1 + np.tanh(- grad / t))
+                      learning_rate: float = 1., bias: float = 0.) -> ndarray:
+    next_act = 0.5 * (1 + np.tanh((- grad + bias)/ t))
     updated_act = next_act * learning_rate + act * (1. - learning_rate)
     dropout = bernoulli.rvs(dropout_rate)
     return np.where(dropout, act, updated_act)

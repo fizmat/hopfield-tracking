@@ -15,7 +15,8 @@ act = [np.full((len(a), len(b)), 0.1) for a, b in zip(pos, pos[1:])]
 perfect_act = [np.eye(len(a)) for a in act]
 
 ALPHA = 5.  # наказание форков
-BETA = 0.01  # наказание за количество активных
+BETA = 0.  # наказание за количество активных
+BIAS = 0.2 # activation bias, can be used instead of beta
 POWER = 5  # степень косинуса в энергии за кривизну
 COS_MIN = 0.9  # минимальный косинус за который есть награда
 
@@ -41,7 +42,7 @@ for i, t in enumerate(temp_curve):
     acts.append(act)
     grad = compute_gradient(act)
     a_prev = act
-    act = [update_layer_grad(a, g, t, DROPOUT, LEARNING_RATE) for a, g in zip(a_prev, grad)]
+    act = [update_layer_grad(a, g, t, DROPOUT, LEARNING_RATE, BIAS) for a, g in zip(a_prev, grad)]
     if should_stop(a_prev, act) and i > ANNEAL_ITERATIONS:
         break
 
@@ -66,22 +67,22 @@ small_history.plot(figsize=(12, 12))
 energy_history.plot(figsize=(12, 12), logy=True)
 
 # plot_activation_hist(acts[-1])
-# draw_activation_values(acts[-1])
+draw_activation_values(acts[-1])
 # draw_activation_values([a > THRESHOLD for a in acts[-1]])
 # draw_tracks(pos, acts[-1], perfect_act, THRESHOLD)
 # draw_tracks_projection(pos, acts[-1], perfect_act, THRESHOLD)
 
-for i in range(0, len(acts), 50):
-    plot_activation_hist(acts[i])
-
-for i in range(0, len(acts), 50):
-    draw_activation_values(acts[i])
-
-for i in range(0, len(acts), 50):
-    draw_activation_values([a > THRESHOLD for a in acts[i]])
-
-for i in range(0, len(acts), 50):
-    draw_tracks(pos, acts[i], perfect_act, THRESHOLD)
-
-for i in range(0, len(acts), 50):
-    draw_tracks_projection(pos, acts[i], perfect_act, THRESHOLD)
+# for i in range(0, len(acts), 50):
+#     plot_activation_hist(acts[i])
+#
+# for i in range(0, len(acts), 50):
+#     draw_activation_values(acts[i])
+#
+# for i in range(0, len(acts), 50):
+#     draw_activation_values([a > THRESHOLD for a in acts[i]])
+#
+# for i in range(0, len(acts), 50):
+#     draw_tracks(pos, acts[i], perfect_act, THRESHOLD)
+#
+# for i in range(0, len(acts), 50):
+#     draw_tracks_projection(pos, acts[i], perfect_act, THRESHOLD)
