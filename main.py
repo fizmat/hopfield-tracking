@@ -8,11 +8,9 @@ from reconstruct import annealing_curve, update_layer, should_stop, draw_tracks,
     draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, mean_act, dist_act
 from segment import energies as energies_
 
-event = next(SimpleEventGenerator(1).gen_many_events(1, 10))
+pos = next(SimpleEventGenerator(1).gen_many_events(1, 10))
 
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
-
-pos = [tensor(layer) for layer in event]
 
 act = [full((len(a), len(b)), 0.1, requires_grad=True) for a, b in zip(pos, pos[1:])]
 
