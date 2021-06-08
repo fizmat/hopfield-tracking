@@ -1,12 +1,12 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal_nulp, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal
 from pytest import approx
 
 from reconstruct import annealing_curve, flatten_act, mean_act, dist_act, should_stop, update_layer_grad
 
 
 def test_annealing_curve():
-    assert_array_almost_equal_nulp(annealing_curve(10, 40, 3, 2), [40., 20, 10, 10, 10])
+    assert_array_almost_equal(annealing_curve(10, 40, 3, 2), [40., 20, 10, 10, 10])
 
 
 def test_update_layer_grad():

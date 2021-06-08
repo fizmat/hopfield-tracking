@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal_nulp, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal
 from pytest import approx
 
 from segment import track_crossing_energy, number_of_used_vertices_energy, curvature_energy, count_vertices, \
@@ -191,16 +191,16 @@ def test_energy_gradients_two_hits():
     eg = energy_gradients(pos)([v])
     assert [len(e) for e in eg] == [1, 1, 1]
     ecg, eng, efg = eg
-    assert_array_almost_equal_nulp(ecg[0], [[0]])
-    assert_array_almost_equal_nulp(eng[0], [[-2]])
-    assert_array_almost_equal_nulp(efg[0], [[0]])
+    assert_array_almost_equal(ecg[0], [[0]])
+    assert_array_almost_equal(eng[0], [[-2]])
+    assert_array_almost_equal(efg[0], [[0]])
     v = np.array([[1.]])
     eg = energy_gradients(pos)([v])
     assert [len(e) for e in eg] == [1, 1, 1]
     ecg, eng, efg = eg
-    assert_array_almost_equal_nulp(ecg[0], [[0]])
-    assert_array_almost_equal_nulp(eng[0], [[-1]])
-    assert_array_almost_equal_nulp(efg[0], [[0]])
+    assert_array_almost_equal(ecg[0], [[0]])
+    assert_array_almost_equal(eng[0], [[-1]])
+    assert_array_almost_equal(efg[0], [[0]])
 
 
 def test_energy_four_hits():
@@ -221,16 +221,16 @@ def test_energy_gradients_four_hits():
     eg = energy_gradients(pos)([v])
     assert [len(e) for e in eg] == [1, 1, 1]
     ecg, eng, efg = eg
-    assert_array_almost_equal_nulp(ecg[0], np.zeros((2, 2)))
-    assert_array_almost_equal_nulp(eng[0], np.full((2, 2), -4))
-    assert_array_almost_equal_nulp(efg[0], np.zeros((2, 2)))
+    assert_array_almost_equal(ecg[0], np.zeros((2, 2)))
+    assert_array_almost_equal(eng[0], np.full((2, 2), -4))
+    assert_array_almost_equal(efg[0], np.zeros((2, 2)))
     v = np.ones((2, 2))
     eg = energy_gradients(pos)([v])
     assert [len(e) for e in eg] == [1, 1, 1]
     ecg, eng, efg = eg
-    assert_array_almost_equal_nulp(ecg[0], np.zeros((2, 2)))  # short tracks, no cosines yet
-    assert_array_almost_equal_nulp(eng[0], np.zeros((2, 2)))  # exactly 4 active for 4 vertices
-    assert_array_almost_equal_nulp(efg[0], np.full((2, 2), 2))  # forks and joins
+    assert_array_almost_equal(ecg[0], np.zeros((2, 2)))  # short tracks, no cosines yet
+    assert_array_almost_equal(eng[0], np.zeros((2, 2)))  # exactly 4 active for 4 vertices
+    assert_array_almost_equal(efg[0], np.full((2, 2), 2))  # forks and joins
 
 
 def test_energy_one_track():
