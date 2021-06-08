@@ -106,7 +106,8 @@ def energies(pos: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
 
 
 def energy_gradients(pos: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
-                     curvature_cosine_power: float = 3, cosine_threshold: float = 0.):
+                     curvature_cosine_power: float = 3, cosine_threshold: float = 0.,
+                     drop_gradients_on_self: bool = True):
     layers = pos, islice(pos, 1, None), islice(pos, 2, None)
     curvature_matrices = [
         curvature_energy_matrix(a, b, c, power=curvature_cosine_power, cosine_threshold=cosine_threshold)
@@ -126,6 +127,9 @@ def energy_gradients(pos: Iterable[ndarray], alpha: float = 1., beta: float = 1.
         efg = [alpha * track_crossing_energy_gradient(v) for v in activation]
         total_act = sum(v.sum() for v in activation)
         eng = [beta * np.full_like(v, number_of_used_vertices_energy_gradient(n, total_act)) for v in activation]
+        if drop_gradients_on_self:
+            for e, a in zip(eng, activation):
+                e -= a
         return ecg, eng, efg
 
     return _energy_gradients

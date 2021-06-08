@@ -19,6 +19,8 @@ BETA = 0.01  # наказание за количество активных
 POWER = 5  # степень косинуса в энергии за кривизну
 COS_MIN = 0.9  # минимальный косинус за который есть награда
 
+DROP_SELF_ACTIVATION_WEIGHTS = True
+
 THRESHOLD = 0.5  # граница отсечения активации треков от не-треков
 
 TMAX = 40
@@ -34,7 +36,7 @@ plt.plot(temp_curve)
 
 acts = []
 
-compute_gradient = energy_gradient(pos, ALPHA, BETA, POWER, COS_MIN)
+compute_gradient = energy_gradient(pos, ALPHA, BETA, POWER, COS_MIN, DROP_SELF_ACTIVATION_WEIGHTS)
 for t in temp_curve:
     acts.append(act)
     grad = compute_gradient(act)
