@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import torch
 from matplotlib import pyplot as plt
 
 from generator import SimpleEventGenerator
@@ -40,14 +39,14 @@ for t in temp_curve:
     acts.append(act)
     grad = compute_gradient(act)
     a_prev = act
-    act = [update_layer_grad(a, g, t, DROPOUT, LEARNING_RATE) for a, g in zip(act, grad)]
+    act = [update_layer_grad(a, g, t, DROPOUT, LEARNING_RATE) for a, g in zip(a_prev, grad)]
     if should_stop(a_prev, act):
         break
 
-energies = energies_(torch.tensor(pos), ALPHA, BETA, POWER, COS_MIN)
+energies = energies_(pos, ALPHA, BETA, POWER, COS_MIN)
 energy_history = []
 for act in acts:
-    ec, en, ef = energies(torch.tensor(act))
+    ec, en, ef = energies(act)
     ec = -ec
     energy_history.append([ec.item(), en.item(), ef.item()])
 energy_history = pd.DataFrame(energy_history, columns=['E_curve', 'E_number', 'E_fork'])
@@ -63,6 +62,12 @@ small_history = pd.DataFrame([
 
 small_history.plot(figsize=(12, 12))
 energy_history.plot(figsize=(12, 12), logy=True)
+
+# plot_activation_hist(acts[-1])
+# draw_activation_values(acts[-1])
+# draw_activation_values([a > THRESHOLD for a in acts[-1]])
+# draw_tracks(pos, acts[-1], perfect_act, THRESHOLD)
+# draw_tracks_projection(pos, acts[-1], perfect_act, THRESHOLD)
 
 for i in range(0, len(acts), 50):
     plot_activation_hist(acts[i])

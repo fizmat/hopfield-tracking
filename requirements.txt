@@ -1,8 +1,6 @@
-torch
 pandas
 matplotlib
 numpy
 scipy
 
 pytest
-torch_testing
