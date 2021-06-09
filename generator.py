@@ -1,5 +1,5 @@
 import math
-from typing import Tuple, List
+from typing import Tuple, List, Generator
 
 import numpy as np
 from numpy.random import default_rng
@@ -39,6 +39,6 @@ class SimpleEventGenerator:
             layers.append(hits)
         return layers
 
-    def gen_many_events(self, n: int = 1000, event_size: int = 10) -> List[np.ndarray]:
+    def gen_many_events(self, n: int = 1000, event_size: int = 10) -> Generator[List[np.ndarray], None, None]:
         for _ in range(n):
             yield self.gen_event_hits(self.gen_event_tracks(event_size))
