@@ -8,7 +8,7 @@ from scipy.sparse import coo_matrix, spmatrix, csr_matrix
 
 
 def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
-    return np.stack([x.ravel() for x in np.meshgrid(a, b, indexing='ij')])
+    return np.stack([x.ravel() for x in np.meshgrid(a, b, indexing='ij')], axis=1)
 
 
 def gen_segments_all(df: pd.DataFrame) -> List[ndarray]:
@@ -18,16 +18,16 @@ def gen_segments_all(df: pd.DataFrame) -> List[ndarray]:
 
 def curvature_energy_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
                             power: float = 3., cosine_threshold: float = 0.) -> coo_matrix:
-    connected = coo_matrix(s_ab[1, :, None] == s_bc[None, 0, :])
-    s1 = s_ab[:, connected.row]
-    s2 = s_bc[:, connected.col]
+    connected = coo_matrix(s_ab[:, 1, None] == s_bc[None, :, 0])
+    s1 = s_ab[connected.row]
+    s2 = s_bc[connected.col]
     w = curvature_energy_pairwise(
-        pos[s1[0]],
-        pos[s1[1]],
-        pos[s2[1]],
+        pos[s1[:, 0]],
+        pos[s1[:, 1]],
+        pos[s2[:, 1]],
         power, cosine_threshold
     )
-    m = coo_matrix((w, (connected.row, connected.col)), shape=(s_ab.shape[-1], s_bc.shape[-1]))
+    m = coo_matrix((w, (connected.row, connected.col)), shape=(len(s_ab), len(s_bc)))
     m.eliminate_zeros()  # remove cosines below threshold completely
     return m
 
@@ -65,13 +65,13 @@ def number_of_used_vertices_energy_gradient(vertex_count: int, total_activation:
 
 
 def join_energy_matrix(segments: ndarray) -> csr_matrix:
-    joins = (segments[1, :, None] == segments[1, None, :])
+    joins = (segments[:, None, 1] == segments[None, :, 1])
     np.fill_diagonal(joins, 0)
     return csr_matrix(joins)
 
 
 def fork_energy_matrix(segments: ndarray) -> csr_matrix:
-    forks = (segments[0, :, None] == segments[0, None, :])
+    forks = (segments[:, None, 0] == segments[None, :, 0])
     np.fill_diagonal(forks, 0)
     return csr_matrix(forks)
 

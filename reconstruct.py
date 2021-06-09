@@ -82,7 +82,7 @@ def draw_tracks(pos, seg, act, perfect_act, THRESHOLD):
         s = seg[i]
         a = act[i]
         a_good = perfect_act[i]
-        for ns, jk in enumerate(s.transpose()):
+        for ns, jk in enumerate(s):
             j, k = jk
             positive = a[ns] > THRESHOLD
             true = a_good[ns] > THRESHOLD
@@ -112,7 +112,7 @@ def draw_tracks_projection(pos, seg, act, perfect_act, THRESHOLD):
         s = seg[i]
         a = act[i]
         a_good = perfect_act[i]
-        for ns, jk in enumerate(s.transpose()):
+        for ns, jk in enumerate(s):
             j, k = jk
             positive = a[ns] > THRESHOLD
             true = a_good[ns] > THRESHOLD

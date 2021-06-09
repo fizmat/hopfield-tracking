@@ -14,7 +14,7 @@ pos = df[['x', 'y', 'z']].values
 
 segments = gen_segments_all(df)
 
-act = [np.full(s.shape[-1], 0.1) for s in segments]
+act = [np.full(len(s), 0.1) for s in segments]
 
 perfect_act = [np.eye(10).ravel() for a in act]
 
