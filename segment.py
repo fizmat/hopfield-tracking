@@ -1,9 +1,9 @@
 from itertools import islice
-from typing import Iterable, List, Tuple
+from typing import Iterable, Tuple, Union
 
 import numpy as np
 from numpy import ndarray
-from scipy.sparse import coo_matrix, spmatrix
+from scipy.sparse import coo_matrix, spmatrix, csr_matrix
 
 
 def gen_segments_layer(a: ndarray, b: ndarray):
@@ -66,37 +66,24 @@ def number_of_used_vertices_energy_gradient(vertex_count: int, total_activation:
     return total_activation - vertex_count
 
 
-def join_energy(activation: ndarray, segments: ndarray) -> float:
+def join_energy_matrix(segments: ndarray) -> csr_matrix:
     joins = (segments[1, :, None] == segments[1, None, :])
     np.fill_diagonal(joins, 0)
-
-    return 0.5 * (joins.dot(activation).dot(activation))
-
-
-def join_energy_gradient(activation_layer: ndarray, segments: ndarray) -> ndarray:
-    joins = (segments[1, :, None] == segments[1, None, :])
-    np.fill_diagonal(joins, 0)
-    return joins.dot(activation_layer)
+    return csr_matrix(joins)
 
 
-def fork_energy(activation: ndarray, segments: ndarray) -> float:
+def fork_energy_matrix(segments: ndarray) -> csr_matrix:
     forks = (segments[0, :, None] == segments[0, None, :])
     np.fill_diagonal(forks, 0)
-    return 0.5 * (forks.dot(activation).dot(activation))
+    return csr_matrix(forks)
 
 
-def fork_energy_gradient(activation_layer: ndarray, segments: ndarray) -> ndarray:
-    forks = (segments[0, :, None] == segments[0, None, :])
-    np.fill_diagonal(forks, 0)
-    return forks.dot(activation_layer)
+def layer_energy(matrix: Union[ndarray, spmatrix], activation: ndarray) -> float:
+    return 0.5 * (matrix.dot(activation).dot(activation))
 
 
-def track_crossing_energy(activation: ndarray, segments: ndarray) -> float:
-    return fork_energy(activation, segments) + join_energy(activation, segments)
-
-
-def track_crossing_energy_gradient(activation: ndarray, segments: ndarray) -> ndarray:
-    return fork_energy_gradient(activation, segments) + join_energy_gradient(activation, segments)
+def layer_energy_gradient(matrix: Union[ndarray, spmatrix], activation: ndarray) -> ndarray:
+    return matrix.dot(activation)
 
 
 def energy(*args, **kwargs):
@@ -127,11 +114,12 @@ def energies(pos: Iterable[ndarray], segments: Iterable[ndarray], alpha: float =
                                 power=curvature_cosine_power, cosine_threshold=cosine_threshold)
         for a, b, c, s_ab, s_bc in zip(*pos_layers, *seg_layers)]
     n = count_vertices(pos)
+    crossing_matrices = [fork_energy_matrix(s) + join_energy_matrix(s) for s in segments]
 
     def inner(activation):
         ec = sum(curvature_energy(w, v1, v2) for w, v1, v2 in
                  zip(curvature_matrices, activation, islice(activation, 1, None)))
-        ef = alpha * sum(track_crossing_energy(v, s) for v, s in zip(activation, segments))
+        ef = alpha * sum(layer_energy(m, v) for v, m in zip(activation, crossing_matrices))
         en = beta * number_of_used_vertices_energy(n, count_segments(activation))
         return ec, en, ef
 
@@ -148,6 +136,7 @@ def energy_gradients(pos: Iterable[ndarray], segments: Iterable[ndarray], alpha:
                                 power=curvature_cosine_power, cosine_threshold=cosine_threshold)
         for a, b, c, s_ab, s_bc in zip(*pos_layers, *seg_layers)]
     n = count_vertices(pos)
+    crossing_matrices = [fork_energy_matrix(s) + join_energy_matrix(s) for s in segments]
 
     def _energy_gradients(activation):
         ec_g1g2 = [curvature_energy_gradient(w, v1, v2) for w, v1, v2 in
@@ -159,7 +148,7 @@ def energy_gradients(pos: Iterable[ndarray], segments: Iterable[ndarray], alpha:
             if i > 0:
                 ecg[i] += ec_g1g2[i - 1][1]
 
-        efg = [alpha * track_crossing_energy_gradient(v, s) for v, s in zip(activation, segments)]
+        efg = [alpha * layer_energy_gradient(m, v) for v, m in zip(activation, crossing_matrices)]
         total_act = sum(v.sum() for v in activation)
         eng = [beta * np.full_like(v, number_of_used_vertices_energy_gradient(n, total_act)) for v in activation]
         if drop_gradients_on_self:

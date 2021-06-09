@@ -2,10 +2,11 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from pytest import approx
 
-from segment import track_crossing_energy, number_of_used_vertices_energy, curvature_energy, count_vertices, \
-    count_segments, fork_energy, join_energy, energy, curvature_energy_matrix, fork_energy_gradient, \
-    join_energy_gradient, curvature_energy_gradient, energy_gradients, number_of_used_vertices_energy_gradient, \
-    curvature_energy_pairwise, gen_segments_layer, gen_segments_all
+from segment import number_of_used_vertices_energy, curvature_energy, count_vertices, \
+    count_segments, energy, curvature_energy_matrix, curvature_energy_gradient, energy_gradients, \
+    number_of_used_vertices_energy_gradient, \
+    curvature_energy_pairwise, gen_segments_layer, gen_segments_all, fork_energy_matrix, layer_energy, \
+    layer_energy_gradient, join_energy_matrix
 
 none = np.array([0., 0, 0, 0])
 track = np.array([1., 0, 0, 0])
@@ -34,80 +35,67 @@ def test_gen_segment_all():
 
 
 def test_fork_energy():
-    assert fork_energy(none, segments) == 0
-    assert fork_energy(track, segments) == 0
-    assert fork_energy(parallel, segments) == 0
-    assert fork_energy(cross, segments) == 0
-    assert fork_energy(fork, segments) == 1.
-    assert fork_energy(join, segments) == 0.
-    assert fork_energy(zed, segments) == 1.
-    assert fork_energy(full, segments) == 2.
-    assert fork_energy(0.5 * fork, segments) == 0.25
-    assert fork_energy(0.5 * join, segments) == 0
-    assert fork_energy(0.5 * zed, segments) == 0.25
-    assert fork_energy(0.5 * full, segments) == 0.5
+    m = fork_energy_matrix(segments)
+    assert layer_energy(m, none) == 0
+    assert layer_energy(m, track) == 0
+    assert layer_energy(m, parallel) == 0
+    assert layer_energy(m, cross) == 0
+    assert layer_energy(m, fork) == 1.
+    assert layer_energy(m, join) == 0.
+    assert layer_energy(m, zed) == 1.
+    assert layer_energy(m, full) == 2.
+    assert layer_energy(m, 0.5 * fork) == 0.25
+    assert layer_energy(m, 0.5 * join) == 0
+    assert layer_energy(m, 0.5 * zed) == 0.25
+    assert layer_energy(m, 0.5 * full) == 0.5
 
 
 def test_fork_energy_gradient():
-    grad = fork_energy_gradient
-    assert_array_almost_equal(grad(none, segments), np.zeros(4))
-    assert_array_almost_equal(grad(track, segments), np.array([0, 1, 0, 0]))
-    assert_array_almost_equal(grad(parallel, segments), np.array([0, 1, 1, 0]))
-    assert_array_almost_equal(grad(cross, segments), np.array([1, 0, 0, 1]))
-    assert_array_almost_equal(grad(fork, segments), np.array([1, 1, 0, 0]))
-    assert_array_almost_equal(grad(join, segments), np.array([0, 1, 0, 1]))
-    assert_array_almost_equal(grad(zed, segments), np.array([0, 1, 1, 1]))
-    assert_array_almost_equal(grad(full, segments), np.array([1, 1, 1, 1]))
-    assert_array_almost_equal(grad(0.5 * fork, segments), np.array([.5, .5, 0, 0]))
-    assert_array_almost_equal(grad(0.5 * join, segments), np.array([0, .5, 0, .5]))
-    assert_array_almost_equal(grad(0.5 * zed, segments), np.array([0, .5, .5, .5]))
-    assert_array_almost_equal(grad(0.5 * full, segments), np.array([.5, .5, .5, .5]))
+    grad = lambda v: layer_energy_gradient(fork_energy_matrix(segments), v)
+    assert_array_almost_equal(grad(none), np.zeros(4))
+    assert_array_almost_equal(grad(track), np.array([0, 1, 0, 0]))
+    assert_array_almost_equal(grad(parallel), np.array([0, 1, 1, 0]))
+    assert_array_almost_equal(grad(cross), np.array([1, 0, 0, 1]))
+    assert_array_almost_equal(grad(fork), np.array([1, 1, 0, 0]))
+    assert_array_almost_equal(grad(join), np.array([0, 1, 0, 1]))
+    assert_array_almost_equal(grad(zed), np.array([0, 1, 1, 1]))
+    assert_array_almost_equal(grad(full), np.array([1, 1, 1, 1]))
+    assert_array_almost_equal(grad(0.5 * fork), np.array([.5, .5, 0, 0]))
+    assert_array_almost_equal(grad(0.5 * join), np.array([0, .5, 0, .5]))
+    assert_array_almost_equal(grad(0.5 * zed), np.array([0, .5, .5, .5]))
+    assert_array_almost_equal(grad(0.5 * full), np.array([.5, .5, .5, .5]))
 
 
 def test_join_energy():
-    assert join_energy(none, segments) == 0
-    assert join_energy(track, segments) == 0
-    assert join_energy(parallel, segments) == 0
-    assert join_energy(cross, segments) == 0
-    assert join_energy(fork, segments) == 0
-    assert join_energy(join, segments) == 1.
-    assert join_energy(zed, segments) == 1.
-    assert join_energy(full, segments) == 2.
-    assert join_energy(0.5 * fork, segments) == 0
-    assert join_energy(0.5 * join, segments) == 0.25
-    assert join_energy(0.5 * zed, segments) == 0.25
-    assert join_energy(0.5 * full, segments) == 0.5
+    m = join_energy_matrix(segments)
+    assert layer_energy(m, none) == 0
+    assert layer_energy(m, track) == 0
+    assert layer_energy(m, parallel) == 0
+    assert layer_energy(m, cross) == 0
+    assert layer_energy(m, fork) == 0
+    assert layer_energy(m, join) == 1.
+    assert layer_energy(m, zed) == 1.
+    assert layer_energy(m, full) == 2.
+    assert layer_energy(m, 0.5 * fork) == 0
+    assert layer_energy(m, 0.5 * join) == 0.25
+    assert layer_energy(m, 0.5 * zed) == 0.25
+    assert layer_energy(m, 0.5 * full) == 0.5
 
 
 def test_join_energy_grad():
-    grad = join_energy_gradient
-    assert_array_almost_equal(grad(none, segments), np.zeros(4))
-    assert_array_almost_equal(grad(track, segments), np.array([0, 0, 1, 0]))
-    assert_array_almost_equal(grad(parallel, segments), np.array([0, 1, 1, 0]))
-    assert_array_almost_equal(grad(cross, segments), np.array([1, 0, 0, 1]))
-    assert_array_almost_equal(grad(fork, segments), np.array([0, 0, 1, 1]))
-    assert_array_almost_equal(grad(join, segments), np.array([1, 0, 1, 0]))
-    assert_array_almost_equal(grad(zed, segments), np.array([1, 1, 1, 0]))
-    assert_array_almost_equal(grad(full, segments), np.array([1, 1, 1, 1]))
-    assert_array_almost_equal(grad(0.5 * fork, segments), np.array([0, 0, .5, .5]))
-    assert_array_almost_equal(grad(0.5 * join, segments), np.array([.5, 0, .5, 0]))
-    assert_array_almost_equal(grad(0.5 * zed, segments), np.array([.5, .5, .5, 0]))
-    assert_array_almost_equal(grad(0.5 * full, segments), np.array([.5, .5, .5, .5]))
-
-
-def test_track_crossing_energy():
-    assert track_crossing_energy(none, segments) == 0
-    assert track_crossing_energy(track, segments) == 0
-    assert track_crossing_energy(parallel, segments) == 0
-    assert track_crossing_energy(cross, segments) == 0
-    assert track_crossing_energy(fork, segments) == 1.
-    assert track_crossing_energy(join, segments) == 1.
-    assert track_crossing_energy(zed, segments) == 2.
-    assert track_crossing_energy(full, segments) == 4.
-    assert track_crossing_energy(0.5 * fork, segments) == 0.25
-    assert track_crossing_energy(0.5 * join, segments) == 0.25
-    assert track_crossing_energy(0.5 * zed, segments) == 0.5
-    assert track_crossing_energy(0.5 * full, segments) == 1.
+    grad = lambda v: layer_energy_gradient(join_energy_matrix(segments), v)
+    assert_array_almost_equal(grad(none), np.zeros(4))
+    assert_array_almost_equal(grad(track), np.array([0, 0, 1, 0]))
+    assert_array_almost_equal(grad(parallel), np.array([0, 1, 1, 0]))
+    assert_array_almost_equal(grad(cross), np.array([1, 0, 0, 1]))
+    assert_array_almost_equal(grad(fork), np.array([0, 0, 1, 1]))
+    assert_array_almost_equal(grad(join), np.array([1, 0, 1, 0]))
+    assert_array_almost_equal(grad(zed), np.array([1, 1, 1, 0]))
+    assert_array_almost_equal(grad(full), np.array([1, 1, 1, 1]))
+    assert_array_almost_equal(grad(0.5 * fork), np.array([0, 0, .5, .5]))
+    assert_array_almost_equal(grad(0.5 * join), np.array([.5, 0, .5, 0]))
+    assert_array_almost_equal(grad(0.5 * zed), np.array([.5, .5, .5, 0]))
+    assert_array_almost_equal(grad(0.5 * full), np.array([.5, .5, .5, .5]))
 
 
 def test_count_vertices():
