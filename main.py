@@ -8,7 +8,9 @@ from reconstruct import annealing_curve, should_stop, draw_tracks, \
     update_layer_grad
 from segment import energies as energies_, energy_gradient, gen_segments_all
 
-pos = next(SimpleEventGenerator(1).gen_many_events(1, 10))
+df = next(SimpleEventGenerator(1).gen_many_events(1, 10))
+
+pos = [g[['x', 'y', 'z']].values for _, g in df.groupby('layer')]
 
 segments = gen_segments_all(pos)
 
