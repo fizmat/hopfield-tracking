@@ -6,13 +6,15 @@ from generator import SimpleEventGenerator
 from reconstruct import annealing_curve, should_stop, draw_tracks, \
     draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, mean_act, dist_act, \
     update_layer_grad
-from segment import energies as energies_, energy_gradient
+from segment import energies as energies_, energy_gradient, gen_segments_all
 
 pos = next(SimpleEventGenerator(1).gen_many_events(1, 10))
 
-act = [np.full((len(a), len(b)), 0.1) for a, b in zip(pos, pos[1:])]
+segments = gen_segments_all(pos)
 
-perfect_act = [np.eye(len(a)) for a in act]
+act = [np.full(s.shape[-1], 0.1) for s in segments]
+
+perfect_act = [np.eye(10).ravel() for a in act]
 
 ALPHA = 5.  # наказание форков
 BETA = 0.  # наказание за количество активных
@@ -37,7 +39,7 @@ plt.plot(temp_curve)
 
 acts = []
 
-compute_gradient = energy_gradient(pos, ALPHA, BETA, POWER, COS_MIN, DROP_SELF_ACTIVATION_WEIGHTS)
+compute_gradient = energy_gradient(pos, segments, ALPHA, BETA, POWER, COS_MIN, DROP_SELF_ACTIVATION_WEIGHTS)
 for i, t in enumerate(temp_curve):
     acts.append(act)
     grad = compute_gradient(act)
@@ -46,7 +48,7 @@ for i, t in enumerate(temp_curve):
     if should_stop(a_prev, act) and i > ANNEAL_ITERATIONS:
         break
 
-energies = energies_(pos, ALPHA, BETA, POWER, COS_MIN)
+energies = energies_(pos, segments, ALPHA, BETA, POWER, COS_MIN)
 energy_history = []
 for act in acts:
     ec, en, ef = energies(act)
@@ -66,11 +68,11 @@ small_history = pd.DataFrame([
 small_history.plot(figsize=(12, 12))
 energy_history.plot(figsize=(12, 12), logy=True)
 
-# plot_activation_hist(acts[-1])
+plot_activation_hist(acts[-1])
 draw_activation_values(acts[-1])
-# draw_activation_values([a > THRESHOLD for a in acts[-1]])
-# draw_tracks(pos, acts[-1], perfect_act, THRESHOLD)
-# draw_tracks_projection(pos, acts[-1], perfect_act, THRESHOLD)
+draw_activation_values([a > THRESHOLD for a in acts[-1]])
+draw_tracks(pos, segments, acts[-1], perfect_act, THRESHOLD)
+draw_tracks_projection(pos, segments, acts[-1], perfect_act, THRESHOLD)
 
 # for i in range(0, len(acts), 50):
 #     plot_activation_hist(acts[i])

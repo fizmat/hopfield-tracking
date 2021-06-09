@@ -66,11 +66,11 @@ def draw_activation_values(act):
     fig = plt.figure(figsize=(128, 16))
     plots = fig.subplots(1, 7)
     for i in range(7):
-        plots[i].imshow(act[i], vmin=0, vmax=1., cmap='gray')
+        plots[i].imshow(act[i].reshape((10, 10)), vmin=0, vmax=1., cmap='gray')
     plt.show()
 
 
-def draw_tracks(pos, act, perfect_act, THRESHOLD):
+def draw_tracks(pos, seg, act, perfect_act, THRESHOLD):
     fig = plt.figure(figsize=(10, 10))
 
     ax = fig.add_subplot(1, 1, 1, projection='3d')
@@ -81,55 +81,57 @@ def draw_tracks(pos, act, perfect_act, THRESHOLD):
     for i in range(7):
         p1 = pos[i]
         p2 = pos[i + 1]
+        s = seg[i]
         a = act[i]
         a_good = perfect_act[i]
-        for j in range(len(p1)):
-            for k in range(len(p2)):
-                positive = a[j, k] > THRESHOLD
-                true = a_good[j, k] > THRESHOLD
-                if positive and true:
-                    color = 'black'
-                elif positive and not true:
-                    color = 'red'
-                elif not positive and true:
-                    color = 'blue'
-                else:
-                    continue
-                xs = [p1[j, 0], p2[k, 0]]
-                ys = [p1[j, 1], p2[k, 1]]
-                zs = [p1[j, 2], p2[k, 2]]
-                ax.plot(xs, ys, zs,
-                        color=color,
-                        linewidth=1.,
-                        marker='.')
+        for ns, jk in enumerate(s.transpose()):
+            j, k = jk
+            positive = a[ns] > THRESHOLD
+            true = a_good[ns] > THRESHOLD
+            if positive and true:
+                color = 'black'
+            elif positive and not true:
+                color = 'red'
+            elif not positive and true:
+                color = 'blue'
+            else:
+                continue
+            xs = [p1[j, 0], p2[k, 0]]
+            ys = [p1[j, 1], p2[k, 1]]
+            zs = [p1[j, 2], p2[k, 2]]
+            ax.plot(xs, ys, zs,
+                    color=color,
+                    linewidth=1.,
+                    marker='.')
     fig.show()
 
 
-def draw_tracks_projection(pos, act, perfect_act, THRESHOLD):
+def draw_tracks_projection(pos, seg, act, perfect_act, THRESHOLD):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
 
     for i in range(7):
         p1 = pos[i]
         p2 = pos[i + 1]
+        s = seg[i]
         a = act[i]
         a_good = perfect_act[i]
-        for j in range(len(p1)):
-            for k in range(len(p2)):
-                positive = a[j, k] > THRESHOLD
-                true = a_good[j, k] > THRESHOLD
-                if positive and true:
-                    color = 'black'
-                elif positive and not true:
-                    color = 'red'
-                elif not positive and true:
-                    color = 'blue'
-                else:
-                    continue
-                ys = [p1[j, 1], p2[k, 1]]
-                zs = [p1[j, 2], p2[k, 2]]
-                ax.plot(ys, zs,
-                        color=color,
-                        linewidth=1.,
-                        marker='.')
+        for ns, jk in enumerate(s.transpose()):
+            j, k = jk
+            positive = a[ns] > THRESHOLD
+            true = a_good[ns] > THRESHOLD
+            if positive and true:
+                color = 'black'
+            elif positive and not true:
+                color = 'red'
+            elif not positive and true:
+                color = 'blue'
+            else:
+                continue
+            ys = [p1[j, 1], p2[k, 1]]
+            zs = [p1[j, 2], p2[k, 2]]
+            ax.plot(ys, zs,
+                    color=color,
+                    linewidth=1.,
+                    marker='.')
     fig.show()
