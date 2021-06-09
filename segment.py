@@ -1,28 +1,30 @@
 from itertools import islice
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Tuple, Union, List
 
 import numpy as np
+import pandas as pd
 from numpy import ndarray
 from scipy.sparse import coo_matrix, spmatrix, csr_matrix
 
 
-def gen_segments_layer(a: ndarray, b: ndarray):
-    return np.mgrid[0:len(a), 0:len(b)].reshape((2, -1))
+def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
+    return np.stack([x.ravel() for x in np.meshgrid(a, b, indexing='ij')])
 
 
-def gen_segments_all(pos: Iterable[ndarray]):
-    return [gen_segments_layer(a, b) for a, b in zip(pos, pos[1:])]
+def gen_segments_all(df: pd.DataFrame) -> List[ndarray]:
+    vert_i_by_layer = [g.index for _, g in df.groupby('layer')]
+    return [gen_segments_layer(a, b) for a, b in zip(vert_i_by_layer, vert_i_by_layer[1:])]
 
 
-def curvature_energy_matrix(a: ndarray, b: ndarray, c: ndarray, s_ab: ndarray, s_bc: ndarray,
+def curvature_energy_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
                             power: float = 3., cosine_threshold: float = 0.) -> coo_matrix:
     connected = coo_matrix(s_ab[1, :, None] == s_bc[None, 0, :])
     s1 = s_ab[:, connected.row]
     s2 = s_bc[:, connected.col]
     w = curvature_energy_pairwise(
-        a[s1[0]],
-        b[s1[1]],
-        c[s2[1]],
+        pos[s1[0]],
+        pos[s1[1]],
+        pos[s2[1]],
         power, cosine_threshold
     )
     m = coo_matrix((w, (connected.row, connected.col)), shape=(s_ab.shape[-1], s_bc.shape[-1]))
@@ -48,10 +50,6 @@ def curvature_energy(w: spmatrix, v1: ndarray, v2: ndarray) -> float:
 
 def curvature_energy_gradient(w: spmatrix, v1: ndarray, v2: ndarray) -> Tuple[ndarray, ndarray]:
     return w.dot(v2), w.transpose().dot(v1)
-
-
-def count_vertices(pos: Iterable[ndarray]) -> int:
-    return sum(map(len, pos))
 
 
 def count_segments(activation: Iterable[ndarray]) -> ndarray:
@@ -105,15 +103,14 @@ def energy_gradient(*args, **kwargs):
     return _energy_gradient
 
 
-def energies(pos: Iterable[ndarray], segments: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
+def energies(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
              curvature_cosine_power: float = 3, cosine_threshold: float = 0.):
-    pos_layers = pos, islice(pos, 1, None), islice(pos, 2, None)
     seg_layers = segments, islice(segments, 1, None)
     curvature_matrices = [
-        curvature_energy_matrix(a, b, c, s_ab, s_bc,
+        curvature_energy_matrix(pos, s_ab, s_bc,
                                 power=curvature_cosine_power, cosine_threshold=cosine_threshold)
-        for a, b, c, s_ab, s_bc in zip(*pos_layers, *seg_layers)]
-    n = count_vertices(pos)
+        for s_ab, s_bc in zip(*seg_layers)]
+    n = len(pos)
     crossing_matrices = [fork_energy_matrix(s) + join_energy_matrix(s) for s in segments]
 
     def inner(activation):
@@ -126,16 +123,15 @@ def energies(pos: Iterable[ndarray], segments: Iterable[ndarray], alpha: float =
     return inner
 
 
-def energy_gradients(pos: Iterable[ndarray], segments: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
+def energy_gradients(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
                      curvature_cosine_power: float = 3, cosine_threshold: float = 0.,
                      drop_gradients_on_self: bool = True):
-    pos_layers = pos, islice(pos, 1, None), islice(pos, 2, None)
     seg_layers = segments, islice(segments, 1, None)
     curvature_matrices = [
-        curvature_energy_matrix(a, b, c, s_ab, s_bc,
+        curvature_energy_matrix(pos, s_ab, s_bc,
                                 power=curvature_cosine_power, cosine_threshold=cosine_threshold)
-        for a, b, c, s_ab, s_bc in zip(*pos_layers, *seg_layers)]
-    n = count_vertices(pos)
+        for s_ab, s_bc in zip(*seg_layers)]
+    n = len(pos)
     crossing_matrices = [fork_energy_matrix(s) + join_energy_matrix(s) for s in segments]
 
     def _energy_gradients(activation):

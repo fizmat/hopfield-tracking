@@ -10,9 +10,9 @@ from segment import energies as energies_, energy_gradient, gen_segments_all
 
 df = next(SimpleEventGenerator(1).gen_many_events(1, 10))
 
-pos = [g[['x', 'y', 'z']].values for _, g in df.groupby('layer')]
+pos = df[['x', 'y', 'z']].values
 
-segments = gen_segments_all(pos)
+segments = gen_segments_all(df)
 
 act = [np.full(s.shape[-1], 0.1) for s in segments]
 

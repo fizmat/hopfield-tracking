@@ -79,8 +79,6 @@ def draw_tracks(pos, seg, act, perfect_act, THRESHOLD):
     ax.set_ylabel('Y')
 
     for i in range(7):
-        p1 = pos[i]
-        p2 = pos[i + 1]
         s = seg[i]
         a = act[i]
         a_good = perfect_act[i]
@@ -96,9 +94,9 @@ def draw_tracks(pos, seg, act, perfect_act, THRESHOLD):
                 color = 'blue'
             else:
                 continue
-            xs = [p1[j, 0], p2[k, 0]]
-            ys = [p1[j, 1], p2[k, 1]]
-            zs = [p1[j, 2], p2[k, 2]]
+            xs = [pos[j, 0], pos[k, 0]]
+            ys = [pos[j, 1], pos[k, 1]]
+            zs = [pos[j, 2], pos[k, 2]]
             ax.plot(xs, ys, zs,
                     color=color,
                     linewidth=1.,
@@ -111,8 +109,6 @@ def draw_tracks_projection(pos, seg, act, perfect_act, THRESHOLD):
     ax = fig.add_subplot(1, 1, 1)
 
     for i in range(7):
-        p1 = pos[i]
-        p2 = pos[i + 1]
         s = seg[i]
         a = act[i]
         a_good = perfect_act[i]
@@ -128,8 +124,8 @@ def draw_tracks_projection(pos, seg, act, perfect_act, THRESHOLD):
                 color = 'blue'
             else:
                 continue
-            ys = [p1[j, 1], p2[k, 1]]
-            zs = [p1[j, 2], p2[k, 2]]
+            ys = [pos[j, 1], pos[k, 1]]
+            zs = [pos[j, 2], pos[k, 2]]
             ax.plot(ys, zs,
                     color=color,
                     linewidth=1.,

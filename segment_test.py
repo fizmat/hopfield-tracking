@@ -1,9 +1,10 @@
 import numpy as np
+import pandas as pd
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from pytest import approx
 from scipy.sparse import csr_matrix
 
-from segment import number_of_used_vertices_energy, curvature_energy, count_vertices, \
+from segment import number_of_used_vertices_energy, curvature_energy, \
     count_segments, energy, curvature_energy_matrix, curvature_energy_gradient, energy_gradients, \
     number_of_used_vertices_energy_gradient, \
     curvature_energy_pairwise, gen_segments_layer, gen_segments_all, fork_energy_matrix, layer_energy, \
@@ -11,22 +12,22 @@ from segment import number_of_used_vertices_energy, curvature_energy, count_vert
 
 
 def test_gen_segments_layer():
-    a = np.empty((2, 3))
-    b = np.empty((4, 3))
+    a = np.arange(2)
+    b = np.arange(4)
     assert_array_equal(gen_segments_layer(a, b),
                        [[0, 0, 0, 0, 1, 1, 1, 1],
                         [0, 1, 2, 3, 0, 1, 2, 3]])
 
 
 def test_gen_segment_all():
-    pos = [np.empty((2, 3)), np.empty((3, 3)), np.empty((1, 3))]
-    v1, v2 = gen_segments_all(pos)
-    assert_array_equal(v1, [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]])
-    assert_array_equal(v2, [[0, 1, 2], [0, 0, 0]])
+    df = pd.DataFrame({'x': 0, 'y': 0, 'z': 0, 'layer': [0, 0, 1, 1, 1, 2], 'track': 0})
+    v1, v2 = gen_segments_all(df)
+    assert_array_equal(v1, [[0, 0, 0, 1, 1, 1], [2, 3, 4, 2, 3, 4]])
+    assert_array_equal(v2, [[2, 3, 4], [5, 5, 5]])
 
 
 def test_fork_matrix():
-    segments = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
+    segments = np.array([[0, 0, 1, 1], [2, 3, 2, 3]])
     m = fork_energy_matrix(segments)
     assert_array_equal(m.todense(), [[0, 1, 0, 0],
                                      [1, 0, 0, 0],
@@ -35,8 +36,7 @@ def test_fork_matrix():
 
 
 def test_join_matrix():
-
-    segments = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
+    segments = np.array([[0, 0, 1, 1], [2, 3, 2, 3]])
     m = join_energy_matrix(segments)
     assert_array_equal(m.todense(), [[0, 0, 1, 0],
                                      [0, 0, 0, 1],
@@ -65,12 +65,6 @@ def test_layer_energy_gradient():
                               np.array([1, 1]))
     assert_array_almost_equal(layer_energy_gradient(csr_matrix(m), np.array([0.5, 1])),
                               np.array([1, 0.5]))
-
-
-def test_count_vertices():
-    assert count_vertices(()) == 0
-    assert count_vertices([np.zeros((2, 4))]) == 2
-    assert count_vertices([np.ones((2, 2)), np.ones((3, 2))]) == 5
 
 
 def test_count_segments():
@@ -113,20 +107,20 @@ def test_curvature_energy_pairwise():
 
 
 def test_curvature_energy_matrix():
-    a = np.array([[0., 0]])
-    b = np.array([[1., 0]])
-    c = np.array([[2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
-    w = curvature_energy_matrix(a, b, c, gen_segments_layer(a, b), gen_segments_layer(b, c))
+    pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
+    s1 = np.array([[0], [1]])
+    s2 = np.array([[1, 1, 1, 1, 1], [2, 3, 4, 5, 6]])
+    w = curvature_energy_matrix(pos, s1, s2)
     assert_array_equal(w.row, [0, 0, 0, 0, 0])
     assert_array_equal(w.col, [0, 1, 2, 3, 4])
     assert_array_almost_equal(w.data, [-1. / 2, -1. / 8, -1. / 8, -1. / 4, -1. / 16])
 
 
 def test_curvature_energy():
-    a = np.array([[0., 0]])
-    b = np.array([[1., 0]])
-    c = np.array([[2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
-    w = curvature_energy_matrix(a, b, c, gen_segments_layer(a, b), gen_segments_layer(b, c))
+    pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
+    s1 = np.array([[0], [1]])
+    s2 = np.array([[1, 1, 1, 1, 1], [2, 3, 4, 5, 6]])
+    w = curvature_energy_matrix(pos, s1, s2)
     first = np.array([1])
     assert curvature_energy(w, first, np.array([1, 0, 0, 0, 0])) == - 0.5
     assert curvature_energy(w, first, np.array([0, 1, 0, 0, 0])) == approx(- 1. / 8)
@@ -138,12 +132,10 @@ def test_curvature_energy():
 
 
 def test_curvature_energy_gradient():
-    a = np.array([[0., 0]])
-    b = np.array([[1., 0]])
-    c = np.array([[2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
-    s_ab = gen_segments_layer(a, b)
-    s_bc = gen_segments_layer(b, c)
-    w = curvature_energy_matrix(a, b, c, s_ab, s_bc)
+    pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
+    s1 = np.array([[0], [1]])
+    s2 = np.array([[1, 1, 1, 1, 1], [2, 3, 4, 5, 6]])
+    w = curvature_energy_matrix(pos, s1, s2)
     first = np.array([1.])
     second = np.array([1., 0, 0, 0, 0])
     g1, g2 = curvature_energy_gradient(w, first, second)
@@ -152,11 +144,11 @@ def test_curvature_energy_gradient():
 
 
 def test_energy_empty():
-    assert energy([], [])([]) == 0
+    assert energy(np.empty(0), [])([]) == 0
 
 
 def test_energy_gradients_empty():
-    assert energy_gradients([], [])([]) == ([], [], [])
+    assert energy_gradients(np.empty(0), [])([]) == ([], [], [])
 
 
 def test_energy_two_hits():
@@ -172,9 +164,8 @@ def test_energy_two_hits():
 
 def test_energy_gradients_two_hits():
     # vertex count energy only
-    pos = [np.array([[0., 0]]),
-           np.array([[1, 0]])]
-    seg = [np.array([[0], [0]])]
+    pos = np.array([[0., 0], [1, 0]])
+    seg = [np.array([[0], [1]])]
     v = np.array([[0.]])
     eg = energy_gradients(pos, seg, drop_gradients_on_self=False)([v])
     assert [len(e) for e in eg] == [1, 1, 1]
@@ -206,9 +197,8 @@ def test_energy_gradients_two_hits():
 
 
 def test_energy_four_hits():
-    pos = [np.array([[0., 0], [0, 1]]),
-           np.array([[1, 0], [1, 1]])]
-    seg = [gen_segments_layer(*pos)]
+    pos = np.array([[0., 0], [0, 1], [1, 0], [1, 1]])
+    seg = [np.array([[0, 0, 1, 1], [2, 3, 2, 3]])]
     e = energy(pos, seg)
     v = np.zeros(4)
     assert e([v]) == 8  # bad vertex count
@@ -218,9 +208,8 @@ def test_energy_four_hits():
 
 def test_energy_gradients_four_hits():
     # vertex count energy only
-    pos = [np.array([[0., 0], [0, 1]]),
-           np.array([[1, 0], [1, 1]])]
-    seg = [gen_segments_layer(*pos)]
+    pos = np.array([[0., 0], [0, 1], [1, 0], [1, 1]])
+    seg = [np.array([[0, 0, 1, 1], [2, 3, 2, 3]])]
     v = np.zeros(4)
     eg = energy_gradients(pos, seg, drop_gradients_on_self=False)([v])
     assert [len(e) for e in eg] == [1, 1, 1]
@@ -254,13 +243,13 @@ def test_energy_gradients_four_hits():
 
 def test_energy_one_track():
     v = [np.array([[1.]]), np.array([[1.]])]
-    pos = [np.array([[0., 0]]), np.array([[1., 0]]), np.array([[2., 0]])]
-    seg = [np.array([[0], [0]]), np.array([[0], [0]])]
+    pos = np.array([[0., 0], [1., 0], [2., 0]])
+    seg = [np.array([[0], [1]]), np.array([[1], [2]])]
     e = energy(pos, seg)
     assert e(v) == 0.5 + 0 - 0.5
 
     v = [np.array([[1.]]), np.array([[1.]])]
-    pos = [np.array([[0., 0]]), np.array([[1., 0]]), np.array([[2., 1]])]
+    pos = np.array([[0., 0], [1., 0], [2., 1]])
     e = energy(pos, seg)
     assert e(v).item() == approx(0.5 + 0 - 1. / 8)
 
@@ -268,8 +257,8 @@ def test_energy_one_track():
 def test_energy_gradients_one_track():
     v = [np.array([[1.]]), np.array([[1.]])]
     # straight track
-    pos = [np.array([[0., 0]]), np.array([[1., 0]]), np.array([[2., 0]])]
-    seg = [np.array([[0], [0]]), np.array([[0], [0]])]
+    pos = np.array([[0., 0], [1., 0], [2., 0]])
+    seg = [np.array([[0], [1]]), np.array([[1], [2]])]
     eg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
     assert [len(e) for e in eg] == [2, 2, 2]
     ecg, eng, efg = eg
@@ -281,7 +270,7 @@ def test_energy_gradients_one_track():
     assert_array_almost_equal(efg[1], [[0]])
 
     # curved track
-    pos = [np.array([[0., 0]]), np.array([[1., 0]]), np.array([[2., 1]])]
+    pos = np.array([[0., 0], [1., 0], [2., 1]])
     eg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
     assert [len(e) for e in eg] == [2, 2, 2]
     ecg, eng, efg = eg
@@ -293,7 +282,7 @@ def test_energy_gradients_one_track():
     assert_array_almost_equal(efg[1], [[0]])
 
     # straight track
-    pos = [np.array([[0., 0]]), np.array([[1., 0]]), np.array([[2., 0]])]
+    pos = np.array([[0., 0], [1., 0], [2., 0]])
     eg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
     assert [len(e) for e in eg] == [2, 2, 2]
     ecg, eng, efg = eg
@@ -305,7 +294,7 @@ def test_energy_gradients_one_track():
     assert_array_almost_equal(efg[1], [[0]])
 
     # curved track
-    pos = [np.array([[0., 0]]), np.array([[1., 0]]), np.array([[2., 1]])]
+    pos = np.array([[0., 0], [1., 0], [2., 1]])
     eg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
     assert [len(e) for e in eg] == [2, 2, 2]
     ecg, eng, efg = eg
