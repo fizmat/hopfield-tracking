@@ -4,7 +4,8 @@ from typing import Iterable, Tuple, Union, List
 import numpy as np
 import pandas as pd
 from numpy import ndarray
-from scipy.sparse import coo_matrix, spmatrix, csr_matrix
+from scipy import sparse
+from scipy.sparse import coo_matrix, spmatrix, csr_matrix, block_diag
 
 
 def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
@@ -110,13 +111,32 @@ def energies(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta:
         curvature_energy_matrix(pos, s_ab, s_bc,
                                 power=curvature_cosine_power, cosine_threshold=cosine_threshold)
         for s_ab, s_bc in zip(*seg_layers)]
+    seg = np.concatenate(segments) if segments else np.zeros(1)
+    ls = len(seg)
+    if curvature_matrices:
+        curvature_matrix = sparse.block_diag(curvature_matrices, format='csr')
+        w, h = curvature_matrix.shape
+        left_margin = ls - w
+        bottom_margin = ls - h
+        curvature_matrix = sparse.hstack([
+                csr_matrix(np.zeros((h, left_margin))),
+                curvature_matrix
+            ], 'csr')
+        curvature_matrix = sparse.vstack([
+            curvature_matrix,
+            csr_matrix(np.zeros((bottom_margin, ls))),
+        ], 'csr')
+    else:
+        curvature_matrix = csr_matrix(np.zeros((ls, ls)))
     n = len(pos)
-    crossing_matrices = [fork_energy_matrix(s) + join_energy_matrix(s) for s in segments]
+    crossing_matrix = sparse.block_diag(
+        [fork_energy_matrix(s).tocsr() + join_energy_matrix(s).tocsr() for s in segments],
+        format="csr") if segments else 0
 
     def inner(activation):
-        ec = sum(curvature_energy(w, v1, v2) for w, v1, v2 in
-                 zip(curvature_matrices, activation, islice(activation, 1, None)))
-        ef = alpha * sum(layer_energy(m, v) for v, m in zip(activation, crossing_matrices))
+        v = np.concatenate(activation) if activation else 0
+        ec = curvature_energy(curvature_matrix, v, v)
+        ef = alpha * layer_energy(crossing_matrix, np.concatenate(activation)) if activation else 0
         en = beta * number_of_used_vertices_energy(n, count_segments(activation))
         return ec, en, ef
 
