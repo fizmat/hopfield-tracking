@@ -4,7 +4,8 @@ from pytest import approx
 
 from segment import track_crossing_energy, number_of_used_vertices_energy, curvature_energy, count_vertices, \
     count_segments, fork_energy, join_energy, energy, curvature_energy_matrix, fork_energy_gradient, \
-    join_energy_gradient, curvature_energy_gradient, energy_gradients, number_of_used_vertices_energy_gradient
+    join_energy_gradient, curvature_energy_gradient, energy_gradients, number_of_used_vertices_energy_gradient, \
+    curvature_energy_pairwise
 
 none = np.array([[0., 0], [0, 0]])
 track = np.array([[1., 0], [0, 0]])
@@ -128,6 +129,14 @@ def test_count_vertices_gradient():
     assert number_of_used_vertices_energy_gradient(6, 2.) == -4
     assert number_of_used_vertices_energy_gradient(6, 6.) == 0
     assert number_of_used_vertices_energy_gradient(6, 8.) == 2
+
+
+def test_curvature_energy_pairwise():
+    a = np.array([[0., 0], [0., 1], [0., 2]])
+    b = np.array([[1., 0], [1., 1], [1., 2]])
+    c = np.array([[2., 0], [2, 0], [3, 4]])
+    w = curvature_energy_pairwise(a, b, c)
+    assert_array_almost_equal(w, [-1. / 2, -1. / 8, -1. / 16])
 
 
 def test_curvature_energy_matrix():

@@ -3,19 +3,28 @@ from typing import Iterable
 
 import numpy as np
 from numpy import ndarray
-from scipy.spatial.distance import cdist
 
 
 def curvature_energy_matrix(a: ndarray, b: ndarray, c: ndarray,
-                            power: float = 3., cosine_threshold: float = 0.):
-    r1 = cdist(a, b)  # ij
-    r2 = cdist(b, c)  # jk
-    d1 = b[None, :, :] - a[:, None, :]  # ijc
-    d2 = c[None, :, :] - b[:, None, :]  # jkc
-    rr = r1[:, :, None] * r2[None, :, :]  # ijk
-    cosines = np.einsum('ijc,jkc->ijk', d1, d2) / rr  # ijk
+                            power: float = 3., cosine_threshold: float = 0.) -> ndarray:
+    return curvature_energy_pairwise(
+        a[:, None, None, :],
+        b[None, :, None, :],
+        c[None, None, :, :],
+        power, cosine_threshold
+    )
+
+
+def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
+                              power: float = 3., cosine_threshold: float = 0.) -> ndarray:
+    d1 = b - a
+    d2 = c - b
+    r1 = np.linalg.norm(d1, axis=-1)
+    r2 = np.linalg.norm(d2, axis=-1)
+    rr = r1 * r2
+    cosines = (d1 * d2).sum(axis=-1) / rr
     cosines[cosines < cosine_threshold] = 0
-    return -0.5 * cosines ** power / rr  # ijk
+    return -0.5 * cosines ** power / rr
 
 
 def curvature_energy(w_ijk: ndarray, v_ij: ndarray, v_jk: ndarray):
