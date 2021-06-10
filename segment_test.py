@@ -5,10 +5,10 @@ from pytest import approx
 from scipy.sparse import csr_matrix
 
 from segment import number_of_used_vertices_energy, curvature_energy, \
-    count_segments, energy, curvature_energy_matrix, curvature_energy_gradient, energy_gradients, \
+    energy, curvature_energy_matrix, curvature_energy_gradient, energy_gradients, \
     number_of_used_vertices_energy_gradient, \
     curvature_energy_pairwise, gen_segments_layer, gen_segments_all, fork_energy_matrix, layer_energy, \
-    layer_energy_gradient, join_energy_matrix
+    layer_energy_gradient, join_energy_matrix, number_of_used_vertices_matrix
 
 
 def test_gen_segments_layer():
@@ -66,27 +66,30 @@ def test_layer_energy_gradient():
                               np.array([1, 0.5]))
 
 
-def test_count_segments():
-    assert count_segments([]) == 0
-    assert count_segments([np.zeros((2, 4))]) == 0
-    assert count_segments([np.ones((3, 2)), np.ones((2, 4))]) == 14
-    assert count_segments((
-        np.array([[0.5, 0.2], [0, 0.1]]),
-        np.array([[0.1], [0.2]])
-    )) == approx(1.1)
+def test_number_of_used_vertices_matrix():
+    a, b, c = number_of_used_vertices_matrix(0, 0)
+    assert a.shape == (0, 0)
+    assert b.shape == (0,)
+    assert c == 0
+    a, b, c = number_of_used_vertices_matrix(6, 3)
+    assert_array_equal(a, np.full((3, 3), 0.5))
+    assert_array_equal(b, np.full(3, -6))
+    assert c == 18
 
 
 def test_number_of_used_vertices_energy():
-    assert number_of_used_vertices_energy(0, np.array([0])) == 0
-    assert number_of_used_vertices_energy(6, np.array([0])) == 18
-    assert number_of_used_vertices_energy(6, np.array([1])) == 12.5
-    assert number_of_used_vertices_energy(6, np.array([2])) == 8
-    assert number_of_used_vertices_energy(6, np.array([3])) == 4.5
-    assert number_of_used_vertices_energy(6, np.array([4])) == 2
-    assert number_of_used_vertices_energy(6, np.array([5])) == 0.5
-    assert number_of_used_vertices_energy(6, np.array([6])) == 0
-    assert number_of_used_vertices_energy(6, np.array([7])) == 0.5
-    assert number_of_used_vertices_energy(6, np.array([9])) == 4.5
+    a, b, c = number_of_used_vertices_matrix(0, 0)
+    assert number_of_used_vertices_energy(a, b, c, np.array([])) == 0
+    a, b, c = number_of_used_vertices_matrix(6, 1)
+    assert number_of_used_vertices_energy(a, b, c, np.array([0])) == 18
+    assert number_of_used_vertices_energy(a, b, c, np.array([1])) == 12.5
+    assert number_of_used_vertices_energy(a, b, c, np.array([2])) == 8
+    assert number_of_used_vertices_energy(a, b, c, np.array([3])) == 4.5
+    assert number_of_used_vertices_energy(a, b, c, np.array([4])) == 2
+    assert number_of_used_vertices_energy(a, b, c, np.array([5])) == 0.5
+    assert number_of_used_vertices_energy(a, b, c, np.array([6])) == 0
+    assert number_of_used_vertices_energy(a, b, c, np.array([7])) == 0.5
+    assert number_of_used_vertices_energy(a, b, c, np.array([9])) == 4.5
 
 
 def test_count_vertices_gradient():

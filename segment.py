@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from numpy import ndarray
 from scipy import sparse
-from scipy.sparse import coo_matrix, spmatrix, csr_matrix, block_diag
+from scipy.sparse import coo_matrix, spmatrix, csr_matrix
 
 
 def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
@@ -53,12 +53,16 @@ def curvature_energy_gradient(w: spmatrix, v1: ndarray, v2: ndarray) -> Tuple[nd
     return w.dot(v2), w.transpose().dot(v1)
 
 
-def count_segments(activation: Iterable[ndarray]) -> ndarray:
-    return sum(v.sum() for v in activation)
+def number_of_used_vertices_matrix(vertex_count: int, segment_count: int) \
+        -> Tuple[ndarray, ndarray, float]:
+    a = np.full((segment_count, segment_count), 0.5)
+    b = - np.full(segment_count, vertex_count)
+    c = 0.5 * vertex_count ** 2
+    return a, b, c
 
 
-def number_of_used_vertices_energy(vertex_count: int, segment_count: ndarray) -> ndarray:
-    return 0.5 * (vertex_count - segment_count) ** 2
+def number_of_used_vertices_energy(a: ndarray, b: ndarray, c: float, activation: ndarray) -> float:
+    return a.dot(activation).dot(activation) + b.dot(activation) + c
 
 
 def number_of_used_vertices_energy_gradient(vertex_count: int, total_activation: float) -> float:
@@ -119,16 +123,16 @@ def energies(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta:
         left_margin = ls - w
         bottom_margin = ls - h
         curvature_matrix = sparse.hstack([
-                csr_matrix(np.zeros((h, left_margin))),
-                curvature_matrix
-            ], 'csr')
+            csr_matrix(np.zeros((h, left_margin))),
+            curvature_matrix
+        ], 'csr')
         curvature_matrix = sparse.vstack([
             curvature_matrix,
             csr_matrix(np.zeros((bottom_margin, ls))),
         ], 'csr')
     else:
         curvature_matrix = csr_matrix(np.zeros((ls, ls)))
-    n = len(pos)
+    a, b, c = number_of_used_vertices_matrix(len(pos), ls)
     crossing_matrix = sparse.block_diag(
         [fork_energy_matrix(s).tocsr() + join_energy_matrix(s).tocsr() for s in segments],
         format="csr") if segments else 0
@@ -136,8 +140,8 @@ def energies(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta:
     def inner(activation):
         v = np.concatenate(activation) if activation else 0
         ec = curvature_energy(curvature_matrix, v, v)
-        ef = alpha * layer_energy(crossing_matrix, np.concatenate(activation)) if activation else 0
-        en = beta * number_of_used_vertices_energy(n, count_segments(activation))
+        ef = alpha * layer_energy(crossing_matrix, v) if v is not 0 else 0
+        en = beta * number_of_used_vertices_energy(a, b, c, v)
         return ec, en, ef
 
     return inner
