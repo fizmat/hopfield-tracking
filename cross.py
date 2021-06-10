@@ -1,4 +1,4 @@
-from typing import Union, Iterable, List
+from typing import Union, List
 
 import numpy as np
 from numpy import ndarray

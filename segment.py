@@ -1,5 +1,5 @@
 from itertools import islice
-from typing import Iterable, List
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,7 @@ def energy_gradient(*args, **kwargs):
     return _energy_gradient
 
 
-def energies(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
+def energies(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: float = 1.,
              curvature_cosine_power: float = 3, cosine_threshold: float = 0.):
     curvature_matrix = curvature_energy_matrix(pos, segments, curvature_cosine_power, cosine_threshold)
     a, b, c = total_activation_matrix(pos, segments)
@@ -59,7 +59,7 @@ def energies(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta:
     return inner
 
 
-def energy_gradients(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta: float = 1.,
+def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: float = 1.,
                      curvature_cosine_power: float = 3, cosine_threshold: float = 0.,
                      drop_gradients_on_self: bool = True):
     seg_layers = segments, islice(segments, 1, None)

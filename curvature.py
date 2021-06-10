@@ -1,4 +1,4 @@
-from typing import Tuple, Iterable
+from typing import Tuple, List
 
 import numpy as np
 from numpy import ndarray
@@ -8,6 +8,8 @@ from scipy.sparse import coo_matrix, spmatrix, csr_matrix
 
 def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
                               power: float = 3., cosine_threshold: float = 0.) -> ndarray:
+    if len(a) < 1:
+        return np.zeros(0)
     d1 = b - a
     d2 = c - b
     r1 = np.linalg.norm(d1, axis=-1)
@@ -20,7 +22,11 @@ def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
 
 def curvature_layer_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
                            power: float = 3., cosine_threshold: float = 0.) -> coo_matrix:
+    if len(s_ab) == 0 or len(s_bc) == 0:
+        return coo_matrix(np.zeros((len(s_ab), len(s_bc))))
     connected = coo_matrix(s_ab[:, 1, None] == s_bc[None, :, 0])
+    if connected.getnnz() == 0:
+        return coo_matrix(np.zeros((len(s_ab), len(s_bc))))
     s1 = s_ab[connected.row]
     s2 = s_bc[connected.col]
     w = curvature_energy_pairwise(
@@ -34,7 +40,7 @@ def curvature_layer_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
     return m
 
 
-def curvature_energy_matrix(pos: ndarray, segments: Iterable[ndarray],
+def curvature_energy_matrix(pos: ndarray, segments: List[ndarray],
                             curvature_cosine_power: float = 3,
                             cosine_threshold: float = 0.) -> csr_matrix:
     segments = list(segments)

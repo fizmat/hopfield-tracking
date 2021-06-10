@@ -1,4 +1,4 @@
-from typing import Tuple, Iterable
+from typing import Tuple, List
 
 import numpy as np
 from numpy import ndarray
@@ -12,7 +12,7 @@ def total_activation_matrix_(vertex_count: int, segment_count: int) \
     return a, b, c
 
 
-def total_activation_matrix(pos: ndarray, seg: Iterable[ndarray]) \
+def total_activation_matrix(pos: ndarray, seg: List[ndarray]) \
         -> Tuple[ndarray, ndarray, float]:
     return total_activation_matrix_(len(pos), sum(len(s) for s in seg))
 
