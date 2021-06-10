@@ -1,11 +1,16 @@
 from itertools import islice
-from typing import Iterable, Tuple, Union, List
+from typing import Iterable, List
 
 import numpy as np
 import pandas as pd
 from numpy import ndarray
 from scipy import sparse
-from scipy.sparse import coo_matrix, spmatrix, csr_matrix
+from scipy.sparse import csr_matrix
+
+from cross import join_energy_matrix, fork_energy_matrix, layer_energy, layer_energy_gradient
+from curvature import curvature_energy_matrix, curvature_energy, curvature_energy_gradient
+from total import number_of_used_vertices_matrix, number_of_used_vertices_energy, \
+    number_of_used_vertices_energy_gradient
 
 
 def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
@@ -15,78 +20,6 @@ def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
 def gen_segments_all(df: pd.DataFrame) -> List[ndarray]:
     vert_i_by_layer = [g.index for _, g in df.groupby('layer')]
     return [gen_segments_layer(a, b) for a, b in zip(vert_i_by_layer, vert_i_by_layer[1:])]
-
-
-def curvature_energy_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
-                            power: float = 3., cosine_threshold: float = 0.) -> coo_matrix:
-    connected = coo_matrix(s_ab[:, 1, None] == s_bc[None, :, 0])
-    s1 = s_ab[connected.row]
-    s2 = s_bc[connected.col]
-    w = curvature_energy_pairwise(
-        pos[s1[:, 0]],
-        pos[s1[:, 1]],
-        pos[s2[:, 1]],
-        power, cosine_threshold
-    )
-    m = coo_matrix((w, (connected.row, connected.col)), shape=(len(s_ab), len(s_bc)))
-    m.eliminate_zeros()  # remove cosines below threshold completely
-    return m
-
-
-def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
-                              power: float = 3., cosine_threshold: float = 0.) -> ndarray:
-    d1 = b - a
-    d2 = c - b
-    r1 = np.linalg.norm(d1, axis=-1)
-    r2 = np.linalg.norm(d2, axis=-1)
-    rr = r1 * r2
-    cosines = (d1 * d2).sum(axis=-1) / rr
-    cosines[cosines < cosine_threshold] = 0
-    return -0.5 * cosines ** power / rr
-
-
-def curvature_energy(w: spmatrix, v1: ndarray, v2: ndarray) -> float:
-    return w.dot(v2).dot(v1)
-
-
-def curvature_energy_gradient(w: spmatrix, v1: ndarray, v2: ndarray) -> Tuple[ndarray, ndarray]:
-    return w.dot(v2), w.transpose().dot(v1)
-
-
-def number_of_used_vertices_matrix(vertex_count: int, segment_count: int) \
-        -> Tuple[ndarray, ndarray, float]:
-    a = np.full((segment_count, segment_count), 0.5)
-    b = - np.full(segment_count, vertex_count)
-    c = 0.5 * vertex_count ** 2
-    return a, b, c
-
-
-def number_of_used_vertices_energy(a: ndarray, b: ndarray, c: float, activation: ndarray) -> float:
-    return a.dot(activation).dot(activation) + b.dot(activation) + c
-
-
-def number_of_used_vertices_energy_gradient(vertex_count: int, total_activation: float) -> float:
-    return total_activation - vertex_count
-
-
-def join_energy_matrix(segments: ndarray) -> csr_matrix:
-    joins = (segments[:, None, 1] == segments[None, :, 1])
-    np.fill_diagonal(joins, 0)
-    return csr_matrix(joins)
-
-
-def fork_energy_matrix(segments: ndarray) -> csr_matrix:
-    forks = (segments[:, None, 0] == segments[None, :, 0])
-    np.fill_diagonal(forks, 0)
-    return csr_matrix(forks)
-
-
-def layer_energy(matrix: Union[ndarray, spmatrix], activation: ndarray) -> float:
-    return 0.5 * (matrix.dot(activation).dot(activation))
-
-
-def layer_energy_gradient(matrix: Union[ndarray, spmatrix], activation: ndarray) -> ndarray:
-    return matrix.dot(activation)
 
 
 def energy(*args, **kwargs):
