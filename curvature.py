@@ -1,8 +1,9 @@
-from typing import Tuple
+from typing import Tuple, Iterable
 
 import numpy as np
 from numpy import ndarray
-from scipy.sparse import coo_matrix, spmatrix
+from scipy import sparse
+from scipy.sparse import coo_matrix, spmatrix, csr_matrix
 
 
 def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
@@ -17,8 +18,8 @@ def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
     return -0.5 * cosines ** power / rr
 
 
-def curvature_energy_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
-                            power: float = 3., cosine_threshold: float = 0.) -> coo_matrix:
+def curvature_layer_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
+                           power: float = 3., cosine_threshold: float = 0.) -> coo_matrix:
     connected = coo_matrix(s_ab[:, 1, None] == s_bc[None, :, 0])
     s1 = s_ab[connected.row]
     s2 = s_bc[connected.col]
@@ -31,6 +32,35 @@ def curvature_energy_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
     m = coo_matrix((w, (connected.row, connected.col)), shape=(len(s_ab), len(s_bc)))
     m.eliminate_zeros()  # remove cosines below threshold completely
     return m
+
+
+def curvature_energy_matrix(pos: ndarray, segments: Iterable[ndarray],
+                            curvature_cosine_power: float = 3,
+                            cosine_threshold: float = 0.) -> csr_matrix:
+    segments = list(segments)
+    ls = sum(len(s) for s in segments)
+    if len(segments) < 2:
+        return csr_matrix(np.zeros((ls, ls)))
+    seg_layers = zip(segments, segments[1:])
+    curvature_matrices = [
+        curvature_layer_matrix(pos, s_ab, s_bc,
+                               power=curvature_cosine_power,
+                               cosine_threshold=cosine_threshold)
+        for s_ab, s_bc in seg_layers]
+
+    curvature_matrix = sparse.block_diag(curvature_matrices, format='csr')
+    w, h = curvature_matrix.shape
+    left_margin = ls - w
+    bottom_margin = ls - h
+    curvature_matrix = sparse.hstack([
+        csr_matrix(np.zeros((h, left_margin))),
+        curvature_matrix
+    ], 'csr')
+    curvature_matrix = sparse.vstack([
+        curvature_matrix,
+        csr_matrix(np.zeros((bottom_margin, ls))),
+    ], 'csr')
+    return curvature_matrix
 
 
 def curvature_energy(w: spmatrix, v1: ndarray, v2: ndarray) -> float:

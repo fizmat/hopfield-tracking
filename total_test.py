@@ -1,25 +1,36 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from total import number_of_used_vertices_matrix, number_of_used_vertices_energy, \
-    number_of_used_vertices_energy_gradient
+from total import total_activation_matrix_, number_of_used_vertices_energy, \
+    number_of_used_vertices_energy_gradient, total_activation_matrix
 
 
-def test_number_of_used_vertices_matrix():
-    a, b, c = number_of_used_vertices_matrix(0, 0)
+def test_total_activation_matrix_():
+    a, b, c = total_activation_matrix_(0, 0)
     assert a.shape == (0, 0)
     assert b.shape == (0,)
     assert c == 0
-    a, b, c = number_of_used_vertices_matrix(6, 3)
+    a, b, c = total_activation_matrix_(6, 3)
+    assert_array_equal(a, np.full((3, 3), 0.5))
+    assert_array_equal(b, np.full(3, -6))
+    assert c == 18
+
+
+def test_total_activation_matrix():
+    a, b, c = total_activation_matrix(np.empty(0), [])
+    assert a.shape == (0, 0)
+    assert b.shape == (0,)
+    assert c == 0
+    a, b, c = total_activation_matrix(np.empty(6), [np.empty(3)])
     assert_array_equal(a, np.full((3, 3), 0.5))
     assert_array_equal(b, np.full(3, -6))
     assert c == 18
 
 
 def test_number_of_used_vertices_energy():
-    a, b, c = number_of_used_vertices_matrix(0, 0)
+    a, b, c = total_activation_matrix_(0, 0)
     assert number_of_used_vertices_energy(a, b, c, np.array([])) == 0
-    a, b, c = number_of_used_vertices_matrix(6, 1)
+    a, b, c = total_activation_matrix_(6, 1)
     assert number_of_used_vertices_energy(a, b, c, np.array([0])) == 18
     assert number_of_used_vertices_energy(a, b, c, np.array([1])) == 12.5
     assert number_of_used_vertices_energy(a, b, c, np.array([2])) == 8

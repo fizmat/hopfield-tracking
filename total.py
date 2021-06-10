@@ -1,15 +1,20 @@
-from typing import Tuple
+from typing import Tuple, Iterable
 
 import numpy as np
 from numpy import ndarray
 
 
-def number_of_used_vertices_matrix(vertex_count: int, segment_count: int) \
+def total_activation_matrix_(vertex_count: int, segment_count: int) \
         -> Tuple[ndarray, ndarray, float]:
     a = np.full((segment_count, segment_count), 0.5)
     b = - np.full(segment_count, vertex_count)
     c = 0.5 * vertex_count ** 2
     return a, b, c
+
+
+def total_activation_matrix(pos: ndarray, seg: Iterable[ndarray]) \
+        -> Tuple[ndarray, ndarray, float]:
+    return total_activation_matrix_(len(pos), sum(len(s) for s in seg))
 
 
 def number_of_used_vertices_energy(a: ndarray, b: ndarray, c: float, activation: ndarray) -> float:
