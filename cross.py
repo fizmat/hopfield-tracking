@@ -1,4 +1,4 @@
-from typing import Union, Iterable
+from typing import Union, Iterable, List
 
 import numpy as np
 from numpy import ndarray
@@ -6,22 +6,28 @@ from scipy import sparse
 from scipy.sparse import csr_matrix, spmatrix
 
 
-def join_layer_matrix(segments: ndarray) -> csr_matrix:
-    joins = (segments[:, None, 1] == segments[None, :, 1])
-    np.fill_diagonal(joins, 0)
-    return csr_matrix(joins)
-
-
 def fork_layer_matrix(segments: ndarray) -> csr_matrix:
-    forks = (segments[:, None, 0] == segments[None, :, 0])
+    if len(segments) < 1:
+        return csr_matrix(np.zeros((0, 0)))
+    forks = (segments[:, None, 0] == segments[None, :, 0]).astype(float)
     np.fill_diagonal(forks, 0)
     return csr_matrix(forks)
 
 
-def cross_energy_matrix(segments: Iterable[ndarray]) -> csr_matrix:
+def join_layer_matrix(segments: ndarray) -> csr_matrix:
+    if len(segments) < 1:
+        return csr_matrix(np.zeros((0, 0)))
+    joins = (segments[:, None, 1] == segments[None, :, 1]).astype(float)
+    np.fill_diagonal(joins, 0)
+    return csr_matrix(joins)
+
+
+def cross_energy_matrix(segments: List[ndarray]) -> csr_matrix:
+    if len(segments) < 1:
+        return csr_matrix(np.zeros((0, 0)))
     return sparse.block_diag(
         [fork_layer_matrix(s).tocsr() + join_layer_matrix(s).tocsr() for s in segments],
-        format="csr") if segments else csr_matrix(np.empty(0))
+        format="csr")
 
 
 def cross_energy(matrix: Union[ndarray, spmatrix], activation: ndarray) -> float:
