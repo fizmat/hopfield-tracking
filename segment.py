@@ -7,8 +7,8 @@ from numpy import ndarray
 
 from cross import join_layer_matrix, fork_layer_matrix, cross_energy, cross_energy_gradient, cross_energy_matrix
 from curvature import curvature_layer_matrix, curvature_energy, curvature_energy_gradient, curvature_energy_matrix
-from total import number_of_used_vertices_energy, \
-    number_of_used_vertices_energy_gradient, total_activation_matrix
+from total import total_activation_energy, \
+    total_activation_energy_gradient, total_activation_matrix
 
 
 def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
@@ -50,10 +50,10 @@ def energies(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1., beta:
             v = np.concatenate(activation)
             ec = curvature_energy(curvature_matrix, v, v)
             ef = alpha * cross_energy(crossing_matrix, v)
-            en = beta * number_of_used_vertices_energy(a, b, c, v)
+            en = beta * total_activation_energy(a, b, c, v)
         else:
             ec = ef = 0
-            en = beta * number_of_used_vertices_energy(a, b, c, np.empty(0))
+            en = beta * total_activation_energy(a, b, c, np.empty(0))
         return ec, en, ef
 
     return inner
@@ -82,7 +82,7 @@ def energy_gradients(pos: ndarray, segments: Iterable[ndarray], alpha: float = 1
 
         efg = [alpha * cross_energy_gradient(m, v) for v, m in zip(activation, crossing_matrices)]
         total_act = sum(v.sum() for v in activation)
-        eng = [beta * np.full_like(v, number_of_used_vertices_energy_gradient(n, total_act)) for v in activation]
+        eng = [beta * np.full_like(v, total_activation_energy_gradient(n, total_act)) for v in activation]
         if drop_gradients_on_self:
             for e, a in zip(eng, activation):
                 e -= a

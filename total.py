@@ -17,9 +17,9 @@ def total_activation_matrix(pos: ndarray, seg: Iterable[ndarray]) \
     return total_activation_matrix_(len(pos), sum(len(s) for s in seg))
 
 
-def number_of_used_vertices_energy(a: ndarray, b: ndarray, c: float, activation: ndarray) -> float:
+def total_activation_energy(a: ndarray, b: ndarray, c: float, activation: ndarray) -> float:
     return a.dot(activation).dot(activation) + b.dot(activation) + c
 
 
-def number_of_used_vertices_energy_gradient(vertex_count: int, total_activation: float) -> float:
+def total_activation_energy_gradient(vertex_count: int, total_activation: float) -> float:
     return total_activation - vertex_count
