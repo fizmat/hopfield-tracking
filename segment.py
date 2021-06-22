@@ -62,31 +62,23 @@ def energies(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: flo
 def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: float = 1.,
                      curvature_cosine_power: float = 3, cosine_threshold: float = 0.,
                      drop_gradients_on_self: bool = True):
-    seg_layers = segments, islice(segments, 1, None)
-    curvature_matrices = [
-        curvature_layer_matrix(pos, s_ab, s_bc,
-                               power=curvature_cosine_power, cosine_threshold=cosine_threshold)
-        for s_ab, s_bc in zip(*seg_layers)]
+    curvature_matrix = curvature_energy_matrix(pos, segments, curvature_cosine_power, cosine_threshold)
     a, b, _ = total_activation_matrix(pos, segments, drop_gradients_on_self)
-    crossing_matrices = [fork_layer_matrix(s) + join_layer_matrix(s) for s in segments]
+    crossing_matrix = cross_energy_matrix(segments)
 
     def _energy_gradients(activation):
-        ec_g1g2 = [curvature_energy_gradient(w, v1, v2) for w, v1, v2 in
-                   zip(curvature_matrices, activation, islice(activation, 1, None))]
-        ecg = [np.zeros_like(v) for v in activation]
-        for i in range(len(ecg)):
-            if i < len(ec_g1g2):
-                ecg[i] += ec_g1g2[i][0]
-            if i > 0:
-                ecg[i] += ec_g1g2[i - 1][1]
+        if len(activation) == 0:
+            return [], [], []
+        act_lens = np.array([len(v) for v in activation]).cumsum()
+        act = np.concatenate(activation)
 
-        efg = [alpha * cross_energy_gradient(m, v) for v, m in zip(activation, crossing_matrices)]
-        if len(activation):
-            engs = beta * total_activation_energy_gradient(a, b, np.concatenate(activation))
-            act_lens = np.array([len(v) for v in activation]).cumsum()
-            eng = [engs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
-        else:
-            eng = []
+        g1, g2 = curvature_energy_gradient(curvature_matrix, act, act)
+        ecgs = g1 + g2
+        ecg = [ecgs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
+        efgs = alpha * cross_energy_gradient(crossing_matrix, act)
+        efg = [efgs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
+        engs = beta * total_activation_energy_gradient(a, b, act)
+        eng = [engs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
         return ecg, eng, efg
 
     return _energy_gradients
