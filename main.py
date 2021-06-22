@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from cross import cross_energy_matrix, cross_energy
-from curvature import curvature_energy_matrix, curvature_energy
+from cross import cross_energy_matrix, cross_energy_gradient, cross_energy
+from curvature import curvature_energy_matrix, curvature_energy_gradient, curvature_energy
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, draw_tracks, \
-    draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, update_layer_grad
-from segment import energy_gradient, gen_segments_all
-from total import total_activation_matrix, total_activation_energy
+from reconstruct import annealing_curve, update_layer_grad, plot_activation_hist, draw_activation_values, draw_tracks, \
+    draw_tracks_projection, precision, recall
+from segment import gen_segments_all
+from total import total_activation_matrix, total_activation_energy_gradient, total_activation_energy
 
 n_tracks = 10
 df = next(SimpleEventGenerator(1).gen_many_events(1, n_tracks))
@@ -45,18 +45,19 @@ plt.plot(temp_curve)
 
 acts = []
 
-compute_gradient = energy_gradient(pos, segments, ALPHA, BETA, POWER, COS_MIN, DROP_SELF_ACTIVATION_WEIGHTS)
+a, b, c = total_activation_matrix(pos, segments, DROP_SELF_ACTIVATION_WEIGHTS)
+crossing_matrix = cross_energy_matrix(segments)
+curvature_matrix = curvature_energy_matrix(pos, segments, POWER, COS_MIN)
 for i, t in enumerate(temp_curve):
     acts.append(act)
-    grad = compute_gradient(act)
+    grad = sum(curvature_energy_gradient(curvature_matrix, act, act)) + \
+           ALPHA * cross_energy_gradient(crossing_matrix, act) + \
+           BETA * total_activation_energy_gradient(a, b, act)
     a_prev = act
     act = update_layer_grad(a_prev, grad, t, DROPOUT, LEARNING_RATE, BIAS)
     if np.abs(act - a_prev).sum() < EPS and i > ANNEAL_ITERATIONS:
         break
 
-a, b, c = total_activation_matrix(pos, segments)
-crossing_matrix = cross_energy_matrix(segments)
-curvature_matrix = curvature_energy_matrix(pos, segments, POWER, COS_MIN)
 energy_history = []
 for act in acts:
     en = BETA * total_activation_energy(a, b, c, act)
@@ -70,7 +71,7 @@ small_history = pd.DataFrame([
         precision(act, perfect_act, THRESHOLD),
         recall(act, perfect_act, THRESHOLD),
         act.mean(),
-        ((act - perfect_act)**2).mean()
+        ((act - perfect_act) ** 2).mean()
     ) for act in acts],
     columns=['precision', 'recall', 'mean_act', 'dist_perfect'])
 
