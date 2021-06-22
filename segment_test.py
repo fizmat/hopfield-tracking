@@ -26,7 +26,8 @@ def test_energy_empty():
 
 
 def test_energy_gradients_empty():
-    assert energy_gradients(np.empty(0), [])([]) == ([], [], [])
+    assert_array_equal(energy_gradients(np.empty(0), [])(np.array([])),
+                       (np.array([]), np.array([]), np.array([])))
 
 
 def test_energy_two_hits():
@@ -89,34 +90,26 @@ def test_energy_gradients_four_hits():
     pos = np.array([[0., 0], [0, 1], [1, 0], [1, 1]])
     seg = [np.array([[0, 2], [0, 3], [1, 2], [1, 3]])]
     v = np.zeros(4)
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=False)([v])
-    assert [len(e) for e in eg] == [1, 1, 1]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], np.zeros(4))
-    assert_array_almost_equal(eng[0], np.full(4, -4))
-    assert_array_almost_equal(efg[0], np.zeros(4))
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
+    assert_array_almost_equal(ecg, [0, 0, 0, 0])
+    assert_array_almost_equal(eng, [-4, -4, -4, -4])
+    assert_array_almost_equal(efg, [0, 0, 0, 0])
     v = np.ones(4)
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=False)([v])
-    assert [len(e) for e in eg] == [1, 1, 1]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], np.zeros(4))  # short tracks, no cosines yet
-    assert_array_almost_equal(eng[0], np.zeros(4))  # exactly 4 active for 4 vertices
-    assert_array_almost_equal(efg[0], np.full(4, 2))  # forks and joins
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
+    assert_array_almost_equal(ecg, np.zeros(4))  # short tracks, no cosines yet
+    assert_array_almost_equal(eng, np.zeros(4))  # exactly 4 active for 4 vertices
+    assert_array_almost_equal(efg, np.full(4, 2))  # forks and joins
 
     v = np.zeros(4)
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=True)([v])
-    assert [len(e) for e in eg] == [1, 1, 1]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], np.zeros(4))
-    assert_array_almost_equal(eng[0], np.full(4, -4))
-    assert_array_almost_equal(efg[0], np.zeros(4))
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
+    assert_array_almost_equal(ecg, np.zeros(4))
+    assert_array_almost_equal(eng, np.full(4, -4))
+    assert_array_almost_equal(efg, np.zeros(4))
     v = np.ones(4)
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=True)([v])
-    assert [len(e) for e in eg] == [1, 1, 1]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], np.zeros(4))  # short tracks, no cosines yet
-    assert_array_almost_equal(eng[0], np.full(4, -1))  # 4 active for 4 vertices
-    assert_array_almost_equal(efg[0], np.full(4, 2))  # forks and joins
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
+    assert_array_almost_equal(ecg, np.zeros(4))  # short tracks, no cosines yet
+    assert_array_almost_equal(eng, np.full(4, -1))  # 4 active for 4 vertices
+    assert_array_almost_equal(efg, np.full(4, 2))  # forks and joins
 
 
 def test_energy_one_track():
@@ -133,52 +126,32 @@ def test_energy_one_track():
 
 
 def test_energy_gradients_one_track():
-    v = [np.array([1.]), np.array([1.])]
+    v = np.array([1., 1.])
     # straight track
     pos = np.array([[0., 0], [1., 0], [2., 0]])
     seg = [np.array([[0, 1]]), np.array([[1, 2]])]
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
-    assert [len(e) for e in eg] == [2, 2, 2]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], [-0.5])  # reward for straight track
-    assert_array_almost_equal(eng[0], [-1])  # 2 active for 3 hits, wants more
-    assert_array_almost_equal(efg[0], [0])  # no forks or joins possible
-    assert_array_almost_equal(ecg[1], [-0.5])
-    assert_array_almost_equal(eng[1], [-1])
-    assert_array_almost_equal(efg[1], [0])
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
+    assert_array_almost_equal(ecg, [-0.5, -0.5])  # reward for straight track
+    assert_array_almost_equal(eng, [-1, -1])  # 2 active for 3 hits, wants more
+    assert_array_almost_equal(efg, [0, 0])  # no forks or joins possible
 
     # curved track
     pos = np.array([[0., 0], [1., 0], [2., 1]])
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
-    assert [len(e) for e in eg] == [2, 2, 2]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], [-1. / 8])
-    assert_array_almost_equal(eng[0], [-1.])
-    assert_array_almost_equal(efg[0], [0])
-    assert_array_almost_equal(ecg[1], [-1. / 8])
-    assert_array_almost_equal(eng[1], [-1.])
-    assert_array_almost_equal(efg[1], [0])
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=False)(v)
+    assert_array_almost_equal(ecg, [-1. / 8, -1. / 8])
+    assert_array_almost_equal(eng, [-1., -1.])
+    assert_array_almost_equal(efg, [0, 0])
 
     # straight track
     pos = np.array([[0., 0], [1., 0], [2., 0]])
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
-    assert [len(e) for e in eg] == [2, 2, 2]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], [-0.5])  # reward for straight track
-    assert_array_almost_equal(eng[0], [-2])  # 2 - itself = 1 active for 3 hits, wants more
-    assert_array_almost_equal(efg[0], [0])  # no forks or joins possible
-    assert_array_almost_equal(ecg[1], [-0.5])
-    assert_array_almost_equal(eng[1], [-2])
-    assert_array_almost_equal(efg[1], [0])
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
+    assert_array_almost_equal(ecg, [-0.5, -0.5])  # reward for straight track
+    assert_array_almost_equal(eng, [-2, -2])  # 2 - itself = 1 active for 3 hits, wants more
+    assert_array_almost_equal(efg, [0, 0])  # no forks or joins possible
 
     # curved track
     pos = np.array([[0., 0], [1., 0], [2., 1]])
-    eg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
-    assert [len(e) for e in eg] == [2, 2, 2]
-    ecg, eng, efg = eg
-    assert_array_almost_equal(ecg[0], [-1. / 8])
-    assert_array_almost_equal(eng[0], [-2])
-    assert_array_almost_equal(efg[0], [0])
-    assert_array_almost_equal(ecg[1], [-1. / 8])
-    assert_array_almost_equal(eng[1], [-2])
-    assert_array_almost_equal(efg[1], [0])
+    ecg, eng, efg = energy_gradients(pos, seg, drop_gradients_on_self=True)(v)
+    assert_array_almost_equal(ecg, [-1. / 8, -1. / 8])
+    assert_array_almost_equal(eng, [-2, -2])
+    assert_array_almost_equal(efg, [0, 0])

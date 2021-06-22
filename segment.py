@@ -32,8 +32,7 @@ def energy_gradient(*args, **kwargs):
     egs = energy_gradients(*args, **kwargs)
 
     def _energy_gradient(activation):
-        ecg, eng, efg = egs(activation)
-        return [ecg[i] + eng[i] + efg[i] for i in range(len(activation))]
+        return sum(egs(activation))
 
     return _energy_gradient
 
@@ -60,19 +59,11 @@ def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., b
     a, b, _ = total_activation_matrix(pos, segments, drop_gradients_on_self)
     crossing_matrix = cross_energy_matrix(segments)
 
-    def _energy_gradients(activation):
-        if len(activation) == 0:
-            return [], [], []
-        act_lens = np.array([len(v) for v in activation]).cumsum()
-        act = np.concatenate(activation)
-
+    def _energy_gradients(act: ndarray) -> Tuple[ndarray, ndarray, ndarray]:
         g1, g2 = curvature_energy_gradient(curvature_matrix, act, act)
-        ecgs = g1 + g2
-        ecg = [ecgs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
-        efgs = alpha * cross_energy_gradient(crossing_matrix, act)
-        efg = [efgs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
-        engs = beta * total_activation_energy_gradient(a, b, act)
-        eng = [engs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
+        ecg = g1 + g2
+        efg = alpha * cross_energy_gradient(crossing_matrix, act)
+        eng = beta * total_activation_energy_gradient(a, b, act)
         return ecg, eng, efg
 
     return _energy_gradients

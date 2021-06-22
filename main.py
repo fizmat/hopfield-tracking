@@ -5,21 +5,21 @@ from matplotlib import pyplot as plt
 from cross import cross_energy_matrix, cross_energy
 from curvature import curvature_energy_matrix, curvature_energy
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, should_stop, draw_tracks, \
-    draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, mean_act, dist_act, \
-    update_layer_grad
+from reconstruct import annealing_curve, draw_tracks, \
+    draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, update_layer_grad
 from segment import energy_gradient, gen_segments_all
 from total import total_activation_matrix, total_activation_energy
 
-df = next(SimpleEventGenerator(1).gen_many_events(1, 10))
+n_tracks = 10
+df = next(SimpleEventGenerator(1).gen_many_events(1, n_tracks))
 
 pos = df[['x', 'y', 'z']].values
 
 segments = gen_segments_all(df)
 
-act = [np.full(len(s), 0.1) for s in segments]
+act = np.full(sum(len(s) for s in segments), 0.1)
 
-perfect_act = [np.eye(10).ravel() for a in act]
+perfect_act = np.concatenate([np.eye(n_tracks).ravel() for _ in segments])
 
 ALPHA = 5.  # наказание форков
 BETA = 0.  # наказание за количество активных
@@ -38,6 +38,7 @@ STABLE_ITERATIONS = 200
 
 DROPOUT = 0.5
 LEARNING_RATE = 0.2
+EPS = 1e-4
 
 temp_curve = annealing_curve(TMIN, TMAX, ANNEAL_ITERATIONS, STABLE_ITERATIONS)
 plt.plot(temp_curve)
@@ -49,8 +50,8 @@ for i, t in enumerate(temp_curve):
     acts.append(act)
     grad = compute_gradient(act)
     a_prev = act
-    act = [update_layer_grad(a, g, t, DROPOUT, LEARNING_RATE, BIAS) for a, g in zip(a_prev, grad)]
-    if should_stop(a_prev, act) and i > ANNEAL_ITERATIONS:
+    act = update_layer_grad(a_prev, grad, t, DROPOUT, LEARNING_RATE, BIAS)
+    if np.abs(act - a_prev).sum() < EPS and i > ANNEAL_ITERATIONS:
         break
 
 a, b, c = total_activation_matrix(pos, segments)
@@ -58,10 +59,9 @@ crossing_matrix = cross_energy_matrix(segments)
 curvature_matrix = curvature_energy_matrix(pos, segments, POWER, COS_MIN)
 energy_history = []
 for act in acts:
-    v = np.concatenate(act)
-    en = BETA * total_activation_energy(a, b, c, v)
-    ef = ALPHA * cross_energy(crossing_matrix, v)
-    ec = - curvature_energy(curvature_matrix, v, v)
+    en = BETA * total_activation_energy(a, b, c, act)
+    ef = ALPHA * cross_energy(crossing_matrix, act)
+    ec = - curvature_energy(curvature_matrix, act, act)
     energy_history.append([ec, en, ef])
 energy_history = pd.DataFrame(energy_history, columns=['E_curve', 'E_number', 'E_fork'])
 
@@ -69,8 +69,8 @@ small_history = pd.DataFrame([
     (
         precision(act, perfect_act, THRESHOLD),
         recall(act, perfect_act, THRESHOLD),
-        mean_act(act),
-        dist_act(act, perfect_act)
+        act.mean(),
+        ((act - perfect_act)**2).mean()
     ) for act in acts],
     columns=['precision', 'recall', 'mean_act', 'dist_perfect'])
 
@@ -79,7 +79,7 @@ energy_history.plot(figsize=(12, 12), logy=True)
 
 plot_activation_hist(acts[-1])
 draw_activation_values(acts[-1])
-draw_activation_values([a > THRESHOLD for a in acts[-1]])
+draw_activation_values(acts[-1] > THRESHOLD)
 draw_tracks(pos, segments, acts[-1], perfect_act, THRESHOLD)
 draw_tracks_projection(pos, segments, acts[-1], perfect_act, THRESHOLD)
 
