@@ -45,7 +45,7 @@ def energies(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: flo
     a, b, c = total_activation_matrix(pos, segments)
     crossing_matrix = cross_energy_matrix(segments)
 
-    def inner(activation):
+    def _energies(activation):
         if len(activation):
             v = np.concatenate(activation)
             ec = curvature_energy(curvature_matrix, v, v)
@@ -56,7 +56,7 @@ def energies(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: flo
             en = beta * total_activation_energy(a, b, c, np.empty(0))
         return ec, en, ef
 
-    return inner
+    return _energies()
 
 
 def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: float = 1.,
@@ -67,13 +67,13 @@ def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., b
         curvature_layer_matrix(pos, s_ab, s_bc,
                                power=curvature_cosine_power, cosine_threshold=cosine_threshold)
         for s_ab, s_bc in zip(*seg_layers)]
-    n = len(pos)
+    a, b, _ = total_activation_matrix(pos, segments)
     crossing_matrices = [fork_layer_matrix(s) + join_layer_matrix(s) for s in segments]
 
     def _energy_gradients(activation):
         ec_g1g2 = [curvature_energy_gradient(w, v1, v2) for w, v1, v2 in
                    zip(curvature_matrices, activation, islice(activation, 1, None))]
-        ecg = [np.zeros_like(a) for a in activation]
+        ecg = [np.zeros_like(v) for v in activation]
         for i in range(len(ecg)):
             if i < len(ec_g1g2):
                 ecg[i] += ec_g1g2[i][0]
@@ -81,11 +81,15 @@ def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., b
                 ecg[i] += ec_g1g2[i - 1][1]
 
         efg = [alpha * cross_energy_gradient(m, v) for v, m in zip(activation, crossing_matrices)]
-        total_act = sum(v.sum() for v in activation)
-        eng = [beta * np.full_like(v, total_activation_energy_gradient(n, total_act)) for v in activation]
-        if drop_gradients_on_self:
-            for e, a in zip(eng, activation):
-                e -= a
+        if len(activation):
+            engs = beta * total_activation_energy_gradient(a, b, np.concatenate(activation))
+            act_lens = np.array([len(v) for v in activation]).cumsum()
+            eng = [engs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
+        else:
+            eng = []
+        # if drop_gradients_on_self:
+        #     for e, v in zip(eng, activation):
+        #         e -= v
         return ecg, eng, efg
 
     return _energy_gradients

@@ -21,5 +21,5 @@ def total_activation_energy(a: ndarray, b: ndarray, c: float, activation: ndarra
     return a.dot(activation).dot(activation) + b.dot(activation) + c
 
 
-def total_activation_energy_gradient(vertex_count: int, total_activation: float) -> float:
-    return total_activation - vertex_count
+def total_activation_energy_gradient(a: ndarray, b: ndarray, activation: ndarray) -> float:
+    return 2 * a.dot(activation) + b
