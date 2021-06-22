@@ -2,11 +2,14 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from cross import cross_energy_matrix, cross_energy
+from curvature import curvature_energy_matrix, curvature_energy
 from generator import SimpleEventGenerator
 from reconstruct import annealing_curve, should_stop, draw_tracks, \
     draw_tracks_projection, draw_activation_values, plot_activation_hist, precision, recall, mean_act, dist_act, \
     update_layer_grad
-from segment import energies as energies_, energy_gradient, gen_segments_all
+from segment import energy_gradient, gen_segments_all
+from total import total_activation_matrix, total_activation_energy
 
 df = next(SimpleEventGenerator(1).gen_many_events(1, 10))
 
@@ -50,12 +53,16 @@ for i, t in enumerate(temp_curve):
     if should_stop(a_prev, act) and i > ANNEAL_ITERATIONS:
         break
 
-energies = energies_(pos, segments, ALPHA, BETA, POWER, COS_MIN)
+a, b, c = total_activation_matrix(pos, segments)
+crossing_matrix = cross_energy_matrix(segments)
+curvature_matrix = curvature_energy_matrix(pos, segments, POWER, COS_MIN)
 energy_history = []
 for act in acts:
-    ec, en, ef = energies(act)
-    ec = -ec
-    energy_history.append([ec.item(), en.item(), ef.item()])
+    v = np.concatenate(act)
+    en = BETA * total_activation_energy(a, b, c, v)
+    ef = ALPHA * cross_energy(crossing_matrix, v)
+    ec = - curvature_energy(curvature_matrix, v, v)
+    energy_history.append([ec, en, ef])
 energy_history = pd.DataFrame(energy_history, columns=['E_curve', 'E_number', 'E_fork'])
 
 small_history = pd.DataFrame([
