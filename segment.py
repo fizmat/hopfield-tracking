@@ -40,9 +40,9 @@ def energy_gradient(*args, **kwargs):
 
 
 def energies(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: float = 1.,
-             curvature_cosine_power: float = 3, cosine_threshold: float = 0.):
+             curvature_cosine_power: float = 3, cosine_threshold: float = 0., drop_gradients_on_self: bool = True):
     curvature_matrix = curvature_energy_matrix(pos, segments, curvature_cosine_power, cosine_threshold)
-    a, b, c = total_activation_matrix(pos, segments)
+    a, b, c = total_activation_matrix(pos, segments, drop_gradients_on_self)
     crossing_matrix = cross_energy_matrix(segments)
 
     def _energies(activation):
@@ -56,7 +56,7 @@ def energies(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: flo
             en = beta * total_activation_energy(a, b, c, np.empty(0))
         return ec, en, ef
 
-    return _energies()
+    return _energies
 
 
 def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: float = 1.,
@@ -67,7 +67,7 @@ def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., b
         curvature_layer_matrix(pos, s_ab, s_bc,
                                power=curvature_cosine_power, cosine_threshold=cosine_threshold)
         for s_ab, s_bc in zip(*seg_layers)]
-    a, b, _ = total_activation_matrix(pos, segments)
+    a, b, _ = total_activation_matrix(pos, segments, drop_gradients_on_self)
     crossing_matrices = [fork_layer_matrix(s) + join_layer_matrix(s) for s in segments]
 
     def _energy_gradients(activation):
@@ -87,9 +87,6 @@ def energy_gradients(pos: ndarray, segments: List[ndarray], alpha: float = 1., b
             eng = [engs[cs - len(v): cs] for cs, v in zip(act_lens, activation)]
         else:
             eng = []
-        # if drop_gradients_on_self:
-        #     for e, v in zip(eng, activation):
-        #         e -= v
         return ecg, eng, efg
 
     return _energy_gradients
