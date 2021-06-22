@@ -79,9 +79,9 @@ def test_energy_four_hits():
     seg = [np.array([[0, 2], [0, 3], [1, 2], [1, 3]])]
     e = energy(pos, seg, drop_gradients_on_self=False)
     v = np.zeros(4)
-    assert e([v]) == 8  # bad vertex count
+    assert e(v) == 8  # bad vertex count
     v = np.ones(4)
-    assert e([v]) == 4  # many forks
+    assert e(v) == 4  # many forks
 
 
 def test_energy_gradients_four_hits():
@@ -120,13 +120,13 @@ def test_energy_gradients_four_hits():
 
 
 def test_energy_one_track():
-    v = [np.array([1.]), np.array([1.])]
+    v = np.array([1., 1.])
     pos = np.array([[0., 0], [1., 0], [2., 0]])
     seg = [np.array([[0, 1]]), np.array([[1, 2]])]
     e = energy(pos, seg, drop_gradients_on_self=False)
     assert e(v) == 0.5 + 0 - 0.5
 
-    v = [np.array([1.]), np.array([1.])]
+    v = np.array([1., 1.])
     pos = np.array([[0., 0], [1., 0], [2., 1]])
     e = energy(pos, seg, drop_gradients_on_self=False)
     assert e(v).item() == approx(0.5 + 0 - 1. / 8)

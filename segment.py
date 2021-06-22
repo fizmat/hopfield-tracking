@@ -1,12 +1,11 @@
-from itertools import islice
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from numpy import ndarray
 
-from cross import join_layer_matrix, fork_layer_matrix, cross_energy, cross_energy_gradient, cross_energy_matrix
-from curvature import curvature_layer_matrix, curvature_energy, curvature_energy_gradient, curvature_energy_matrix
+from cross import cross_energy, cross_energy_gradient, cross_energy_matrix
+from curvature import curvature_energy, curvature_energy_gradient, curvature_energy_matrix
 from total import total_activation_energy, \
     total_activation_energy_gradient, total_activation_matrix
 
@@ -45,15 +44,10 @@ def energies(pos: ndarray, segments: List[ndarray], alpha: float = 1., beta: flo
     a, b, c = total_activation_matrix(pos, segments, drop_gradients_on_self)
     crossing_matrix = cross_energy_matrix(segments)
 
-    def _energies(activation):
-        if len(activation):
-            v = np.concatenate(activation)
-            ec = curvature_energy(curvature_matrix, v, v)
-            ef = alpha * cross_energy(crossing_matrix, v)
-            en = beta * total_activation_energy(a, b, c, v)
-        else:
-            ec = ef = 0
-            en = beta * total_activation_energy(a, b, c, np.empty(0))
+    def _energies(act: ndarray) -> Tuple[float, float, float]:
+        ec = curvature_energy(curvature_matrix, act, act)
+        ef = alpha * cross_energy(crossing_matrix, act)
+        en = beta * total_activation_energy(a, b, c, act)
         return ec, en, ef
 
     return _energies
