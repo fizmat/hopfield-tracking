@@ -20,10 +20,11 @@ segments = gen_segments_all(df)
 act = np.full(sum(len(s) for s in segments), 0.1)
 
 perfect_act = np.concatenate([np.eye(n_tracks).ravel() for _ in segments])
+seg = np.concatenate(segments)
 
 ALPHA = 5.  # наказание форков
 BETA = 0.  # наказание за количество активных
-BIAS = 0.2 # activation bias, can be used instead of beta
+BIAS = 0.2  # activation bias, can be used instead of beta
 POWER = 5  # степень косинуса в энергии за кривизну
 COS_MIN = 0.9  # минимальный косинус за который есть награда
 
@@ -45,14 +46,14 @@ plt.plot(temp_curve)
 
 acts = []
 
-a, b, c = total_activation_matrix(pos, segments, DROP_SELF_ACTIVATION_WEIGHTS)
+a, b, c = total_activation_matrix(pos, seg, DROP_SELF_ACTIVATION_WEIGHTS)
 crossing_matrix = cross_energy_matrix(segments)
-curvature_matrix = curvature_energy_matrix(pos, segments, POWER, COS_MIN)
+curvature_matrix = curvature_energy_matrix(pos, seg, POWER, COS_MIN)
 for i, t in enumerate(temp_curve):
     acts.append(act)
     grad = sum(curvature_energy_gradient(curvature_matrix, act, act)) + \
-           ALPHA * cross_energy_gradient(crossing_matrix, act) + \
-           BETA * total_activation_energy_gradient(a, b, act)
+        ALPHA * cross_energy_gradient(crossing_matrix, act) + \
+        BETA * total_activation_energy_gradient(a, b, act)
     a_prev = act
     act = update_layer_grad(a_prev, grad, t, DROPOUT, LEARNING_RATE, BIAS)
     if np.abs(act - a_prev).sum() < EPS and i > ANNEAL_ITERATIONS:

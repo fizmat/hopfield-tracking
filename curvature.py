@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple
 
 import numpy as np
 from numpy import ndarray
@@ -30,16 +30,13 @@ def segment_adjacent_pairs(seg: ndarray) -> ndarray:
     return np.concatenate([segment_find_next(seg, s) for s in range(len(seg))])
 
 
-def curvature_energy_matrix(pos: ndarray, segments: List[ndarray],
+def curvature_energy_matrix(pos: ndarray, seg: ndarray,
                             curvature_cosine_power: float = 3,
                             cosine_threshold: float = 0.) -> csr_matrix:
-    if len(segments) == 0:
-        return csr_matrix(np.empty((0, 0)))
-    seg = np.concatenate(segments)
     pairs = segment_adjacent_pairs(seg).transpose()
     s1, s2 = seg[pairs]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
-    w = curvature_energy_pairwise(a, b, c,power=curvature_cosine_power,
+    w = curvature_energy_pairwise(a, b, c, power=curvature_cosine_power,
                                   cosine_threshold=cosine_threshold)
     return coo_matrix((w, pairs), shape=(len(seg), len(seg))).tocsr()
 

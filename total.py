@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple
 
 import numpy as np
 from numpy import ndarray
@@ -14,9 +14,9 @@ def total_activation_matrix_(vertex_count: int, segment_count: int, drop_gradien
     return a, b, c
 
 
-def total_activation_matrix(pos: ndarray, seg: List[ndarray], drop_gradients_on_self: bool = True) \
+def total_activation_matrix(pos: ndarray, seg: ndarray, drop_gradients_on_self: bool = True) \
         -> Tuple[ndarray, ndarray, float]:
-    return total_activation_matrix_(len(pos), sum(len(s) for s in seg), drop_gradients_on_self)
+    return total_activation_matrix_(len(pos), len(seg), drop_gradients_on_self)
 
 
 def total_activation_energy(a: ndarray, b: ndarray, c: float, activation: ndarray) -> float:

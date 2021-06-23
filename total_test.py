@@ -38,30 +38,31 @@ def test_total_activation_matrix_():
 
 
 def test_total_activation_matrix():
-    a, b, c = total_activation_matrix(np.empty(0), [])
+    null_segment = np.empty((0, 2), dtype=int)
+    a, b, c = total_activation_matrix(np.empty(0), null_segment)
     assert (a.shape, b.shape, c) == ((0, 0), (0,), 0)
-    a, b, c = total_activation_matrix(np.empty((3, 3)), [])
+    a, b, c = total_activation_matrix(np.empty((3, 3)), null_segment)
     assert (a.shape, b.shape, c) == ((0, 0), (0,), 4.5)
-    a, b, c = total_activation_matrix(np.empty((2, 3)), [np.array([[0, 1]])])
+    a, b, c = total_activation_matrix(np.empty((2, 3)), np.array([[0, 1]]))
     assert_array_equal(a, [[0]])
     assert_array_equal(b, [-2])
     assert c == 2
-    a, b, c = total_activation_matrix(np.empty(6), [np.empty(3)])
+    a, b, c = total_activation_matrix(np.empty(6), np.empty(3))
     assert_array_equal(a, [[0, .5, .5],
                            [.5, 0, .5],
                            [.5, .5, 0]])
     assert_array_equal(b, [-6, -6, -6])
     assert c == 18
 
-    a, b, c = total_activation_matrix(np.empty(0), [], False)
+    a, b, c = total_activation_matrix(np.empty(0), null_segment, False)
     assert (a.shape, b.shape, c) == ((0, 0), (0,), 0)
-    a, b, c = total_activation_matrix(np.empty((3, 3)), [], False)
+    a, b, c = total_activation_matrix(np.empty((3, 3)), null_segment, False)
     assert (a.shape, b.shape, c) == ((0, 0), (0,), 4.5)
-    a, b, c = total_activation_matrix(np.empty((2, 3)), [np.array([[0, 1]])], False)
+    a, b, c = total_activation_matrix(np.empty((2, 3)), np.array([[0, 1]]), False)
     assert_array_equal(a, [[.5]])
     assert_array_equal(b, [-2])
     assert c == 2
-    a, b, c = total_activation_matrix(np.empty(6), [np.empty(3)], False)
+    a, b, c = total_activation_matrix(np.empty(6), np.empty(3), False)
     assert_array_equal(a, [[.5, .5, .5],
                            [.5, .5, .5],
                            [.5, .5, .5]])
