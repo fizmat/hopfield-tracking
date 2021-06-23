@@ -51,7 +51,7 @@ crossing_matrix = cross_energy_matrix(seg)
 curvature_matrix = curvature_energy_matrix(pos, seg, POWER, COS_MIN)
 for i, t in enumerate(temp_curve):
     acts.append(act)
-    grad = sum(curvature_energy_gradient(curvature_matrix, act, act)) + \
+    grad = curvature_energy_gradient(curvature_matrix, act) + \
         ALPHA * cross_energy_gradient(crossing_matrix, act) + \
         BETA * total_activation_energy_gradient(a, b, act)
     a_prev = act
@@ -63,7 +63,7 @@ energy_history = []
 for act in acts:
     en = BETA * total_activation_energy(a, b, c, act)
     ef = ALPHA * cross_energy(crossing_matrix, act)
-    ec = - curvature_energy(curvature_matrix, act, act)
+    ec = - curvature_energy(curvature_matrix, act)
     energy_history.append([ec, en, ef])
 energy_history = pd.DataFrame(energy_history, columns=['E_curve', 'E_number', 'E_fork'])
 

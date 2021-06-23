@@ -60,11 +60,11 @@ def test_curvature_energy_matrix():
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, s, c, c, 0, 0],
-        [0, 0, 0, 0, 0, 0, s, 0],
-        [0, 0, 0, 0, 0, 0, 0, l],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, s, 0, 0, 0, s, 0],
+        [0, 0, c, 0, 0, 0, 0, l],
+        [0, 0, c, 0, 0, 0, 0, 0],
+        [0, 0, 0, s, 0, 0, 0, 0],
+        [0, 0, 0, 0, l, 0, 0, 0],
     ], 10)
 
 
@@ -72,22 +72,19 @@ def test_curvature_energy():
     pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
     seg = np.array([[0, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6]])
     w = curvature_energy_matrix(pos, seg)
-    first = np.array([1, 0, 0, 0, 0, 0])
-    assert curvature_energy(w, first, np.array([0, 1, 0, 0, 0, 0])) == - 0.5
-    assert curvature_energy(w, first, np.array([0, 0, 1, 0, 0, 0])) == approx(- 1. / 8)
-    assert curvature_energy(w, first, np.array([0, 0, 0, 1, 0, 0])) == approx(- 1. / 8)
-    assert curvature_energy(w, first, np.array([0, 0, 0, 0, 1, 0])) == approx(- 1. / 4)
-    assert curvature_energy(w, first, np.array([0, 0, 0, 0, 0, 1])) == approx(- 1. / 16)
-    assert curvature_energy(w, first, np.array([0, 1, 1, 1, 1, 1])) == approx(- 17. / 16)
-    assert curvature_energy(w, first, np.array([0, .1, .1, .1, .1, .1])) == approx(- 1.7 / 16)
+    assert curvature_energy(w, np.array([1, 1, 0, 0, 0, 0])) == - 0.5
+    assert curvature_energy(w, np.array([1, 0, 1, 0, 0, 0])) == approx(- 1. / 8)
+    assert curvature_energy(w, np.array([1, 0, 0, 1, 0, 0])) == approx(- 1. / 8)
+    assert curvature_energy(w, np.array([1, 0, 0, 0, 1, 0])) == approx(- 1. / 4)
+    assert curvature_energy(w, np.array([1, 0, 0, 0, 0, 1])) == approx(- 1. / 16)
+    assert curvature_energy(w, np.array([1, 1, 1, 1, 1, 1])) == approx(- 17. / 16)
+    assert curvature_energy(w, np.array([1, .1, .1, .1, .1, .1])) == approx(- 1.7 / 16)
 
 
 def test_curvature_energy_gradient():
     pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
     seg = np.array([[0, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6]])
     w = curvature_energy_matrix(pos, seg)
-    first = np.array([1., 0, 0, 0, 0, 0])
-    second = np.array([0, 1., 0, 0, 0, 0])
-    g1, g2 = curvature_energy_gradient(w, first, second)
-    assert_array_almost_equal(g1, np.array([-0.5, 0, 0, 0, 0, 0]))
-    assert_array_almost_equal(g2, np.array([0, - 0.5, -1. / 8, -1. / 8, -1. / 4, -1. / 16]))
+    act = np.array([1, 1, 0, 0, 0, 0])
+    g = curvature_energy_gradient(w, act)
+    assert_array_almost_equal(g, np.array([-0.5, -0.5, -1. / 8, -1. / 8, -1. / 4, -1. / 16]))

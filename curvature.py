@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 from numpy import ndarray
 from scipy.sparse import coo_matrix, spmatrix, csr_matrix
@@ -38,12 +36,13 @@ def curvature_energy_matrix(pos: ndarray, seg: ndarray,
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
     w = curvature_energy_pairwise(a, b, c, power=curvature_cosine_power,
                                   cosine_threshold=cosine_threshold)
-    return coo_matrix((w, pairs), shape=(len(seg), len(seg))).tocsr()
+    m = coo_matrix((w, pairs), shape=(len(seg), len(seg)))
+    return (m + m.transpose()).tocsr()
 
 
-def curvature_energy(w: spmatrix, v1: ndarray, v2: ndarray) -> float:
-    return w.dot(v2).dot(v1)
+def curvature_energy(w: spmatrix, act: ndarray) -> float:
+    return 0.5 * w.dot(act).dot(act)
 
 
-def curvature_energy_gradient(w: spmatrix, v1: ndarray, v2: ndarray) -> Tuple[ndarray, ndarray]:
-    return w.dot(v2), w.transpose().dot(v1)
+def curvature_energy_gradient(w: spmatrix, act: ndarray) -> ndarray:
+    return w.dot(act)
