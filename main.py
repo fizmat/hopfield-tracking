@@ -11,16 +11,19 @@ from segment import gen_segments_all
 from total import total_activation_matrix, total_activation_energy_gradient, total_activation_energy
 
 n_tracks = 10
-df = next(SimpleEventGenerator(seed=1).gen_many_events(1, n_tracks))
+hits, track_segments = next(SimpleEventGenerator(seed=1).gen_many_events(1, n_tracks))
 
-pos = df[['x', 'y', 'z']].values
+pos = hits[['x', 'y', 'z']].values
 
-segments = gen_segments_all(df)
+seg = gen_segments_all(hits)
 
-act = np.full(sum(len(s) for s in segments), 0.1)
+act = np.full(len(seg), 0.1)
 
-perfect_act = np.concatenate([np.eye(n_tracks).ravel() for _ in segments])
-seg = np.concatenate(segments)
+perfect_act = np.zeros_like(act)
+
+track_segment_set = set(tuple(s) for s in track_segments)
+is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
+perfect_act[is_in_track] = 1
 
 ALPHA = 5.  # наказание форков
 BETA = 0.  # наказание за количество активных
@@ -52,8 +55,8 @@ curvature_matrix = curvature_energy_matrix(pos, seg, POWER, COS_MIN)
 for i, t in enumerate(temp_curve):
     acts.append(act)
     grad = curvature_energy_gradient(curvature_matrix, act) + \
-        ALPHA * cross_energy_gradient(crossing_matrix, act) + \
-        BETA * total_activation_energy_gradient(a, b, act)
+           ALPHA * cross_energy_gradient(crossing_matrix, act) + \
+           BETA * total_activation_energy_gradient(a, b, act)
     a_prev = act
     act = update_layer_grad(a_prev, grad, t, DROPOUT, LEARNING_RATE, BIAS)
     if np.abs(act - a_prev).sum() < EPS and i > ANNEAL_ITERATIONS:
@@ -82,8 +85,8 @@ energy_history.plot(figsize=(12, 12), logy=True)
 plot_activation_hist(acts[-1])
 draw_activation_values(acts[-1])
 draw_activation_values(acts[-1] > THRESHOLD)
-draw_tracks(pos, segments, acts[-1], perfect_act, THRESHOLD)
-draw_tracks_projection(pos, segments, acts[-1], perfect_act, THRESHOLD)
+draw_tracks(pos, seg, acts[-1], perfect_act, THRESHOLD)
+draw_tracks_projection(pos, seg, acts[-1], perfect_act, THRESHOLD)
 
 # for i in range(0, len(acts), 50):
 #     plot_activation_hist(acts[i])

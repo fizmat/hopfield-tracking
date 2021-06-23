@@ -14,6 +14,5 @@ def test_gen_segments_layer():
 
 def test_gen_segment_all():
     df = pd.DataFrame({'x': 0, 'y': 0, 'z': 0, 'layer': [0, 0, 1, 1, 1, 2], 'track': 0})
-    v1, v2 = gen_segments_all(df)
-    assert_array_equal(v1, [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4]])
-    assert_array_equal(v2, [[2, 5], [3, 5], [4, 5]])
+    seg = gen_segments_all(df)
+    assert_array_equal(seg, [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 5], [3, 5], [4, 5]])

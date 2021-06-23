@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 from matplotlib import pyplot as plt
 from numpy import ndarray
@@ -33,7 +31,7 @@ def recall(act, perfect_act, threshold=0.5):
     n_true = np.count_nonzero(perfect_bool)
     positives = act >= threshold
     n_true_positives = np.count_nonzero(perfect_bool & positives)
-    return (n_true_positives / n_true)
+    return n_true_positives / n_true
 
 
 def plot_activation_hist(act):
@@ -56,7 +54,8 @@ def draw_activation_values(act):
     plt.show()
 
 
-def draw_tracks(pos, seg, act, perfect_act, THRESHOLD):
+def draw_tracks(pos: ndarray, seg: ndarray, act: ndarray,
+                perfect_act: ndarray, threshold: float):
     fig = plt.figure(figsize=(10, 10))
 
     ax = fig.add_subplot(1, 1, 1, projection='3d')
@@ -64,11 +63,10 @@ def draw_tracks(pos, seg, act, perfect_act, THRESHOLD):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
 
-    s = np.concatenate(seg, axis=0)
-    for ns, jk in enumerate(s):
+    for ns, jk in enumerate(seg):
         j, k = jk
-        positive = act[ns] > THRESHOLD
-        true = perfect_act[ns] > THRESHOLD
+        positive = act[ns] > threshold
+        true = perfect_act[ns] > threshold
         if positive and true:
             color = 'black'
         elif positive and not true:
@@ -87,15 +85,15 @@ def draw_tracks(pos, seg, act, perfect_act, THRESHOLD):
     fig.show()
 
 
-def draw_tracks_projection(pos, seg, act, perfect_act, THRESHOLD):
+def draw_tracks_projection(pos: ndarray, seg: ndarray, act: ndarray,
+                           perfect_act: ndarray, threshold: float):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(1, 1, 1)
 
-    s = np.concatenate(seg, axis=0)
-    for ns, jk in enumerate(s):
+    for ns, jk in enumerate(seg):
         j, k = jk
-        positive = act[ns] > THRESHOLD
-        true = perfect_act[ns] > THRESHOLD
+        positive = act[ns] > threshold
+        true = perfect_act[ns] > threshold
         if positive and true:
             color = 'black'
         elif positive and not true:
