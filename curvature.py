@@ -2,7 +2,6 @@ from typing import Tuple, List
 
 import numpy as np
 from numpy import ndarray
-from scipy import sparse
 from scipy.sparse import coo_matrix, spmatrix, csr_matrix
 
 
@@ -18,48 +17,31 @@ def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
     return -0.5 * cosines ** power / rr
 
 
-def curvature_layer_matrix(pos: ndarray, s_ab: ndarray, s_bc: ndarray,
-                           power: float = 3., cosine_threshold: float = 0.) -> coo_matrix:
-    connected = coo_matrix(s_ab[:, 1, None] == s_bc[None, :, 0])
-    s1 = s_ab[connected.row]
-    s2 = s_bc[connected.col]
-    w = curvature_energy_pairwise(
-        pos[s1[:, 0]],
-        pos[s1[:, 1]],
-        pos[s2[:, 1]],
-        power, cosine_threshold
-    )
-    m = coo_matrix((w, (connected.row, connected.col)), shape=(len(s_ab), len(s_bc)))
-    m.eliminate_zeros()  # remove cosines below threshold completely
-    return m
+def segment_find_next(seg: ndarray, i: int) -> ndarray:
+    is_adjacent = seg[:, 0] == seg[i, 1]
+    jj = np.arange(len(seg))[is_adjacent]
+    segments = np.stack(np.broadcast_arrays(i, jj), axis=1)
+    return segments
+
+
+def segment_adjacent_pairs(seg: ndarray) -> ndarray:
+    if len(seg) == 0:
+        return np.empty((0, 2), dtype=int)
+    return np.concatenate([segment_find_next(seg, s) for s in range(len(seg))])
 
 
 def curvature_energy_matrix(pos: ndarray, segments: List[ndarray],
                             curvature_cosine_power: float = 3,
                             cosine_threshold: float = 0.) -> csr_matrix:
-    ls = sum(len(s) for s in segments)
-    if len(segments) < 2:
-        return csr_matrix(np.zeros((ls, ls)))
-    seg_layers = zip(segments, segments[1:])
-    curvature_matrices = [
-        curvature_layer_matrix(pos, s_ab, s_bc,
-                               power=curvature_cosine_power,
-                               cosine_threshold=cosine_threshold)
-        for s_ab, s_bc in seg_layers]
-
-    curvature_matrix = sparse.block_diag(curvature_matrices, format='csr')
-    w, h = curvature_matrix.shape
-    left_margin = ls - w
-    bottom_margin = ls - h
-    curvature_matrix = sparse.hstack([
-        csr_matrix(np.zeros((h, left_margin))),
-        curvature_matrix
-    ], 'csr')
-    curvature_matrix = sparse.vstack([
-        curvature_matrix,
-        csr_matrix(np.zeros((bottom_margin, ls))),
-    ], 'csr')
-    return curvature_matrix
+    if len(segments) == 0:
+        return csr_matrix(np.empty((0, 0)))
+    seg = np.concatenate(segments)
+    pairs = segment_adjacent_pairs(seg).transpose()
+    s1, s2 = seg[pairs]
+    a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
+    w = curvature_energy_pairwise(a, b, c,power=curvature_cosine_power,
+                                  cosine_threshold=cosine_threshold)
+    return coo_matrix((w, pairs), shape=(len(seg), len(seg))).tocsr()
 
 
 def curvature_energy(w: spmatrix, v1: ndarray, v2: ndarray) -> float:
