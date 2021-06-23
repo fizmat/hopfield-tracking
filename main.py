@@ -11,7 +11,7 @@ from segment import gen_segments_all
 from total import total_activation_matrix, total_activation_energy_gradient, total_activation_energy
 
 n_tracks = 10
-df = next(SimpleEventGenerator(1).gen_many_events(1, n_tracks))
+df = next(SimpleEventGenerator(seed=1).gen_many_events(1, n_tracks))
 
 pos = df[['x', 'y', 'z']].values
 

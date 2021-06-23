@@ -1,19 +1,16 @@
 import numpy as np
-from numpy.ma.testutils import assert_array_approx_equal
-from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_allclose
+from numpy.testing import assert_array_equal, assert_allclose
 
 from generator import SimpleEventGenerator
 
 
-def test_gen_one_track():
-    v = SimpleEventGenerator().gen_one_track()
-    assert len(v) == 3
-
-
-def test_gen_event_tracks():
-    a = SimpleEventGenerator().gen_event_tracks(2)
-    assert a.shape == (2, 3)
-    assert a.dtype == float
+def test_gen_directions_in_cone():
+    v = SimpleEventGenerator(seed=1).gen_directions_in_cone(13)
+    assert v.shape == (13, 3)
+    assert_array_equal(SimpleEventGenerator(0).gen_directions_in_cone(100),
+                       [[1, 0, 0]] * 100)
+    assert_allclose(SimpleEventGenerator(180, 1).gen_directions_in_cone(100_000).mean(axis=0),
+                    [0, 0, 0], atol=0.01)
 
 
 def test_gen_event_hits():
@@ -22,10 +19,10 @@ def test_gen_event_hits():
     assert_array_equal(hits.index, range(16))
     assert list(hits.columns) == ['x', 'y', 'z', 'layer', 'track']
     assert_allclose(hits[['y', 'z']].values,
-                              [[0, 0], [0.5, -0.5], [0, 0], [1, -1],
-                               [0, 0], [1.5, -1.5], [0, 0], [2, -2],
-                               [0, 0], [2.5, -2.5], [0, 0], [3, -3],
-                               [0, 0], [3.5, -3.5], [0, 0], [4, -4]], atol=0.03)
+                    [[0, 0], [0.5, -0.5], [0, 0], [1, -1],
+                     [0, 0], [1.5, -1.5], [0, 0], [2, -2],
+                     [0, 0], [2.5, -2.5], [0, 0], [3, -3],
+                     [0, 0], [3.5, -3.5], [0, 0], [4, -4]], atol=0.03)
     assert_array_equal(hits[['x', 'layer', 'track']].values,
                        [[0.5, 0, 0], [0.5, 0, 1], [1, 1, 0], [1, 1, 1],
                         [1.5, 2, 0], [1.5, 2, 1], [2, 3, 0], [2, 3, 1],

@@ -1,33 +1,27 @@
 import math
-from typing import Tuple, List, Generator
+from typing import Generator
 
 import numpy as np
 import pandas as pd
+from numpy import ndarray
 from numpy.random import default_rng
 
 
 class SimpleEventGenerator:
-    def __init__(self, seed=None):
+    def __init__(self, halfwidth_degrees: float = 15, seed=None):
+        self.halfwidth = math.radians(halfwidth_degrees)
         self.rng = default_rng(seed)
 
-    def gen_one_track(self) -> Tuple[float, float, float]:
-        x = self.rng.uniform(math.cos(math.radians(15)), 1., 1)
-        alpha = self.rng.uniform(0.0, 2 * math.pi, 1)
-        r = math.sqrt(1. - x ** 2)
-        y = r * math.cos(alpha)
-        z = r * math.sin(alpha)
-        return x, y, z
+    def gen_directions_in_cone(self, n: int = 1) -> ndarray:
+        x = self.rng.uniform(math.cos(self.halfwidth), 1., n)
+        alpha = self.rng.uniform(0.0, 2 * math.pi, n)
+        r = np.sqrt(1. - x ** 2)
+        y = r * np.cos(alpha)
+        z = r * np.sin(alpha)
+        return np.stack([x, y, z], axis=1)
 
-    def gen_event_tracks(self, n: int = 10) -> np.ndarray:
-        xyz = np.empty((n, 3))
-
-        for i in range(n):
-            while True:
-                x, y, z = self.gen_one_track()
-                xyz[i] = x, y, z
-                if np.all(np.dot(xyz[:i], xyz[i]) < math.cos(0.05)):
-                    break
-        return xyz
+    def gen_momentum(self, n: int = 1) -> ndarray:
+        return self.rng.gamma(shape=5., scale=1., size=n)
 
     def gen_event_hits(self, xyz: np.ndarray) -> pd.DataFrame:
         layer_i = np.arange(8)
@@ -48,4 +42,4 @@ class SimpleEventGenerator:
 
     def gen_many_events(self, n: int = 1000, event_size: int = 10) -> Generator[pd.DataFrame, None, None]:
         for _ in range(n):
-            yield self.gen_event_hits(self.gen_event_tracks(event_size))
+            yield self.gen_event_hits(self.gen_directions_in_cone(event_size))
