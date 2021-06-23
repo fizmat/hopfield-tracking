@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union
 
 import numpy as np
 from numpy import ndarray
@@ -33,10 +33,7 @@ def segment_joins(seg: ndarray) -> ndarray:
     return np.concatenate([segment_one_joins(seg, s) for s in range(len(seg))])
 
 
-def cross_energy_matrix(segments: List[ndarray]) -> csr_matrix:
-    if len(segments) < 1:
-        return csr_matrix(np.zeros((0, 0)))
-    seg = np.concatenate(segments)
+def cross_energy_matrix(seg: ndarray) -> csr_matrix:
     crosses = np.concatenate([segment_forks(seg), segment_joins(seg)])
     return coo_matrix((np.ones(len(crosses)), crosses.transpose()), shape=(len(seg), len(seg))).tocsr()
 

@@ -47,7 +47,7 @@ plt.plot(temp_curve)
 acts = []
 
 a, b, c = total_activation_matrix(pos, seg, DROP_SELF_ACTIVATION_WEIGHTS)
-crossing_matrix = cross_energy_matrix(segments)
+crossing_matrix = cross_energy_matrix(seg)
 curvature_matrix = curvature_energy_matrix(pos, seg, POWER, COS_MIN)
 for i, t in enumerate(temp_curve):
     acts.append(act)
