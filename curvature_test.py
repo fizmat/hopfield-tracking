@@ -7,7 +7,7 @@ from curvature import curvature_energy_pairwise, curvature_layer_matrix, curvatu
 
 
 def test_curvature_energy_pairwise():
-    assert_array_equal(curvature_energy_pairwise(np.zeros(0), np.zeros(0), np.zeros(0)),
+    assert_array_equal(curvature_energy_pairwise(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3))),
                        np.zeros(0))
 
     a = np.array([[0., 0], [0., 1], [0., 2]])
@@ -23,16 +23,18 @@ def test_curvature_energy_pairwise():
 
 
 def test_curvature_layer_matrix():
-    w = curvature_layer_matrix(np.array([]), np.array([]), np.array([]))
+    null_pos = np.empty((0, 2))
+    null_segment = np.empty((0, 2), dtype=int)
+    w = curvature_layer_matrix(null_pos, null_segment, null_segment)
     assert w.shape == (0, 0)
     pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
     s1 = np.array([[0, 1]])
     s2 = np.array([[1, 2], [1, 3], [1, 4], [1, 5], [1, 6]])
-    w = curvature_layer_matrix(pos, np.array([]), np.array([]))
+    w = curvature_layer_matrix(pos, null_segment, null_segment)
     assert w.shape == (0, 0)
-    w = curvature_layer_matrix(pos, s1, np.array([]))
+    w = curvature_layer_matrix(pos, s1, null_segment)
     assert w.shape == (1, 0)
-    w = curvature_layer_matrix(pos, np.array([]), s2)
+    w = curvature_layer_matrix(pos, null_segment, s2)
     assert w.shape == (0, 5)
     w = curvature_layer_matrix(pos, s1, s2)
     assert_array_almost_equal_nulp(w.A, [[-1. / 2, -1. / 8, -1. / 8, -1. / 4, -1. / 16]], 4)
@@ -43,14 +45,16 @@ def test_curvature_layer_matrix():
 
 
 def test_curvature_energy_matrix():
-    w = curvature_energy_matrix(np.array([]), [])
+    null_pos = np.empty((0, 2))
+    null_segment = np.empty((0, 2), dtype=int)
+    w = curvature_energy_matrix(null_pos, [])
     assert w.shape == (0, 0)
 
     pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
     w = curvature_energy_matrix(pos, [])
     assert w.shape == (0, 0)
 
-    segments = [np.array([[7, 11], [7, 12]]), np.array([]), np.array([[0, 1]]),
+    segments = [np.array([[7, 11], [7, 12]]), null_segment, np.array([[0, 1]]),
                 np.array([[1, 2], [1, 3], [1, 4]]),
                 np.array([[2, 5], [3, 6]])]
     w = curvature_energy_matrix(pos, segments)
