@@ -9,14 +9,20 @@ from numpy.random import default_rng
 
 class SimpleEventGenerator:
     def __init__(self, halfwidth_degrees: float = 15, n_layers: int = 8, layers_thickness=0.5,
-                 field_strength=1., seed=None):
+                 field_strength=1., yz_deviation=0.005, noisiness=1., seed=None, box_size=None):
         self.halfwidth = math.radians(halfwidth_degrees)
         self.rng = default_rng(seed)
         self.n_layers = n_layers
         self.layers_thickness = layers_thickness
         self.field_strength = field_strength
+        self.yz_deviation = yz_deviation
+        self.noisiness = noisiness
         self.layer_i = np.arange(n_layers)
         self.layer_x = self.layers_thickness + self.layers_thickness * self.layer_i
+        if box_size is None:
+            self.size_y = self.size_z = self.layer_x[-1] * np.sin(self.halfwidth)
+        else:
+            self.size_y = self.size_z = box_size
 
     def gen_directions_in_cone(self, n: int = 1) -> ndarray:
         x = self.rng.uniform(math.cos(self.halfwidth), 1., n)
@@ -47,7 +53,7 @@ class SimpleEventGenerator:
             hits = self.run_curved_track(momentum, charge)
         else:
             hits = self.run_straight_track(momentum)
-        hits[:, 1:] += self.rng.normal(0, 0.005, hits[:, 1:].shape)  # inaccuracy in y and z
+        hits[:, 1:] += self.rng.normal(0, self.yz_deviation, hits[:, 1:].shape)  # inaccuracy in y and z
         data = np.concatenate([hits, self.layer_i[:, np.newaxis]], axis=1)
         ii = self.layer_i[:-1]
         seg = np.stack([ii, ii + 1], axis=1)
@@ -66,7 +72,15 @@ class SimpleEventGenerator:
             hits.append(h)
             seg.append(s)
             n += len(h)
-        return pd.concat(hits), np.concatenate(seg)
+        noise_count = self.rng.poisson(self.noisiness)
+        noise_layer = self.rng.integers(0, self.n_layers, noise_count)
+        noise_x = self.layer_x[noise_layer]
+        noise_y = self.rng.uniform(-self.size_y, self.size_y, noise_count)
+        noise_z = self.rng.uniform(-self.size_z, self.size_z, noise_count)
+        noise = pd.DataFrame({'x': noise_x, 'y': noise_y, 'z': noise_z,
+                              'layer': noise_layer, 'track': -1, 'charge': np.nan},
+                             index=pd.RangeIndex(n, n + noise_count))
+        return pd.concat(hits + [noise]), np.concatenate(seg)
 
     def gen_many_events(self, n: int = 1000, event_size: int = 10, momentum_scale=.2) \
             -> Generator[pd.DataFrame, None, None]:

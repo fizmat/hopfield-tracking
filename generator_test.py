@@ -39,10 +39,11 @@ def test_run_curved_track():
 
 def test_gen_event_nonmagnetic():
     a = np.array([[1, 0, 0], [1, 1, -1]])
-    hits, seg = SimpleEventGenerator(field_strength=0.).gen_event(a, np.ones(2))
+    hits, seg = SimpleEventGenerator(field_strength=0., noisiness=0, seed=1).gen_event(a, np.ones(2))
     assert_array_equal(hits.index, range(16))
     assert list(hits.columns) == ['x', 'y', 'z', 'layer', 'track', 'charge']
-    assert_allclose(hits[['y', 'z']].values, [[0, 0]] * 8 +
+    assert_allclose(hits[['y', 'z']].values[:8], [[0, 0]] * 8, atol=0.03)
+    assert_allclose(hits[['y', 'z']].values[8:16],
                     [[0.5, -0.5], [1, -1], [1.5, -1.5], [2, -2],
                      [2.5, -2.5], [3, -3], [3.5, -3.5], [4, -4]], atol=0.03)
     assert_array_equal(hits[['x', 'layer', 'track', 'charge']].values,
@@ -53,10 +54,11 @@ def test_gen_event_nonmagnetic():
     assert_array_equal(seg, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7],
                              [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15]])
 
-    hits, seg = SimpleEventGenerator(field_strength=11.).gen_event(a, np.zeros(2))
+    hits, seg = SimpleEventGenerator(field_strength=11., noisiness=0, seed=1).gen_event(a, np.zeros(2))
     assert_array_equal(hits.index, range(16))
     assert list(hits.columns) == ['x', 'y', 'z', 'layer', 'track', 'charge']
-    assert_allclose(hits[['y', 'z']].values, [[0, 0]] * 8 +
+    assert_allclose(hits[['y', 'z']].values[:8], [[0, 0]] * 8, atol=0.03)
+    assert_allclose(hits[['y', 'z']].values[8:16],
                     [[0.5, -0.5], [1, -1], [1.5, -1.5], [2, -2],
                      [2.5, -2.5], [3, -3], [3.5, -3.5], [4, -4]], atol=0.03)
     assert_array_equal(hits[['x', 'layer', 'track', 'charge']].values,
@@ -70,22 +72,32 @@ def test_gen_event_nonmagnetic():
 
 def test_gen_event_magnetic():
     momenta = np.array([[1, 0, 0], [1 / np.pi, 0, -1]])
-    hits, seg = SimpleEventGenerator().gen_event(momenta, np.ones(2))
-    assert_array_equal(hits.index, range(16))
+    hits, seg = SimpleEventGenerator(seed=1).gen_event(momenta, np.ones(2))
+    assert_array_equal(hits.index, range(19))
     assert list(hits.columns) == ['x', 'y', 'z', 'layer', 'track', 'charge']
     r2 = np.sqrt(2) / 2
-    assert_allclose(hits[['y', 'z']].values, [[0, 0]] * 8 +
-                    [[1 - r2, -r2], [1, -1], [1 + r2, -r2], [2, 0],
-                     [1 + r2, r2], [1, 1], [1 - r2, r2], [0, 0]], atol=0.03)
-    assert_array_equal(hits[['x', 'layer', 'track', 'charge']].values,
+    side = 4. * np.sin(15 / 180 * np.pi)
+    assert_allclose(hits[['y', 'z']].values[:8], [[0, 0]] * 8, atol=0.03)
+    assert_allclose(hits[['y', 'z']].values[8:16], [[1 - r2, -r2], [1, -1], [1 + r2, -r2], [2, 0],
+                                                    [1 + r2, r2], [1, 1], [1 - r2, r2], [0, 0]], atol=0.03)
+    assert (hits[['y', 'z']].values[16:] <= side).all()
+    assert (hits[['y', 'z']].values[16:] >= -side).all()
+
+    assert_array_equal(hits[['x', 'layer', 'track', 'charge']].values[:16],
                        [[0.5, 0, 0, 1], [1., 1, 0, 1], [1.5, 2, 0, 1], [2., 3, 0, 1],
                         [2.5, 4, 0, 1], [3., 5, 0, 1], [3.5, 6, 0, 1], [4., 7, 0, 1],
                         [0.5, 0, 1, 1], [1., 1, 1, 1], [1.5, 2, 1, 1], [2., 3, 1, 1],
                         [2.5, 4, 1, 1], [3., 5, 1, 1], [3.5, 6, 1, 1], [4., 7, 1, 1]])
+    assert np.isin(hits['layer'].values[16:], np.arange(8)).all()
+    assert_array_equal(0.5 + hits.layer * 0.5, hits.x)
+    assert_array_equal(hits.iloc[16:].track, - np.ones(3))
+    assert hits.iloc[16:].charge.isna().all()
+
     assert_array_equal(seg, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7],
                              [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15]])
 
-    hits, seg = SimpleEventGenerator(field_strength=-1).gen_event(momenta, -np.ones(2)) # negative field and negative charge!
+    hits, seg = SimpleEventGenerator(field_strength=-1, noisiness=0, seed=1).gen_event(momenta,
+                                                                  -np.ones(2))  # negative field and negative charge!
     assert_array_equal(hits.index, range(16))
     assert list(hits.columns) == ['x', 'y', 'z', 'layer', 'track', 'charge']
     assert_allclose(hits[['y', 'z']].values, [[0, 0]] * 8 +
@@ -101,7 +113,7 @@ def test_gen_event_magnetic():
 
 
 def test_gen_many_events():
-    data = list(SimpleEventGenerator().gen_many_events(5, 7))
+    data = list(SimpleEventGenerator(noisiness=0).gen_many_events(5, 7))
     assert len(data) == 5
     for hits, seg in data:
         assert len(hits.index) == 8 * 7

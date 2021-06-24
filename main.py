@@ -5,19 +5,21 @@ from matplotlib import pyplot as plt
 from cross import cross_energy_matrix, cross_energy_gradient, cross_energy
 from curvature import curvature_energy_matrix, curvature_energy_gradient, curvature_energy
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, update_layer_grad, plot_activation_hist, draw_activation_values, draw_tracks, \
+from reconstruct import annealing_curve, update_layer_grad, draw_tracks, \
     draw_tracks_projection, precision, recall
 from segment import gen_segments_all
 from total import total_activation_matrix, total_activation_energy_gradient, total_activation_energy
 
 n_tracks = 10
-hits, track_segments = next(SimpleEventGenerator(seed=1).gen_many_events(1, n_tracks))
+hits, track_segments = next(SimpleEventGenerator(
+    seed=2, field_strength=0.8, noisiness=10, box_size=.5
+).gen_many_events(1, n_tracks))
 
 pos = hits[['x', 'y', 'z']].values
 
 seg = gen_segments_all(hits)
 
-act = np.full(len(seg), 0.1)
+act = np.full(len(seg), 0.5)
 
 perfect_act = np.zeros_like(act)
 
@@ -33,7 +35,7 @@ COS_MIN = 0.9  # минимальный косинус за который ес�
 
 DROP_SELF_ACTIVATION_WEIGHTS = True
 
-THRESHOLD = 0.5  # граница отсечения активации треков от не-треков
+THRESHOLD = 0.3  # граница отсечения активации треков от не-треков
 
 TMAX = 40
 TMIN = 0.1
@@ -80,25 +82,21 @@ small_history = pd.DataFrame([
     columns=['precision', 'recall', 'mean_act', 'dist_perfect'])
 
 small_history.plot(figsize=(12, 12))
+plt.show()
 energy_history.plot(figsize=(12, 12), logy=True)
+plt.show()
 
-plot_activation_hist(acts[-1])
-draw_activation_values(acts[-1])
-draw_activation_values(acts[-1] > THRESHOLD)
+f, ax = plt.subplots(figsize=(10,10))
+ax.hist(acts[-1])
+f.show()
 draw_tracks(pos, seg, acts[-1], perfect_act, THRESHOLD)
 draw_tracks_projection(pos, seg, acts[-1], perfect_act, THRESHOLD)
 
-# for i in range(0, len(acts), 50):
-#     plot_activation_hist(acts[i])
-#
-# for i in range(0, len(acts), 50):
-#     draw_activation_values(acts[i])
-#
-# for i in range(0, len(acts), 50):
-#     draw_activation_values([a > THRESHOLD for a in acts[i]])
-#
-# for i in range(0, len(acts), 50):
-#     draw_tracks(pos, acts[i], perfect_act, THRESHOLD)
-#
-# for i in range(0, len(acts), 50):
-#     draw_tracks_projection(pos, acts[i], perfect_act, THRESHOLD)
+for i in range(0, len(acts), 50):
+    f, ax = plt.subplots(figsize=(10, 10))
+    ax.hist(acts[i])
+    f.show()
+for i in range(0, len(acts), 50):
+    draw_tracks(pos, seg, acts[i], perfect_act, THRESHOLD)
+for i in range(0, len(acts), 50):
+    draw_tracks_projection(pos, seg, acts[i], perfect_act, THRESHOLD)

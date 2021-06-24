@@ -34,26 +34,6 @@ def recall(act, perfect_act, threshold=0.5):
     return n_true_positives / n_true
 
 
-def plot_activation_hist(act):
-    n = int(np.sqrt(len(act) // 7))
-    a = act.reshape(7, n, n)
-    fig = plt.figure(figsize=(64, 8))
-    plots = fig.subplots(1, 7)
-    for i in range(7):
-        plots[i].hist(a[i].flatten())
-    fig.show()
-
-
-def draw_activation_values(act):
-    n = int(np.sqrt(len(act) // 7))
-    a = act.reshape(7, n, n)
-    fig = plt.figure(figsize=(128, 16))
-    plots = fig.subplots(1, 7)
-    for i in range(7):
-        plots[i].imshow(a[i], vmin=0, vmax=1., cmap='gray')
-    plt.show()
-
-
 def draw_tracks(pos: ndarray, seg: ndarray, act: ndarray,
                 perfect_act: ndarray, threshold: float):
     fig = plt.figure(figsize=(10, 10))
@@ -72,7 +52,7 @@ def draw_tracks(pos: ndarray, seg: ndarray, act: ndarray,
         elif positive and not true:
             color = 'red'
         elif not positive and true:
-            color = 'blue'
+            color = 'cyan'
         else:
             continue
         xs = [pos[j, 0], pos[k, 0]]
@@ -81,7 +61,9 @@ def draw_tracks(pos: ndarray, seg: ndarray, act: ndarray,
         ax.plot(xs, ys, zs,
                 color=color,
                 linewidth=1.,
-                marker='.')
+                marker='')
+
+    ax.scatter(*pos.transpose(), color='k', s=16.)
     fig.show()
 
 
@@ -99,7 +81,7 @@ def draw_tracks_projection(pos: ndarray, seg: ndarray, act: ndarray,
         elif positive and not true:
             color = 'red'
         elif not positive and true:
-            color = 'blue'
+            color = 'cyan'
         else:
             continue
         ys = [pos[j, 1], pos[k, 1]]
@@ -107,5 +89,6 @@ def draw_tracks_projection(pos: ndarray, seg: ndarray, act: ndarray,
         ax.plot(ys, zs,
                 color=color,
                 linewidth=1.,
-                marker='.')
+                marker='')
+    ax.scatter(*pos.transpose()[1:], color='k', s=16)
     fig.show()
