@@ -6,7 +6,7 @@ from cross import cross_energy_matrix, cross_energy_gradient, cross_energy
 from curvature import curvature_energy_matrix, curvature_energy_gradient, curvature_energy
 from generator import SimpleEventGenerator
 from reconstruct import annealing_curve, update_layer_grad, draw_tracks, \
-    draw_tracks_projection, precision, recall
+    draw_tracks_projection, precision, recall, draw_tracks_symbolic
 from segment import gen_segments_all
 from total import total_activation_matrix, total_activation_energy_gradient, total_activation_energy
 
@@ -86,17 +86,32 @@ plt.show()
 energy_history.plot(figsize=(12, 12), logy=True)
 plt.show()
 
-f, ax = plt.subplots(figsize=(10,10))
+f, ax = plt.subplots(figsize=(10, 10))
 ax.hist(acts[-1])
 f.show()
 draw_tracks(pos, seg, acts[-1], perfect_act, THRESHOLD)
 draw_tracks_projection(pos, seg, acts[-1], perfect_act, THRESHOLD)
 
-for i in range(0, len(acts), 50):
+n_steps = 5
+steps = np.linspace(0, len(acts)-1, min(n_steps, len(acts)), dtype=int)
+
+for i in steps:
     f, ax = plt.subplots(figsize=(10, 10))
     ax.hist(acts[i])
+    plt.title(f'step:{i}')
     f.show()
-for i in range(0, len(acts), 50):
-    draw_tracks(pos, seg, acts[i], perfect_act, THRESHOLD)
-for i in range(0, len(acts), 50):
-    draw_tracks_projection(pos, seg, acts[i], perfect_act, THRESHOLD)
+
+for i in steps:
+    f, ax = draw_tracks(pos, seg, acts[i], perfect_act, THRESHOLD)
+    plt.title(f'step:{i}')
+    f.show()
+
+for i in steps:
+    f, ax = draw_tracks_projection(pos, seg, acts[i], perfect_act, THRESHOLD)
+    plt.title(f'step:{i}')
+    f.show()
+
+for i in steps:
+    f, ax = draw_tracks_symbolic(hits, seg, acts[i], perfect_act, THRESHOLD)
+    plt.title(f'step:{i}')
+    f.show()

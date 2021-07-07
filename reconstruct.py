@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import ndarray
 from scipy.stats import bernoulli
@@ -64,7 +65,7 @@ def draw_tracks(pos: ndarray, seg: ndarray, act: ndarray,
                 marker='')
 
     ax.scatter(*pos.transpose(), color='k', s=16.)
-    fig.show()
+    return fig, ax
 
 
 def draw_tracks_projection(pos: ndarray, seg: ndarray, act: ndarray,
@@ -91,4 +92,31 @@ def draw_tracks_projection(pos: ndarray, seg: ndarray, act: ndarray,
                 linewidth=1.,
                 marker='')
     ax.scatter(*pos.transpose()[1:], color='k', s=16)
-    fig.show()
+    return fig, ax
+
+
+def draw_tracks_symbolic(hits: pd.DataFrame, seg: ndarray, act: ndarray,
+                         perfect_act: ndarray, threshold: float):
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(1, 1, 1)
+
+    for ns, jk in enumerate(seg):
+        j, k = jk
+        positive = act[ns] > threshold
+        true = perfect_act[ns] > threshold
+        if positive and true:
+            color = 'black'
+        elif positive and not true:
+            color = 'red'
+        elif not positive and true:
+            color = 'cyan'
+        else:
+            continue
+        ys = [hits.track[j], hits.track[k]]
+        zs = [hits.layer[j], hits.layer[k]]
+        ax.plot(ys, zs,
+                color=color,
+                linewidth=1.,
+                marker='')
+    ax.scatter(hits.track, hits.layer, color='k', s=16)
+    return fig, ax
