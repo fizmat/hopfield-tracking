@@ -15,11 +15,15 @@ def test_curvature_energy_pairwise():
     c = np.array([[2., 0], [2, 0], [3, 4]])
     r2 = np.sqrt(2)
     assert_array_almost_equal(curvature_energy_pairwise(a, b, c),
-                              [-0.5, -0.5 * (0.5 / r2) / r2, -0.5 * (0.5 / r2) / 2 / r2])
-    assert_array_almost_equal(curvature_energy_pairwise(a, b, c, power=1),
-                              [-0.5, -0.5 * (1 / r2) / r2, -0.5 * (1 / r2) / 2 / r2])
+                              [-0.5, -0.5 * (1 / r2)**3 / 1 / r2, -0.5 * (1 / r2)**3 / 2 / r2])
+    assert_array_almost_equal(curvature_energy_pairwise(a, b, c, cosine_power=1),
+                              [-0.5, -0.5 * (1 / r2)**1 / 1 / r2, -0.5 * (1 / r2)**1 / 2 / r2])
     assert_array_almost_equal(curvature_energy_pairwise(a, b, c, cosine_threshold=0.8),
                               [-0.5, 0, 0])
+    assert_array_almost_equal(curvature_energy_pairwise(a, b, c, distance_prod_power_in_denominator=0),
+                              [-0.5, -0.5 * (1 / r2)**3, -0.5 * (1 / r2)**3])
+    assert_array_almost_equal(curvature_energy_pairwise(a, b, c, cosine_power=1, distance_prod_power_in_denominator=0),
+                              [-0.5, -0.5 * (1 / r2)**1, -0.5 * (1 / r2)**1])
 
 
 def test_segment_find_next():
