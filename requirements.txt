@@ -2,5 +2,6 @@ pandas
 matplotlib
 numpy
 scipy
+holoviews
 
 pytest

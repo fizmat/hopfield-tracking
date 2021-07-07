@@ -1,3 +1,6 @@
+from typing import Tuple, Dict, List, Any
+
+import holoviews as hv
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -35,88 +38,18 @@ def recall(act, perfect_act, threshold=0.5):
     return n_true_positives / n_true
 
 
-def draw_tracks(pos: ndarray, seg: ndarray, act: ndarray,
-                perfect_act: ndarray, threshold: float):
-    fig = plt.figure(figsize=(10, 10))
-
-    ax = fig.add_subplot(1, 1, 1, projection='3d')
-    ax.set_zlabel('Z')
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-
-    for ns, jk in enumerate(seg):
-        j, k = jk
-        positive = act[ns] > threshold
-        true = perfect_act[ns] > threshold
-        if positive and true:
-            color = 'black'
-        elif positive and not true:
-            color = 'red'
-        elif not positive and true:
-            color = 'cyan'
-        else:
-            continue
-        xs = [pos[j, 0], pos[k, 0]]
-        ys = [pos[j, 1], pos[k, 1]]
-        zs = [pos[j, 2], pos[k, 2]]
-        ax.plot(xs, ys, zs,
-                color=color,
-                linewidth=1.,
-                marker='')
-
-    ax.scatter(*pos.transpose(), color='k', s=16.)
-    return fig, ax
-
-
-def draw_tracks_projection(pos: ndarray, seg: ndarray, act: ndarray,
-                           perfect_act: ndarray, threshold: float):
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(1, 1, 1)
-
-    for ns, jk in enumerate(seg):
-        j, k = jk
-        positive = act[ns] > threshold
-        true = perfect_act[ns] > threshold
-        if positive and true:
-            color = 'black'
-        elif positive and not true:
-            color = 'red'
-        elif not positive and true:
-            color = 'cyan'
-        else:
-            continue
-        ys = [pos[j, 1], pos[k, 1]]
-        zs = [pos[j, 2], pos[k, 2]]
-        ax.plot(ys, zs,
-                color=color,
-                linewidth=1.,
-                marker='')
-    ax.scatter(*pos.transpose()[1:], color='k', s=16)
-    return fig, ax
-
-
-def draw_tracks_symbolic(hits: pd.DataFrame, seg: ndarray, act: ndarray,
-                         perfect_act: ndarray, threshold: float):
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(1, 1, 1)
-
-    for ns, jk in enumerate(seg):
-        j, k = jk
-        positive = act[ns] > threshold
-        true = perfect_act[ns] > threshold
-        if positive and true:
-            color = 'black'
-        elif positive and not true:
-            color = 'red'
-        elif not positive and true:
-            color = 'cyan'
-        else:
-            continue
-        ys = [hits.track[j], hits.track[k]]
-        zs = [hits.layer[j], hits.layer[k]]
-        ax.plot(ys, zs,
-                color=color,
-                linewidth=1.,
-                marker='')
-    ax.scatter(hits.track, hits.layer, color='k', s=16)
-    return fig, ax
+def make_tracks_3d(
+        pos: ndarray, seg: ndarray, act: ndarray, perfect_act: ndarray, threshold: float
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    segment_paths = [
+        {'x': xyz[:, 0], 'y': xyz[:, 1], 'z': xyz[:, 2],
+         'act': a, 'perfect_act': pa,
+         'positive': a > threshold,
+         'true': pa > threshold,
+         } for xyz, a, pa in zip(pos[seg], act, perfect_act)
+    ]
+    tp = [p for p in segment_paths if p['true'] and p['positive']]
+    fp = [p for p in segment_paths if not p['true'] and p['positive']]
+    tn = [p for p in segment_paths if not p['true'] and not p['positive']]
+    fn = [p for p in segment_paths if p['true'] and not p['positive']]
+    return tp, fp, tn, fn
