@@ -3,5 +3,8 @@ matplotlib
 numpy
 scipy
 holoviews
+jupyter
+jupyterlab
 
 pytest
+nb-clean
