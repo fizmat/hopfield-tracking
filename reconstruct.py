@@ -1,9 +1,6 @@
 from typing import Tuple, Dict, List, Any
 
-import holoviews as hv
 import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
 from numpy import ndarray
 from scipy.stats import bernoulli
 

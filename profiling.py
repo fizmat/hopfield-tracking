@@ -13,7 +13,7 @@ from segment import gen_segments_all
 from total import total_activation_matrix, total_activation_energy_gradient
 
 N_TRACKS = 10
-N_EVENTS = 10
+N_EVENTS = 100
 
 eventgen = SimpleEventGenerator(
     seed=2, field_strength=0.8, noisiness=10, box_size=.5
@@ -38,10 +38,9 @@ for hits, track_segments in eventgen:
     COSINE_POWER = 5
     COSINE_MIN = 0.7
     DISTANCE_POWER = 1
-    GAMMA = mean((xa - xb) * (xb - xc)
-                 for xa, la in hits[['x', 'layer']].values
-                 for xb in hits[hits.layer == la + 1].x
-                 for xc in hits[hits.layer == la + 2].x) ** DISTANCE_POWER
+    LX = hits.groupby('layer').x.mean()
+    l_dist = (LX.values[1:] - LX.values[:-1]).mean()
+    GAMMA = l_dist ** DISTANCE_POWER
 
     THRESHOLD = 0.5  # activation threshold for segment classification
 
