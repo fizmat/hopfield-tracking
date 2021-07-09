@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from total import total_activation_matrix_, total_activation_energy, \
-    total_activation_energy_gradient, total_activation_matrix
+from reconstruct import energy, energy_gradient
+from total import total_activation_matrix_, total_activation_matrix
 
 
 def test_total_activation_matrix_():
@@ -72,29 +72,39 @@ def test_total_activation_matrix():
 
 def test_total_activation_energy():
     a, b, c = total_activation_matrix_(0, 0, False)
-    assert total_activation_energy(a, b, c, np.array([])) == 0
+    act = np.array([])
+    assert energy(a, act) + b.dot(act) + c == 0
     a, b, c = total_activation_matrix_(3, 0, False)
-    assert total_activation_energy(a, b, c, np.array([])) == 9
+    assert energy(a, act) + b.dot(act) + c == 9
     a, b, c = total_activation_matrix_(6, 1, False)
-    assert total_activation_energy(a, b, c, np.array([0])) == 36
-    assert total_activation_energy(a, b, c, np.array([1])) == 25
-    assert total_activation_energy(a, b, c, np.array([3])) == 9
-    assert total_activation_energy(a, b, c, np.array([6])) == 0
-    assert total_activation_energy(a, b, c, np.array([7])) == 1
-    assert total_activation_energy(a, b, c, np.array([9])) == 9
+    act = np.array([0])
+    assert energy(a, act) + b.dot(act) + c == 36
+    act = np.array([1])
+    assert energy(a, act) + b.dot(act) + c == 25
+    act = np.array([3])
+    assert energy(a, act) + b.dot(act) + c == 9
+    act = np.array([6])
+    assert energy(a, act) + b.dot(act) + c == 0
+    act = np.array([7])
+    assert energy(a, act) + b.dot(act) + c == 1
+    act = np.array([9])
+    assert energy(a, act) + b.dot(act) + c == 9
     a, b, c = total_activation_matrix_(4, 4, False)
-    assert total_activation_energy(a, b, c, np.array([0, 0, 0, 0])) == 16
-    assert total_activation_energy(a, b, c, np.array([1, 1, 1, 1])) == 0
-    assert total_activation_energy(a, b, c, np.array([1, 1, 0, 0])) == 4
-    assert total_activation_energy(a, b, c, np.array([.5, .5, .5, .5])) == 4
+    act = np.array([0, 0, 0, 0])
+    assert energy(a, act) + b.dot(act) + c == 16
+    act = np.array([1, 1, 1, 1])
+    assert energy(a, act) + b.dot(act) + c == 0
+    act = np.array([1, 1, 0, 0])
+    assert energy(a, act) + b.dot(act) + c == 4
+    act = np.array([.5, .5, .5, .5])
+    assert energy(a, act) + b.dot(act) + c == 4
 
 
 def test_count_vertices_gradient():
     a, b, c = total_activation_matrix_(0, 0, False)
-    assert_array_equal(total_activation_energy_gradient(a, b, np.array([])), np.array([]))
+    assert_array_equal(energy_gradient(a, np.array([])) + b, np.array([]))
     a, b, c = total_activation_matrix_(3, 0, False)
-    assert_array_equal(total_activation_energy_gradient(a, b, np.array([])), np.array([]))
-    # assert total_activation_energy_gradient(a, b, np.array([0])) == -6
-    # assert total_activation_energy_gradient(6, 2.) == -4
-    # assert total_activation_energy_gradient(6, 6.) == 0
-    # assert total_activation_energy_gradient(6, 8.) == 2
+    assert_array_equal(energy_gradient(a, np.array([])) + b, np.array([]))
+    a, b, c = total_activation_matrix_(6, 1, False)
+    act = np.array([3])
+    assert energy_gradient(a, act) + b == [2 * 1 * 3 - 12]

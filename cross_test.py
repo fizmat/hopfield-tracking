@@ -2,7 +2,8 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from scipy.sparse import csr_matrix
 
-from cross import cross_energy, cross_energy_gradient, cross_energy_matrix, segment_forks, segment_joins
+from cross import cross_energy_matrix, segment_forks, segment_joins
+from reconstruct import energy, energy_gradient
 
 
 def test_segment_forks():
@@ -51,26 +52,26 @@ def test_cross_energy_matrix():
 
 
 def test_cross_energy():
-    assert cross_energy(np.zeros((0, 0)), np.zeros(0)) == 0
-    assert cross_energy(np.zeros((1, 1)), np.array([0])) == 0
-    assert cross_energy(np.zeros((1, 1)), np.array([1])) == 0
+    assert energy(np.zeros((0, 0)), np.zeros(0)) == 0
+    assert energy(np.zeros((1, 1)), np.array([0])) == 0
+    assert energy(np.zeros((1, 1)), np.array([1])) == 0
     m = np.array([[0, 1], [1, 0]])
-    assert cross_energy(m, np.array([0, 0])) == 0
-    assert cross_energy(m, np.array([1, 0])) == 0
-    assert cross_energy(csr_matrix(m), np.array([0, 1])) == 0
-    assert cross_energy(m, np.array([1, 1])) == 2
-    assert cross_energy(csr_matrix(m), np.array([0.5, 1])) == 1
+    assert energy(m, np.array([0, 0])) == 0
+    assert energy(m, np.array([1, 0])) == 0
+    assert energy(csr_matrix(m), np.array([0, 1])) == 0
+    assert energy(m, np.array([1, 1])) == 2
+    assert energy(csr_matrix(m), np.array([0.5, 1])) == 1
 
 
 def test_cross_energy_gradient():
     m = np.array([[0, 1], [1, 0]])
-    assert_array_almost_equal(cross_energy_gradient(m, np.array([0, 0])),
+    assert_array_almost_equal(energy_gradient(m, np.array([0, 0])),
                               np.array([0, 0]))
-    assert_array_almost_equal(cross_energy_gradient(m, np.array([1, 0])),
+    assert_array_almost_equal(energy_gradient(m, np.array([1, 0])),
                               np.array([0, 2]))
-    assert_array_almost_equal(cross_energy_gradient(csr_matrix(m), np.array([0, 1])),
+    assert_array_almost_equal(energy_gradient(csr_matrix(m), np.array([0, 1])),
                               np.array([2, 0]))
-    assert_array_almost_equal(cross_energy_gradient(m, np.array([1, 1])),
+    assert_array_almost_equal(energy_gradient(m, np.array([1, 1])),
                               np.array([2, 2]))
-    assert_array_almost_equal(cross_energy_gradient(csr_matrix(m), np.array([0.5, 1])),
+    assert_array_almost_equal(energy_gradient(csr_matrix(m), np.array([0.5, 1])),
                               np.array([2, 1]))

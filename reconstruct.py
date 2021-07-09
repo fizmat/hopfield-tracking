@@ -1,7 +1,8 @@
-from typing import Tuple, Dict, List, Any
+from typing import Tuple, Dict, List, Any, Union
 
 import numpy as np
 from numpy import ndarray
+from scipy.sparse import spmatrix
 from scipy.stats import bernoulli
 
 
@@ -50,3 +51,11 @@ def make_tracks_3d(
     tn = [p for p in segment_paths if not p['true'] and not p['positive']]
     fn = [p for p in segment_paths if p['true'] and not p['positive']]
     return tp, fp, tn, fn
+
+
+def energy(matrix: Union[spmatrix, ndarray], act: ndarray):
+    return matrix.dot(act).dot(act)
+
+
+def energy_gradient(matrix: Union[spmatrix, ndarray], act: ndarray):
+    return 2 * matrix.dot(act)

@@ -17,11 +17,3 @@ def total_activation_matrix_(vertex_count: int, segment_count: int, drop_gradien
 def total_activation_matrix(pos: ndarray, seg: ndarray, drop_gradients_on_self: bool = True) \
         -> Tuple[ndarray, ndarray, float]:
     return total_activation_matrix_(len(pos), len(seg), drop_gradients_on_self)
-
-
-def total_activation_energy(a: ndarray, b: ndarray, c: float, activation: ndarray) -> float:
-    return a.dot(activation).dot(activation) + b.dot(activation) + c
-
-
-def total_activation_energy_gradient(a: ndarray, b: ndarray, activation: ndarray) -> float:
-    return 2 * a.dot(activation) + b

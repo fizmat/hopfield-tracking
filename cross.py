@@ -1,8 +1,6 @@
-from typing import Union, Tuple
-
 import numpy as np
 from numpy import ndarray
-from scipy.sparse import csr_matrix, spmatrix, coo_matrix
+from scipy.sparse import csr_matrix
 
 
 def segment_forks(seg: ndarray) -> csr_matrix:
@@ -29,11 +27,3 @@ def segment_joins(seg: ndarray) -> csr_matrix:
 
 def cross_energy_matrix(seg: ndarray) -> csr_matrix:
     return segment_forks(seg) + segment_joins(seg)
-
-
-def cross_energy(matrix: Union[ndarray, spmatrix], activation: ndarray) -> float:
-    return matrix.dot(activation).dot(activation)
-
-
-def cross_energy_gradient(matrix: Union[ndarray, spmatrix], activation: ndarray) -> ndarray:
-    return 2 * matrix.dot(activation)

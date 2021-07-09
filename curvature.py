@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import ndarray
-from scipy.sparse import coo_matrix, spmatrix, csr_matrix
+from scipy.sparse import coo_matrix, csr_matrix
 
 
 def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
@@ -36,11 +36,3 @@ def curvature_energy_matrix(pos: ndarray, seg: ndarray,
                                   distance_prod_power_in_denominator=distance_prod_power_in_denominator)
     m = coo_matrix((w, pairs), shape=(len(seg), len(seg)))
     return (m + m.transpose()).tocsr()
-
-
-def curvature_energy(w: spmatrix, act: ndarray) -> float:
-    return w.dot(act).dot(act)
-
-
-def curvature_energy_gradient(w: spmatrix, act: ndarray) -> ndarray:
-    return 2 * w.dot(act)

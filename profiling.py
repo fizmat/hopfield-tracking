@@ -3,12 +3,12 @@
 
 import numpy as np
 
-from cross import cross_energy_matrix, cross_energy_gradient
-from curvature import curvature_energy_matrix, curvature_energy_gradient
+from cross import cross_energy_matrix
+from curvature import curvature_energy_matrix
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, update_layer_grad
+from reconstruct import annealing_curve, update_layer_grad, energy_gradient
 from segment import gen_segments_all
-from total import total_activation_matrix, total_activation_energy_gradient
+from total import total_activation_matrix
 
 N_TRACKS = 10
 N_EVENTS = 500
@@ -68,9 +68,9 @@ for hits, track_segments in eventgen:
     acts = []
     for i, t in enumerate(temp_curve):
         acts.append(act)
-        grad = (ALPHA /2 * cross_energy_gradient(crossing_matrix, act) if ALPHA else 0) + \
-               (BETA / 2 * total_activation_energy_gradient(a, b, act) if BETA else 0) + \
-               (-GAMMA / 2 * curvature_energy_gradient(curvature_matrix, act) if GAMMA else 0)
+        grad = (ALPHA / 2 * energy_gradient(crossing_matrix, act) if ALPHA else 0) + \
+               (BETA / 2 * energy_gradient(a, act) + b if BETA else 0) + \
+               (-GAMMA / 2 * energy_gradient(curvature_matrix, act) if GAMMA else 0)
         update_layer_grad(act, grad, t, DROPOUT, LEARNING_RATE, BIAS)
         if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
             break
