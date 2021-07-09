@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from statistics import mean
-
 import numpy as np
 
 from cross import cross_energy_matrix, cross_energy_gradient
@@ -18,6 +16,13 @@ N_EVENTS = 500
 eventgen = SimpleEventGenerator(
     seed=2, field_strength=0.8, noisiness=10, box_size=.5
 ).gen_many_events(N_EVENTS, N_TRACKS)
+
+
+def should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
+    return np.linalg.norm(act - acts[-1]) < MIN_ACTIVATION_CHANGE_TO_CONTINUE and \
+           np.linalg.norm(acts[-1] - acts[-2]) < MIN_ACTIVATION_CHANGE_TO_CONTINUE and \
+           np.linalg.norm(acts[-2] - acts[-3]) < MIN_ACTIVATION_CHANGE_TO_CONTINUE
+
 
 for hits, track_segments in eventgen:
     pos = hits[['x', 'y', 'z']].values
@@ -68,5 +73,5 @@ for hits, track_segments in eventgen:
                (GAMMA * curvature_energy_gradient(curvature_matrix, act) if GAMMA else 0)
         a_prev = act
         act = update_layer_grad(a_prev, grad, t, DROPOUT, LEARNING_RATE, BIAS)
-        if np.abs(act - a_prev).sum() < MIN_ACTIVATION_CHANGE_TO_CONTINUE and i > ANNEAL_ITERATIONS:
+        if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
             break
