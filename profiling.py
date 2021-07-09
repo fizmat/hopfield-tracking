@@ -53,9 +53,9 @@ for hits, track_segments in eventgen:
     LEARNING_RATE = 0.6
     MIN_ACTIVATION_CHANGE_TO_CONTINUE = 0
 
-    a, b, c = total_activation_matrix(pos, seg, DROP_SELF_ACTIVATION_WEIGHTS)
-    crossing_matrix = cross_energy_matrix(seg)
-    curvature_matrix = curvature_energy_matrix(pos, seg, COSINE_POWER, COSINE_MIN, DISTANCE_POWER)
+    crossing_matrix = cross_energy_matrix(seg) if ALPHA else 0
+    a, b, c = total_activation_matrix(pos, seg, DROP_SELF_ACTIVATION_WEIGHTS) if BETA else (0, 0, 0)
+    curvature_matrix = curvature_energy_matrix(pos, seg, COSINE_POWER, COSINE_MIN, DISTANCE_POWER) if GAMMA else 0
 
     temp_curve = annealing_curve(TMIN, TMAX, ANNEAL_ITERATIONS, STABLE_ITERATIONS)
 
@@ -63,9 +63,9 @@ for hits, track_segments in eventgen:
     acts = []
     for i, t in enumerate(temp_curve):
         acts.append(act)
-        grad = GAMMA * curvature_energy_gradient(curvature_matrix, act) + \
-               ALPHA * cross_energy_gradient(crossing_matrix, act) + \
-               BETA * total_activation_energy_gradient(a, b, act)
+        grad = (ALPHA * cross_energy_gradient(crossing_matrix, act) if ALPHA else 0) + \
+               (BETA * total_activation_energy_gradient(a, b, act) if BETA else 0) + \
+               (GAMMA * curvature_energy_gradient(curvature_matrix, act) if GAMMA else 0)
         a_prev = act
         act = update_layer_grad(a_prev, grad, t, DROPOUT, LEARNING_RATE, BIAS)
         if np.abs(act - a_prev).sum() < MIN_ACTIVATION_CHANGE_TO_CONTINUE and i > ANNEAL_ITERATIONS:
