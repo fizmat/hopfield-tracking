@@ -61,6 +61,9 @@ for hits, track_segments in eventgen:
     crossing_matrix = cross_energy_matrix(seg) if ALPHA else 0
     a, b, c = total_activation_matrix(pos, seg, DROP_SELF_ACTIVATION_WEIGHTS) if BETA else (0, 0, 0)
     curvature_matrix = curvature_energy_matrix(pos, seg, COSINE_POWER, COSINE_MIN, DISTANCE_POWER) if GAMMA else 0
+    e_matrix = ALPHA / 2 * crossing_matrix + BETA / 2 * a - GAMMA / 2 * curvature_matrix
+    if BETA:
+        e_matrix = e_matrix.A  # matrix to ndarray
 
     temp_curve = annealing_curve(TMIN, TMAX, ANNEAL_ITERATIONS, STABLE_ITERATIONS)
 
@@ -68,9 +71,7 @@ for hits, track_segments in eventgen:
     acts = []
     for i, t in enumerate(temp_curve):
         acts.append(act)
-        grad = (ALPHA / 2 * energy_gradient(crossing_matrix, act) if ALPHA else 0) + \
-               (BETA / 2 * energy_gradient(a, act) + b if BETA else 0) + \
-               (-GAMMA / 2 * energy_gradient(curvature_matrix, act) if GAMMA else 0)
+        grad = energy_gradient(e_matrix, act) + (b if BETA else 0)
         update_layer_grad(act, grad, t, DROPOUT, LEARNING_RATE, BIAS)
         if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
             break
