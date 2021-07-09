@@ -16,17 +16,13 @@ def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
     return -0.5 * cosines ** cosine_power / rr ** distance_prod_power_in_denominator
 
 
-def segment_find_next(seg: ndarray, i: int) -> ndarray:
-    is_adjacent = seg[:, 0] == seg[i, 1]
-    jj = np.arange(len(seg))[is_adjacent]
-    segments = np.stack(np.broadcast_arrays(i, jj), axis=1)
-    return segments
-
-
 def segment_adjacent_pairs(seg: ndarray) -> ndarray:
     if len(seg) == 0:
         return np.empty((0, 2), dtype=int)
-    return np.concatenate([segment_find_next(seg, s) for s in range(len(seg))])
+    is_adjacent = seg[:, np.newaxis, 1] == seg[np.newaxis, :, 0]
+    adj = coo_matrix(is_adjacent)
+    i, j = adj.row, adj.col
+    return np.stack([i, j], axis=1)
 
 
 def curvature_energy_matrix(pos: ndarray, seg: ndarray,

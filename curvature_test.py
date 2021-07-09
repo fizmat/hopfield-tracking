@@ -3,7 +3,7 @@ from _pytest.python_api import approx
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_array_almost_equal_nulp
 
 from curvature import curvature_energy_pairwise, curvature_energy, curvature_energy_gradient, \
-    curvature_energy_matrix, segment_find_next, segment_adjacent_pairs
+    curvature_energy_matrix, segment_adjacent_pairs
 
 
 def test_curvature_energy_pairwise():
@@ -24,12 +24,6 @@ def test_curvature_energy_pairwise():
                               [-0.5, -0.5 * (1 / r2)**3, -0.5 * (1 / r2)**3])
     assert_array_almost_equal(curvature_energy_pairwise(a, b, c, cosine_power=1, distance_prod_power_in_denominator=0),
                               [-0.5, -0.5 * (1 / r2)**1, -0.5 * (1 / r2)**1])
-
-
-def test_segment_find_next():
-    segments = np.array([[0, 1], [1, 3], [1, 4], [2, 3], [3, 4]])
-    assert_array_equal(segment_find_next(segments, 0), np.array([[0, 1], [0, 2]]))
-    assert_array_equal(segment_find_next(segments, 1), np.array([[1, 4]]))
 
 
 def test_segment_adjacent_pairs():
