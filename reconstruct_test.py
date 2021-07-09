@@ -10,10 +10,15 @@ def test_annealing_curve():
 
 
 def test_update_layer_grad():
-    act = np.array([.5, .5])
     grad = np.array([0., 1.])
     sigmoid_minus_one = 1 / (1 + np.exp(2.))
     assert sigmoid_minus_one == approx(0.5 * (1 + np.tanh(-1)))
-    assert_array_almost_equal(update_layer_grad(act, grad, 1.), [.5, sigmoid_minus_one])
-    assert_array_almost_equal(update_layer_grad(act, grad, 1., learning_rate=0.5), [.5, (0.5 + sigmoid_minus_one) / 2])
-    assert_array_almost_equal(update_layer_grad(act, grad, 1., dropout_rate=1.), [.5, .5])
+    act = np.array([.5, .5])
+    update_layer_grad(act, grad, 1.)
+    assert_array_almost_equal(act, [.5, sigmoid_minus_one])
+    act = np.array([.5, .5])
+    update_layer_grad(act, grad, 1., learning_rate=0.5)
+    assert_array_almost_equal(act, [.5, (0.5 + sigmoid_minus_one) / 2])
+    act = np.array([.5, .5])
+    update_layer_grad(act, grad, 1., dropout_rate=1.)
+    assert_array_almost_equal(act, [.5, .5])

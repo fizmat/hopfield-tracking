@@ -71,7 +71,6 @@ for hits, track_segments in eventgen:
         grad = (ALPHA * cross_energy_gradient(crossing_matrix, act) if ALPHA else 0) + \
                (BETA * total_activation_energy_gradient(a, b, act) if BETA else 0) + \
                (GAMMA * curvature_energy_gradient(curvature_matrix, act) if GAMMA else 0)
-        a_prev = act
-        act = update_layer_grad(a_prev, grad, t, DROPOUT, LEARNING_RATE, BIAS)
+        update_layer_grad(act, grad, t, DROPOUT, LEARNING_RATE, BIAS)
         if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
             break
