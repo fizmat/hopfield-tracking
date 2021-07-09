@@ -13,7 +13,7 @@ from segment import gen_segments_all
 from total import total_activation_matrix, total_activation_energy_gradient
 
 N_TRACKS = 10
-N_EVENTS = 100
+N_EVENTS = 500
 
 eventgen = SimpleEventGenerator(
     seed=2, field_strength=0.8, noisiness=10, box_size=.5
