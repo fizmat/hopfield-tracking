@@ -13,7 +13,7 @@ def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
     rr = r1 * r2
     cosines = (d1 * d2).sum(axis=-1) / rr
     cosines[cosines < cosine_threshold] = 0
-    return -0.5 * cosines ** cosine_power / rr ** distance_prod_power_in_denominator
+    return cosines ** cosine_power / rr ** distance_prod_power_in_denominator
 
 
 def segment_adjacent_pairs(seg: ndarray) -> ndarray:
@@ -39,8 +39,8 @@ def curvature_energy_matrix(pos: ndarray, seg: ndarray,
 
 
 def curvature_energy(w: spmatrix, act: ndarray) -> float:
-    return 0.5 * w.dot(act).dot(act)
+    return w.dot(act).dot(act)
 
 
 def curvature_energy_gradient(w: spmatrix, act: ndarray) -> ndarray:
-    return w.dot(act)
+    return 2 * w.dot(act)

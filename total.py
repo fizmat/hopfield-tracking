@@ -6,11 +6,11 @@ from numpy import ndarray
 
 def total_activation_matrix_(vertex_count: int, segment_count: int, drop_gradients_on_self: bool = True) \
         -> Tuple[ndarray, ndarray, float]:
-    a = np.full((segment_count, segment_count), 0.5)
+    a = np.ones((segment_count, segment_count))
     if drop_gradients_on_self:
-        a -= 0.5 * np.eye(segment_count)
-    b = - np.full(segment_count, vertex_count)
-    c = 0.5 * vertex_count ** 2
+        a -= np.eye(segment_count)
+    b = - 2 * np.full(segment_count, vertex_count)
+    c = vertex_count ** 2
     return a, b, c
 
 

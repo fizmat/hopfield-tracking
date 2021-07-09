@@ -68,9 +68,9 @@ for hits, track_segments in eventgen:
     acts = []
     for i, t in enumerate(temp_curve):
         acts.append(act)
-        grad = (ALPHA * cross_energy_gradient(crossing_matrix, act) if ALPHA else 0) + \
-               (BETA * total_activation_energy_gradient(a, b, act) if BETA else 0) + \
-               (GAMMA * curvature_energy_gradient(curvature_matrix, act) if GAMMA else 0)
+        grad = (ALPHA /2 * cross_energy_gradient(crossing_matrix, act) if ALPHA else 0) + \
+               (BETA / 2 * total_activation_energy_gradient(a, b, act) if BETA else 0) + \
+               (-GAMMA / 2 * curvature_energy_gradient(curvature_matrix, act) if GAMMA else 0)
         update_layer_grad(act, grad, t, DROPOUT, LEARNING_RATE, BIAS)
         if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
             break

@@ -32,8 +32,8 @@ def cross_energy_matrix(seg: ndarray) -> csr_matrix:
 
 
 def cross_energy(matrix: Union[ndarray, spmatrix], activation: ndarray) -> float:
-    return 0.5 * (matrix.dot(activation).dot(activation))
+    return matrix.dot(activation).dot(activation)
 
 
 def cross_energy_gradient(matrix: Union[ndarray, spmatrix], activation: ndarray) -> ndarray:
-    return matrix.dot(activation)
+    return 2 * matrix.dot(activation)
