@@ -20,6 +20,10 @@ def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float
     act[not_dropout] = updated_act
 
 
+def should_stop(act, acts, min_act_change=1e-9, lookback=1):
+    return max(np.linalg.norm(act - a0) for a0 in acts[-lookback:]) < min_act_change
+
+
 def precision(act, perfect_act, threshold=0.5):
     perfect_bool = perfect_act > 0.5
     positives = act >= threshold

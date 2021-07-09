@@ -2,11 +2,22 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from pytest import approx
 
-from reconstruct import annealing_curve, update_layer_grad
+from reconstruct import annealing_curve, update_layer_grad, should_stop
 
 
 def test_annealing_curve():
     assert_array_almost_equal(annealing_curve(10, 40, 3, 2), [40., 20, 10, 10, 10])
+
+
+def test_should_stop():
+    assert should_stop(0, [0, 0, 0, 0])
+    assert should_stop(4, [1, 2, 3, 4])
+    assert not should_stop(5, [1, 2, 3, 4])
+    assert not should_stop(4, [1, 2, 3, 4], lookback=2)
+    assert not should_stop(4.01, [1, 2, 3, 4])
+    assert should_stop(4.01, [1, 2, 3, 4], 0.02)
+    assert should_stop(2, [1, 2, 2, 2], lookback=3)
+    assert not should_stop(2, [1, 2, 2, 2], lookback=4)
 
 
 def test_update_layer_grad():

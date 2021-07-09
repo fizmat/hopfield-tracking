@@ -6,7 +6,7 @@ import numpy as np
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix
 from generator import SimpleEventGenerator
-from reconstruct import annealing_curve, update_layer_grad, energy_gradient
+from reconstruct import annealing_curve, update_layer_grad, energy_gradient, should_stop
 from segment import gen_segments_all
 from total import total_activation_matrix
 
@@ -16,13 +16,6 @@ N_EVENTS = 500
 eventgen = SimpleEventGenerator(
     seed=2, field_strength=0.8, noisiness=10, box_size=.5
 ).gen_many_events(N_EVENTS, N_TRACKS)
-
-
-def should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
-    return np.linalg.norm(act - acts[-1]) < MIN_ACTIVATION_CHANGE_TO_CONTINUE and \
-           np.linalg.norm(acts[-1] - acts[-2]) < MIN_ACTIVATION_CHANGE_TO_CONTINUE and \
-           np.linalg.norm(acts[-2] - acts[-3]) < MIN_ACTIVATION_CHANGE_TO_CONTINUE
-
 
 for hits, track_segments in eventgen:
     pos = hits[['x', 'y', 'z']].values
@@ -57,6 +50,7 @@ for hits, track_segments in eventgen:
     DROPOUT = 0.5
     LEARNING_RATE = 0.6
     MIN_ACTIVATION_CHANGE_TO_CONTINUE = 0
+    SHOULD_STOP_LOOKBACK = 7
 
     crossing_matrix = cross_energy_matrix(seg) if ALPHA else 0
     a, b, c = total_activation_matrix(pos, seg, DROP_SELF_ACTIVATION_WEIGHTS) if BETA else (0, 0, 0)
@@ -73,5 +67,5 @@ for hits, track_segments in eventgen:
         acts.append(act.copy())
         grad = energy_gradient(e_matrix, act) + (b if BETA else 0)
         update_layer_grad(act, grad, t, DROPOUT, LEARNING_RATE, BIAS)
-        if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):
+        if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE, SHOULD_STOP_LOOKBACK):
             break
