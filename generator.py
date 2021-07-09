@@ -37,7 +37,7 @@ class SimpleEventGenerator:
         hits = track_vector[None, :] * self.layer_x[:, None]  # [layer, coordinate]
         return hits
 
-    def run_curved_track(self, m: np.ndarray, q: float):
+    def run_curved_track(self, m: np.ndarray, q: float) -> ndarray:
         m_yz = np.linalg.norm(m[1:])
         r = m_yz / abs(self.field_strength * q)
         # to_center = np.array([[0, 1], [0, -1]]).dot(momentum[1:]) / m
@@ -48,39 +48,57 @@ class SimpleEventGenerator:
         hits = np.stack([self.layer_x, center[0] + r * np.cos(angles), center[1] + r * np.sin(angles)], axis=-1)
         return hits
 
-    def run_track(self, momentum: np.ndarray, charge: float) -> Tuple[pd.DataFrame, ndarray]:
+    def run_track(self, momentum: np.ndarray, charge: float) -> Tuple[ndarray, ndarray, ndarray]:
         if self.field_strength != 0 and charge != 0:
             hits = self.run_curved_track(momentum, charge)
         else:
             hits = self.run_straight_track(momentum)
         hits[:, 1:] += self.rng.normal(0, self.yz_deviation, hits[:, 1:].shape)  # inaccuracy in y and z
-        data = np.concatenate([hits, self.layer_i[:, np.newaxis]], axis=1)
         ii = self.layer_i[:-1]
         seg = np.stack([ii, ii + 1], axis=1)
-        return pd.DataFrame(data, columns=['x', 'y', 'z', 'layer']), seg
+        return hits, self.layer_i, seg
 
     def gen_event(self, momenta: np.ndarray, charges: np.ndarray) -> Tuple[pd.DataFrame, ndarray]:
-        hits = []
-        seg = []
+        xlist = []
+        ylist = []
+        zlist = []
+        segmentlist = []
+        tracklist = []
+        chargelist = []
+        layerlist = []
         n = 0
         for i, (m, q) in enumerate(zip(momenta, charges)):
-            h, s = self.run_track(m, q)
-            h.index += n
+            h, layers, s = self.run_track(m, q)
+            x, y, z = h.transpose()
+            xlist.append(x)
+            ylist.append(y)
+            zlist.append(z)
+            k = len(layers)
+            layerlist.append(layers)
+            tracklist.append(np.full(k, i))
+            chargelist.append(np.full(k, q))
             s += n
-            h['track'] = i
-            h['charge'] = q
-            hits.append(h)
-            seg.append(s)
-            n += len(h)
+            segmentlist.append(s)
+            n += k
+
         noise_count = self.rng.poisson(self.noisiness)
         noise_layer = self.rng.integers(0, self.n_layers, noise_count)
-        noise_x = self.layer_x[noise_layer]
-        noise_y = self.rng.uniform(-self.size_y, self.size_y, noise_count)
-        noise_z = self.rng.uniform(-self.size_z, self.size_z, noise_count)
-        noise = pd.DataFrame({'x': noise_x, 'y': noise_y, 'z': noise_z,
-                              'layer': noise_layer, 'track': -1, 'charge': np.nan},
-                             index=pd.RangeIndex(n, n + noise_count))
-        return pd.concat(hits + [noise]), np.concatenate(seg)
+        layerlist.append(noise_layer)
+        tracklist.append(np.full(noise_count, -1))
+        chargelist.append(np.full(noise_count, np.nan))
+        xlist.append(self.layer_x[noise_layer])
+        ylist.append(self.rng.uniform(-self.size_y, self.size_y, noise_count))
+        zlist.append(self.rng.uniform(-self.size_z, self.size_z, noise_count))
+
+        xx = np.concatenate(xlist)
+        yy = np.concatenate(ylist)
+        zz = np.concatenate(zlist)
+        layers = np.concatenate(layerlist)
+        tracks = np.concatenate(tracklist)
+        charges = np.concatenate(chargelist)
+        seg = np.concatenate(segmentlist)
+
+        return pd.DataFrame({'x': xx, 'y': yy, 'z': zz, 'layer': layers, 'track': tracks, 'charge': charges}), seg
 
     def gen_many_events(self, n: int = 1000, event_size: int = 10, momentum_scale=.2) \
             -> Generator[pd.DataFrame, None, None]:
