@@ -70,7 +70,7 @@ for hits, track_segments in eventgen:
     act = np.full(len(seg), THRESHOLD * 0.999)
     acts = []
     for i, t in enumerate(temp_curve):
-        acts.append(act)
+        acts.append(act.copy())
         grad = energy_gradient(e_matrix, act) + (b if BETA else 0)
         update_layer_grad(act, grad, t, DROPOUT, LEARNING_RATE, BIAS)
         if i > ANNEAL_ITERATIONS and should_stop(act, acts, MIN_ACTIVATION_CHANGE_TO_CONTINUE):

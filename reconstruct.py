@@ -14,7 +14,7 @@ def annealing_curve(t_min, t_max, cooling_steps, rest_steps):
 
 def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float = 0.,
                       learning_rate: float = 1., bias: float = 0.) -> None:
-    not_dropout = bernoulli.rvs(1 - dropout_rate)
+    not_dropout = bernoulli.rvs(1 - dropout_rate, size=len(act)).astype(bool)
     next_act = 0.5 * (1 + np.tanh((- grad[not_dropout] + bias) / t))
     updated_act = next_act * learning_rate + act[not_dropout] * (1. - learning_rate)
     act[not_dropout] = updated_act

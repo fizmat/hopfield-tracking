@@ -22,3 +22,8 @@ def test_update_layer_grad():
     act = np.array([.5, .5])
     update_layer_grad(act, grad, 1., dropout_rate=1.)
     assert_array_almost_equal(act, [.5, .5])
+    act = np.zeros(1000)
+    grad = np.full(1000, -1e6)
+    update_layer_grad(act, grad, 1., dropout_rate=0.8)
+    assert (act == 0).sum() == approx(800, abs=20)
+    assert act.mean() == approx(0.2, abs=0.01)
