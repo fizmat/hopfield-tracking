@@ -36,8 +36,8 @@ for hits, track_segments in eventgen:
     COSINE_POWER = 5
     COSINE_MIN = 0.8
     DISTANCE_POWER = 0.5
-    LX = hits.groupby('layer').x.mean()
-    l_dist = (LX.values[1:] - LX.values[:-1]).mean()
+    LZ = hits.groupby('layer').z.mean()
+    l_dist = (LZ.values[1:] - LZ.values[:-1]).mean()
     GAMMA = l_dist ** DISTANCE_POWER
 
     THRESHOLD = 0.5  # activation threshold for segment classification
