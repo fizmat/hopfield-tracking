@@ -47,8 +47,8 @@ for hits, track_segments in eventgen:
     ANNEAL_ITERATIONS = 200
     STABLE_ITERATIONS = 200
 
-    DROPOUT = 0.9
-    LEARNING_RATE = 1
+    DROPOUT = 0
+    LEARNING_RATE = 0.1
     MIN_ACTIVATION_CHANGE_TO_CONTINUE = 0
     SHOULD_STOP_LOOKBACK = 7
 
