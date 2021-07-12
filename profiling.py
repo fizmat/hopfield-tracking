@@ -27,28 +27,28 @@ for hits, track_segments in eventgen:
     is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
     perfect_act[is_in_track] = 1
 
-    ALPHA = 0.6  # forks and joins
+    ALPHA = 0.5  # forks and joins
 
     BETA = 0  # total activation
     DROP_SELF_ACTIVATION_WEIGHTS = True  # in total activation matrix
-    BIAS = 0.2  # activation bias, instead of total activation matrix
+    BIAS = 0.4  # activation bias, instead of total activation matrix
 
     COSINE_POWER = 5
-    COSINE_MIN = 0.7
-    DISTANCE_POWER = 1
+    COSINE_MIN = 0.8
+    DISTANCE_POWER = 0.5
     LX = hits.groupby('layer').x.mean()
     l_dist = (LX.values[1:] - LX.values[:-1]).mean()
     GAMMA = l_dist ** DISTANCE_POWER
 
     THRESHOLD = 0.5  # activation threshold for segment classification
 
-    TMAX = 20
-    TMIN = 0.5
-    ANNEAL_ITERATIONS = 40
+    TMAX = 5
+    TMIN = 0.2
+    ANNEAL_ITERATIONS = 200
     STABLE_ITERATIONS = 200
 
-    DROPOUT = 0.5
-    LEARNING_RATE = 0.6
+    DROPOUT = 0.9
+    LEARNING_RATE = 1
     MIN_ACTIVATION_CHANGE_TO_CONTINUE = 0
     SHOULD_STOP_LOOKBACK = 7
 
@@ -57,7 +57,7 @@ for hits, track_segments in eventgen:
     curvature_matrix = curvature_energy_matrix(pos, seg, COSINE_POWER, COSINE_MIN, DISTANCE_POWER) if GAMMA else 0
     e_matrix = ALPHA / 2 * crossing_matrix + BETA / 2 * a - GAMMA / 2 * curvature_matrix
     if BETA:
-        e_matrix = e_matrix.A  # matrix to ndarray
+        e_matrix = e_matrix.A  # dense matrix to ndarray for correct .dot behaviour (same as sparse matrix)
 
     temp_curve = annealing_curve(TMIN, TMAX, ANNEAL_ITERATIONS, STABLE_ITERATIONS)
 
