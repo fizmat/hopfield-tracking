@@ -3,7 +3,6 @@ from typing import Tuple, Dict, List, Any, Union
 import numpy as np
 from numpy import ndarray
 from scipy.sparse import spmatrix
-from scipy.stats import bernoulli
 
 
 def annealing_curve(t_min, t_max, cooling_steps, rest_steps):
@@ -21,8 +20,8 @@ def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float
     act[not_dropout] = updated_act
 
 
-def should_stop(act, acts, min_act_change=1e-9, lookback=1):
-    return max(np.linalg.norm(act - a0) for a0 in acts[-lookback:]) < min_act_change
+def should_stop(act: ndarray, acts: List[ndarray], min_act_change: float = 1e-5, lookback: int = 1) -> bool:
+    return max(np.max(act - a0) for a0 in acts[-lookback:]) < min_act_change
 
 
 def precision(act, perfect_act, threshold=0.5):
