@@ -9,6 +9,7 @@ dependencies:
   - pandas=1.2.5 #(for holoiews 1.14.4 ABCIndexClass warning)
   - numpy
   - scipy
+  - scikit-learn
 
   - jupyter
   - jupyterlab
@@ -20,4 +21,4 @@ dependencies:
 
   - pytest
   - pip:
-    - nb-clean
+      - nb-clean
