@@ -25,14 +25,13 @@ def segment_adjacent_pairs(seg: ndarray) -> ndarray:
     return np.stack([i, j], axis=1)
 
 
-def curvature_energy_matrix(pos: ndarray, seg: ndarray,
+def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
                             curvature_cosine_power: float = 3.,
                             cosine_threshold: float = 0., distance_prod_power_in_denominator: float = 1.) -> csr_matrix:
-    pairs = segment_adjacent_pairs(seg).transpose()
-    s1, s2 = seg[pairs]
+    s1, s2 = seg[pairs.T]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
     w = curvature_energy_pairwise(a, b, c, cosine_power=curvature_cosine_power,
                                   cosine_threshold=cosine_threshold,
                                   distance_prod_power_in_denominator=distance_prod_power_in_denominator)
-    m = coo_matrix((w, pairs), shape=(len(seg), len(seg)))
+    m = coo_matrix((w, pairs.T), shape=(len(seg), len(seg)))
     return (m + m.transpose()).tocsr()
