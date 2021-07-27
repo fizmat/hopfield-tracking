@@ -14,10 +14,14 @@ def annealing_curve(t_min, t_max, cooling_steps, rest_steps):
 def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float = 0.,
                       learning_rate: float = 1., bias: float = 0.) -> None:
     n = len(act)
-    not_dropout = np.random.choice(n, round(n * (1. - dropout_rate)), replace=False)
-    next_act = 0.5 * (1 + np.tanh((- grad[not_dropout] + bias) / t))
-    updated_act = next_act * learning_rate + act[not_dropout] * (1. - learning_rate)
-    act[not_dropout] = updated_act
+    if dropout_rate:
+        not_dropout = np.random.choice(n, round(n * (1. - dropout_rate)), replace=False)
+        next_act = 0.5 * (1 + np.tanh((- grad[not_dropout] + bias) / t))
+        updated_act = next_act * learning_rate + act[not_dropout] * (1. - learning_rate)
+        act[not_dropout] = updated_act
+    else:
+        next_act = 0.5 * (1 + np.tanh((- grad + bias) / t))
+        act[:] = next_act * learning_rate + act * (1. - learning_rate)
 
 
 def should_stop(act: ndarray, acts: List[ndarray], min_act_change: float = 1e-5, lookback: int = 1) -> bool:
