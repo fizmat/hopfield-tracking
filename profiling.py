@@ -4,7 +4,7 @@
 import numpy as np
 
 from cross import cross_energy_matrix
-from curvature import curvature_energy_matrix
+from curvature import curvature_energy_matrix, segment_adjacent_pairs
 from generator import SimpleEventGenerator
 from reconstruct import annealing_curve, update_layer_grad, energy_gradient, should_stop
 from segment import gen_segments_all
@@ -54,7 +54,8 @@ for hits, track_segments in eventgen:
 
     crossing_matrix = cross_energy_matrix(seg) if ALPHA else 0
     a, b, c = total_activation_matrix(pos, seg, DROP_SELF_ACTIVATION_WEIGHTS) if BETA else (0, 0, 0)
-    curvature_matrix = curvature_energy_matrix(pos, seg, COSINE_POWER, COSINE_MIN, DISTANCE_POWER) if GAMMA else 0
+    pairs = segment_adjacent_pairs(seg)
+    curvature_matrix = curvature_energy_matrix(pos, seg, pairs, COSINE_POWER, COSINE_MIN, DISTANCE_POWER) if GAMMA else 0
     e_matrix = ALPHA / 2 * crossing_matrix + BETA / 2 * a - GAMMA / 2 * curvature_matrix
     if BETA:
         e_matrix = e_matrix.A  # dense matrix to ndarray for correct .dot behaviour (same as sparse matrix)
