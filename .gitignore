@@ -3,3 +3,5 @@
 .ipynb_checkpoints/
 *.zip
 *.html
+Miniconda3-*.sh
+*.tar.lz4
