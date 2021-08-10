@@ -11,6 +11,8 @@ dependencies:
   - scipy
   - scikit-learn
 
+  - hpbandster
+
   - jupyter
   - jupyterlab
 
