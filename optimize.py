@@ -25,11 +25,14 @@ logging.basicConfig(level=logging.WARNING)
 
 class MyWorker(Worker):
 
-    def __init__(self, n_events, n_tracks=10, field_strength=0.8, noisiness=10, noise_box=.5, seed=2, *args, **kwargs):
+    def __init__(self, n_events, n_tracks=10, field_strength=0.8, noisiness=10, noise_box=.5, train_seed=1, validation_seed=2, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.batch = list(SimpleEventGenerator(
-            seed=seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
+        self.train_batch = list(SimpleEventGenerator(
+            seed=train_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
+        ).gen_many_events(n_events, n_tracks))
+        self.validation_batch = list(SimpleEventGenerator(
+            seed=validation_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
         ).gen_many_events(n_events, n_tracks))
 
     def compute(self, config, budget, **kwargs):
@@ -43,37 +46,38 @@ class MyWorker(Worker):
                 'loss' (scalar)
                 'info' (dict)
         """
-        batch = self.batch[:int(budget)]
-        total = 0.
-        for hits, track_segments in batch:
-            pos = hits[['x', 'y', 'z']].values
+        loss = []
+        for batch in (self.train_batch[:int(budget)], self.validation_batch[:int(budget)]):
+            total = 0.
+            for hits, track_segments in batch:
+                pos = hits[['x', 'y', 'z']].values
 
-            seg = gen_segments_all(hits)
+                seg = gen_segments_all(hits)
 
-            perfect_act = np.zeros(len(seg))
-            track_segment_set = set(tuple(s) for s in track_segments)
-            is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
-            perfect_act[is_in_track] = 1
+                perfect_act = np.zeros(len(seg))
+                track_segment_set = set(tuple(s) for s in track_segments)
+                is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
+                perfect_act[is_in_track] = 1
 
-            crossing_matrix = cross_energy_matrix(seg)
-            pairs = segment_adjacent_pairs(seg)
-            curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
-                                                       config['cosine_power'], config['cosine_min'],
-                                                       config['distance_power'])
-            e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
-            tmin = 1.
-            temp_curve = annealing_curve(tmin, config['tmax'], config['anneal_steps'], config['stable_steps'])
+                crossing_matrix = cross_energy_matrix(seg)
+                pairs = segment_adjacent_pairs(seg)
+                curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
+                                                           config['cosine_power'], config['cosine_min'],
+                                                           config['distance_power'])
+                e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
+                tmin = 1.
+                temp_curve = annealing_curve(tmin, config['tmax'], config['anneal_steps'], config['stable_steps'])
 
-            act = np.full(len(seg), config['starting_act'])
-            for i, t in enumerate(temp_curve):
-                grad = energy_gradient(e_matrix, act)
-                update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-            total += roc_auc_score(perfect_act, act)
-        loss = 1 - total / budget
+                act = np.full(len(seg), config['starting_act'])
+                for i, t in enumerate(temp_curve):
+                    grad = energy_gradient(e_matrix, act)
+                    update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
+                total += roc_auc_score(perfect_act, act)
+            loss.append(1 - total / budget)
 
         return ({
-            'loss': loss,
-            'info': {},
+            'loss': loss[0],
+            'info': {"validation_loss": loss[1]},
         })
 
     @staticmethod
