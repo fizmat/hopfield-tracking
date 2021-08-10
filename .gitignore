@@ -5,3 +5,5 @@
 *.html
 Miniconda3-*.sh
 *.tar.lz4
+workdir/
+*.out
