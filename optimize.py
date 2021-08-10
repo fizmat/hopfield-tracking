@@ -59,10 +59,10 @@ class MyWorker(Worker):
                 is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
                 perfect_act[is_in_track] = 1
 
-                crossing_matrix = cross_energy_matrix(seg)
+                crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'])
                 pairs = segment_adjacent_pairs(seg)
                 curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
-                                                           config['cosine_power'], config['cosine_min'],
+                                                           config['cosine_power'], config['cosine_min_rewarded'],
                                                            config['distance_power'])
                 e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
                 tmin = 1.
@@ -87,7 +87,8 @@ class MyWorker(Worker):
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('gamma', lower=0, upper=20))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('bias', lower=-10, upper=10))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_power', lower=0, upper=20))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min', lower=0, upper=20))
+        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_allowed', lower=-1, upper=1))
+        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_rewarded', lower=0, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('tmax', lower=1, upper=100))
         config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('anneal_steps', lower=2, upper=1000))
