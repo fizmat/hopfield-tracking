@@ -29,10 +29,12 @@ class MyWorker(Worker):
                  noisiness=10, noise_box=.5,
                  train_seed=1, test_seed=2,
                  threshold=0.5,
+                 total_steps=10,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.threshold = threshold
+        self.total_steps = total_steps
         self.train_batch = list(SimpleEventGenerator(
             seed=train_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
         ).gen_many_events(n_events, n_tracks))
@@ -71,7 +73,8 @@ class MyWorker(Worker):
                                                            config['distance_power'])
                 e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
                 tmin = 1.
-                temp_curve = annealing_curve(tmin, config['tmax'], config['anneal_steps'], config['stable_steps'])
+                temp_curve = annealing_curve(tmin, config['tmax'],
+                                             config['anneal_steps'], self.total_steps - config['anneal_steps'])
 
                 act = np.full(len(seg), config['starting_act'])
                 for i, t in enumerate(temp_curve):
@@ -86,7 +89,7 @@ class MyWorker(Worker):
         })
 
     @staticmethod
-    def get_configspace():
+    def get_configspace(total_steps: int = 10):
         config_space = CS.ConfigurationSpace()
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('alpha', lower=0, upper=20))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('gamma', lower=0, upper=20))
@@ -96,12 +99,11 @@ class MyWorker(Worker):
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_rewarded', lower=0, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('tmax', lower=1, upper=100))
-        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('anneal_steps', lower=2, upper=1000))
-        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('stable_steps', lower=2, upper=1000))
+        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('anneal_steps', lower=0, upper=total_steps))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('starting_act', lower=0, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('dropout', lower=0, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
-        return (config_space)
+        return config_space
 
 
 def test():
@@ -118,17 +120,19 @@ def main():
     parser.add_argument('--test', help='Flag to run worker once locally', action='store_true')
     parser.add_argument('--n_tracks', type=int, help='number of tracks per event', default=10)
     parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.',
-                        default=10)
+                        default=1)
     parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.',
-                        default=500)
+                        default=10)
+    parser.add_argument('--hopfield_steps', type=int, help='Total length of iteration in anneal and post-anneal',
+                        default=10)
     parser.add_argument('--n_iterations', type=int, help='Number of iterations performed by the optimizer', default=4)
     parser.add_argument('--worker', help='Flag to turn this into a worker process', action='store_true')
     parser.add_argument('--run_id', type=str,
                         help='A unique run id for this optimization run. \
                               An easy option is to use the job id of the clusters scheduler.')
     parser.add_argument('--nic_name', type=str, help='Which network interface to use for communication.')
-    parser.add_argument('--n_workers', type=int, help='Number of workers to run in parallel.', default=2)
-    parser.add_argument('--shared_directory', type=str,
+    parser.add_argument('--n_workers', type=int, help='Number of workers to run in parallel.', default=1)
+    parser.add_argument('--shared_directory', type=str, default='workdir',
                         help='A directory that is accessible for all processes, e.g. a NFS share.')
 
     args = parser.parse_args()
@@ -141,7 +145,8 @@ def main():
 
     if args.worker:
         time.sleep(60)
-        w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host)
+        w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host,
+                     total_steps=args.hopfield_steps)
         w.load_nameserver_credentials(working_directory=args.shared_directory)
         w.run(background=False)
         exit(0)
@@ -149,10 +154,10 @@ def main():
     ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
     ns_host, ns_port = ns.start()
     w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host, nameserver=ns_host,
-                 nameserver_port=ns_port)
+                 nameserver_port=ns_port, total_steps=args.hopfield_steps)
     w.run(background=True)
 
-    bohb = BOHB(configspace=MyWorker.get_configspace(),
+    bohb = BOHB(configspace=MyWorker.get_configspace(total_steps=args.hopfield_steps),
                 run_id=args.run_id,
                 host=host,
                 nameserver=ns_host,
