@@ -17,17 +17,26 @@ def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
 
 
 def segment_adjacent_pairs(seg: ndarray) -> ndarray:
-    if len(seg) == 0:
+    n = len(seg)
+    if n == 0:
         return np.empty((0, 2), dtype=int)
-    is_adjacent = seg[:, np.newaxis, 1] == seg[np.newaxis, :, 0]
-    adj = coo_matrix(is_adjacent)
-    i, j = adj.row, adj.col
-    return np.stack([i, j], axis=1)
-
+    starts = seg[:, 0]
+    ends = seg[:, 1]
+    ii = []
+    jj = []
+    for i in range(n):
+        is_kink = starts == ends[i]
+        jj.append(is_kink.nonzero()[0])
+        ii.append([i] * len(jj[-1]))
+    jj = [j for aj in jj for j in aj]
+    ii = [i for ai in ii for i in ai]
+    return np.stack([ii, jj], axis=1)
 
 def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
                             curvature_cosine_power: float = 3.,
                             cosine_threshold: float = 0., distance_prod_power_in_denominator: float = 1.) -> csr_matrix:
+    if len(pairs) == 0:
+        return csr_matrix(np.empty((len(seg), len(seg)), dtype=float))
     s1, s2 = seg[pairs.T]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
     w = curvature_energy_pairwise(a, b, c, cosine_power=curvature_cosine_power,

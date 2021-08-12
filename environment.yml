@@ -21,7 +21,10 @@ dependencies:
   - matplotlib
   - plotly=5
 
+  - memory_profiler
+  - line_profiler
   - pytest
   - pip
   - pip:
       - nb-clean
+      - line-profiler-pycharm
