@@ -12,7 +12,7 @@ import hpbandster.core.nameserver as hpns
 import numpy as np
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import f1_score
 
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix, segment_adjacent_pairs
@@ -25,14 +25,19 @@ logging.basicConfig(level=logging.WARNING)
 
 class MyWorker(Worker):
 
-    def __init__(self, n_events, n_tracks=10, field_strength=0.8, noisiness=10, noise_box=.5, train_seed=1, validation_seed=2, *args, **kwargs):
+    def __init__(self, n_events, n_tracks=10, field_strength=0.8,
+                 noisiness=10, noise_box=.5,
+                 train_seed=1, test_seed=2,
+                 threshold=0.5,
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.threshold = threshold
         self.train_batch = list(SimpleEventGenerator(
             seed=train_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
         ).gen_many_events(n_events, n_tracks))
-        self.validation_batch = list(SimpleEventGenerator(
-            seed=validation_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
+        self.test_batch = list(SimpleEventGenerator(
+            seed=test_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
         ).gen_many_events(n_events, n_tracks))
 
     def compute(self, config, budget, **kwargs):
@@ -47,7 +52,7 @@ class MyWorker(Worker):
                 'info' (dict)
         """
         loss = []
-        for batch in (self.train_batch[:int(budget)], self.validation_batch[:int(budget)]):
+        for batch in (self.train_batch[:int(budget)], self.test_batch[:int(budget)]):
             total = 0.
             for hits, track_segments in batch:
                 pos = hits[['x', 'y', 'z']].values
@@ -72,12 +77,12 @@ class MyWorker(Worker):
                 for i, t in enumerate(temp_curve):
                     grad = energy_gradient(e_matrix, act)
                     update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-                total += roc_auc_score(perfect_act, act)
+                total += f1_score(perfect_act, act > self.threshold, zero_division=1)
             loss.append(1 - total / budget)
 
         return ({
             'loss': loss[0],
-            'info': {"validation_loss": loss[1]},
+            'info': {"test_loss": loss[1]},
         })
 
     @staticmethod
@@ -112,8 +117,10 @@ def main():
     parser = argparse.ArgumentParser(description='Optimize hopfield-tracking')
     parser.add_argument('--test', help='Flag to run worker once locally', action='store_true')
     parser.add_argument('--n_tracks', type=int, help='number of tracks per event', default=10)
-    parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.', default=10)
-    parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.', default=500)
+    parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.',
+                        default=10)
+    parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.',
+                        default=500)
     parser.add_argument('--n_iterations', type=int, help='Number of iterations performed by the optimizer', default=4)
     parser.add_argument('--worker', help='Flag to turn this into a worker process', action='store_true')
     parser.add_argument('--run_id', type=str,
@@ -127,8 +134,8 @@ def main():
     args = parser.parse_args()
 
     if args.test:
-         test()
-         exit(0)
+        test()
+        exit(0)
 
     host = hpns.nic_name_to_host(args.nic_name)
 
@@ -141,7 +148,8 @@ def main():
 
     ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
     ns_host, ns_port = ns.start()
-    w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host, nameserver=ns_host, nameserver_port=ns_port)
+    w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host, nameserver=ns_host,
+                 nameserver_port=ns_port)
     w.run(background=True)
 
     bohb = BOHB(configspace=MyWorker.get_configspace(),
