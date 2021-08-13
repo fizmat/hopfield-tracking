@@ -6,6 +6,7 @@ import logging
 import os
 import pickle
 import time
+import socket
 
 import ConfigSpace as CS
 import hpbandster.core.nameserver as hpns
@@ -130,7 +131,6 @@ def main():
     parser.add_argument('--run_id', type=str,
                         help='A unique run id for this optimization run. \
                               An easy option is to use the job id of the clusters scheduler.')
-    parser.add_argument('--nic_name', type=str, help='Which network interface to use for communication.')
     parser.add_argument('--n_workers', type=int, help='Number of workers to run in parallel.', default=1)
     parser.add_argument('--shared_directory', type=str, default='workdir',
                         help='A directory that is accessible for all processes, e.g. a NFS share.')
@@ -141,7 +141,7 @@ def main():
         test()
         exit(0)
 
-    host = hpns.nic_name_to_host(args.nic_name)
+    host = socket.gethostname()
 
     if args.worker:
         time.sleep(60)
