@@ -1,10 +1,11 @@
 #!/bin/bash
+set -x
 
 n_tracks=${n_tracks:-10}
 min_budget=${min_budget:-1}
 max_budget=${max_budget:-10}
 hopfield_steps=${hopfield_steps:-10}
-n_iterations=${n_itreations:-10}
+n_iterations=${n_iterations:-10}
 n_workers=${n_workers:-1}
 
 if [ $SLURM_PROCID -eq 0 ]
