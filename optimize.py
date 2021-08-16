@@ -29,13 +29,9 @@ class MyWorker(Worker):
     def __init__(self, n_events, n_tracks=10, field_strength=0.8,
                  noisiness=10, noise_box=.5,
                  train_seed=1, test_seed=2,
-                 threshold=0.5,
-                 total_steps=10,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.threshold = threshold
-        self.total_steps = total_steps
         self.train_batch = list(SimpleEventGenerator(
             seed=train_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
         ).gen_many_events(n_events, n_tracks))
@@ -73,15 +69,15 @@ class MyWorker(Worker):
                                                            config['cosine_power'], config['cosine_min_rewarded'],
                                                            config['distance_power'])
                 e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
-                tmin = 1.
+                tmin = config['tmin']
                 temp_curve = annealing_curve(tmin, config['tmax'],
-                                             config['anneal_steps'], self.total_steps - config['anneal_steps'])
+                                             config['anneal_steps'], config['total_steps'] - config['anneal_steps'])
 
                 act = np.full(len(seg), config['starting_act'])
                 for i, t in enumerate(temp_curve):
                     grad = energy_gradient(e_matrix, act)
                     update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-                total += f1_score(perfect_act, act > self.threshold, zero_division=1)
+                total += f1_score(perfect_act, act > config['threshold'], zero_division=1)
             loss.append(1 - total / budget)
 
         return ({
@@ -95,14 +91,17 @@ class MyWorker(Worker):
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('alpha', lower=0, upper=20))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('gamma', lower=0, upper=20))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('bias', lower=-10, upper=10))
+        config_space.add_hyperparameter(CS.Constant('threshold', value=0.5))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_power', lower=0, upper=20))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_allowed', lower=-1, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_rewarded', lower=0, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
+        config_space.add_hyperparameter(CS.Constant('tmin', value=1.))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('tmax', lower=1, upper=100))
+        config_space.add_hyperparameter(CS.Constant('total_steps', value=total_steps))
         config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('anneal_steps', lower=0, upper=total_steps))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('starting_act', lower=0, upper=1))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('dropout', lower=0, upper=1))
+        config_space.add_hyperparameter(CS.Constant('dropout', value=0))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
         return config_space
 
@@ -145,8 +144,7 @@ def main():
 
     if args.worker:
         time.sleep(60)
-        w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host,
-                     total_steps=args.hopfield_steps)
+        w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host)
         w.load_nameserver_credentials(working_directory=args.shared_directory)
         w.run(background=False)
         exit(0)
@@ -154,7 +152,7 @@ def main():
     ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
     ns_host, ns_port = ns.start()
     w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host, nameserver=ns_host,
-                 nameserver_port=ns_port, total_steps=args.hopfield_steps)
+                 nameserver_port=ns_port)
     w.run(background=True)
 
     bohb = BOHB(configspace=MyWorker.get_configspace(total_steps=args.hopfield_steps),
