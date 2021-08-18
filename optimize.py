@@ -5,39 +5,59 @@ import argparse
 import logging
 import os
 import pickle
-import time
 import socket
+import time
 
 import ConfigSpace as CS
 import hpbandster.core.nameserver as hpns
 import numpy as np
+import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
 from sklearn.metrics import f1_score
 
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix, segment_adjacent_pairs
-from generator import SimpleEventGenerator
 from reconstruct import annealing_curve, update_layer_grad, energy_gradient
 from segment import gen_segments_all
 
 logging.basicConfig(level=logging.WARNING)
 
 
+def mark_track_segments(hits):
+    track_segments = []
+    for track, g in hits.groupby('track'):
+        if track >= 0:
+            for i in range(min(g.layer), max(g.layer)):
+                for a in g[g.layer == i].index:
+                    for b in g[g.layer == i + 1].index:
+                        track_segments.append((a, b))
+    return track_segments
+
+
 class MyWorker(Worker):
-
-    def __init__(self, n_events, n_tracks=10, field_strength=0.8,
-                 noisiness=10, noise_box=.5,
-                 train_seed=1, test_seed=2,
-                 *args, **kwargs):
+    def __init__(self, max_hits, n_events, total_steps, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.max_hits = max_hits
+        self.total_steps = total_steps
+        simdata = pd.read_csv('simdata_ArPb_3.2AGeV_mb_1.zip', sep='\t',
+                              names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
+                                     'px', 'py', 'pz', 'vx', 'vy', 'vz'])
+        simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
+        simdata = simdata.groupby('event_id').apply(lambda g: g if len(g) < max_hits else g.iloc[:0]).reset_index(
+            drop=True)
+        events = simdata.event_id.unique()
+        sample = np.random.choice(events, size=n_events * 2, replace=False)
 
-        self.train_batch = list(SimpleEventGenerator(
-            seed=train_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
-        ).gen_many_events(n_events, n_tracks))
-        self.test_batch = list(SimpleEventGenerator(
-            seed=test_seed, field_strength=field_strength, noisiness=noisiness, box_size=noise_box
-        ).gen_many_events(n_events, n_tracks))
+        train, test = sample[:n_events], sample[n_events:]
+        train_hits = [simdata[simdata.event_id == event].rename(columns={'track_id': 'track'}) \
+                          [['x', 'y', 'z', 'layer', 'track']].reset_index().drop(columns='index') for event in
+                      train]
+        test_hits = [simdata[simdata.event_id == event].rename(columns={'track_id': 'track'}) \
+                         [['x', 'y', 'z', 'layer', 'track']].reset_index().drop(columns='index') for event in
+                     test]
+        self.train_batch = [(h, mark_track_segments(h)) for h in train_hits]
+        self.test_batch = [(h, mark_track_segments(h)) for h in test_hits]
 
     def compute(self, config, budget, **kwargs):
         """
@@ -63,8 +83,8 @@ class MyWorker(Worker):
                 is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
                 perfect_act[is_in_track] = 1
 
-                crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'])
                 pairs = segment_adjacent_pairs(seg)
+                crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
                 curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
                                                            config['cosine_power'], config['cosine_min_rewarded'],
                                                            config['distance_power'])
@@ -85,8 +105,7 @@ class MyWorker(Worker):
             'info': {"test_loss": loss[1]},
         })
 
-    @staticmethod
-    def get_configspace(total_steps: int = 10):
+    def get_configspace(self):
         config_space = CS.ConfigurationSpace()
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('alpha', lower=0, upper=20))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('gamma', lower=0, upper=20))
@@ -98,8 +117,10 @@ class MyWorker(Worker):
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
         config_space.add_hyperparameter(CS.Constant('tmin', value=1.))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('tmax', lower=1, upper=100))
-        config_space.add_hyperparameter(CS.Constant('total_steps', value=total_steps))
-        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('anneal_steps', lower=0, upper=total_steps))
+        config_space.add_hyperparameter(CS.Constant('max_hits', value=self.max_hits))
+        config_space.add_hyperparameter(CS.Constant('total_steps', value=self.total_steps))
+        config_space.add_hyperparameter(
+            CS.UniformIntegerHyperparameter('anneal_steps', lower=0, upper=self.total_steps))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('starting_act', lower=0, upper=1))
         config_space.add_hyperparameter(CS.Constant('dropout', value=0))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
@@ -107,7 +128,7 @@ class MyWorker(Worker):
 
 
 def test():
-    worker = MyWorker(run_id='0', n_events=2)
+    worker = MyWorker(run_id='0', max_hits=100, n_events=2, total_steps=10)
     cs = worker.get_configspace()
     config = cs.sample_configuration().get_dictionary()
     print(config)
@@ -118,7 +139,7 @@ def test():
 def main():
     parser = argparse.ArgumentParser(description='Optimize hopfield-tracking')
     parser.add_argument('--test', help='Flag to run worker once locally', action='store_true')
-    parser.add_argument('--n_tracks', type=int, help='number of tracks per event', default=10)
+    parser.add_argument('--max_hits', type=int, help='Max number of hits per event (memory limits)', default=500)
     parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.',
                         default=1)
     parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.',
@@ -144,18 +165,19 @@ def main():
 
     if args.worker:
         time.sleep(60)
-        w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host)
+        w = MyWorker(max_hits=args.max_hits, n_events=args.max_budget, total_steps=args.hopfield_steps,
+                     run_id=args.run_id, host=host)
         w.load_nameserver_credentials(working_directory=args.shared_directory)
         w.run(background=False)
         exit(0)
 
     ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
     ns_host, ns_port = ns.start()
-    w = MyWorker(n_tracks=args.n_tracks, n_events=args.max_budget, run_id=args.run_id, host=host, nameserver=ns_host,
-                 nameserver_port=ns_port)
+    w = MyWorker(max_hits=args.max_hits, n_events=args.max_budget, run_id=args.run_id, total_steps=args.hopfield_steps,
+                 host=host, nameserver=ns_host, nameserver_port=ns_port)
     w.run(background=True)
 
-    bohb = BOHB(configspace=MyWorker.get_configspace(total_steps=args.hopfield_steps),
+    bohb = BOHB(configspace=w.get_configspace(),
                 run_id=args.run_id,
                 host=host,
                 nameserver=ns_host,
