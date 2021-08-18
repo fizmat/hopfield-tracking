@@ -44,8 +44,9 @@ class MyWorker(Worker):
                               names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
                                      'px', 'py', 'pz', 'vx', 'vy', 'vz'])
         simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
-        simdata = simdata.groupby('event_id').apply(lambda g: g if len(g) < max_hits else g.iloc[:0]).reset_index(
-            drop=True)
+        hit_count = simdata.groupby('event_id').count().x.rename('hit_count')
+        sane_events = set(hit_count[hit_count <= max_hits].index)
+        simdata = simdata[simdata.event_id.isin(sane_events)]
         events = simdata.event_id.unique()
         sample = np.random.choice(events, size=n_events * 2, replace=False)
 
