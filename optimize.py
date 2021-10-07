@@ -18,7 +18,7 @@ from sklearn.metrics import f1_score
 
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix, segment_adjacent_pairs
-from reconstruct import annealing_curve, update_layer_grad, energy_gradient
+from reconstruct import annealing_curve, update_layer_grad, energy_gradient, build_segmented_tracks, found_tracks, found_crosses
 from segment import gen_segments_all
 
 logging.basicConfig(level=logging.WARNING)
@@ -98,8 +98,8 @@ class MyWorker(Worker):
                 for i, t in enumerate(temp_curve):
                     grad = energy_gradient(e_matrix, act)
                     update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-                total += f1_score(perfect_act, act > config['threshold'], zero_division=1)
-            loss.append(1 - total / budget)
+                total += found_tracks(seg, act, build_segmented_tracks(hits).values()) - found_crosses(seg, act)
+            loss.append(-total)
 
         return ({
             'loss': loss[0],
