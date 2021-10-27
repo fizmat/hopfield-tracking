@@ -51,10 +51,11 @@ def build_segmented_tracks(hits):
 
 def enumerate_segmented_track(track: List[Tuple[int, int]], seg: np.array) -> List[int]:
     nom_seg=[]
-    for step in track:
-        for si, s in enumerate(seg):
-            if (s[0] == step[0]) and (s[1] == step[1]):
-                nom_seg.append(si)  
+    for step in track:  
+        z = np.zeros_like(seg)
+        condition = ((seg[:, 0] == step[0]) & (seg[:, 1] == step[1]))
+        tek_nom_seg=np.arange(len(seg))[condition][0]
+        nom_seg.append(tek_nom_seg)
     return nom_seg
 
 
@@ -80,16 +81,12 @@ def found_tracks(seg: np.ndarray, act: np.ndarray, all_tracks: List[List[Tuple[i
 
 def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
     kol_crosses=0
-    
+    seg_tek=seg[act >= 0.5]
     for si, s in enumerate(seg):
         if (act[si] >= 0.5):
+            condition1 = (seg_tek[:,0]  == s[0]) & (seg_tek[:,1] != s[1] )
+            kol_crosses += np.sum(condition1)
+            condition2 = (seg_tek[:,0]!= s[0]) & (seg_tek[:,1] == s[1])
+            kol_crosses += np.sum(condition2)
+    return(kol_crosses//2)
 
-            for si_tek,s_tek in enumerate(seg):
-                if (act[si_tek] >= 0.5):
-                    if s_tek[0]  == s[0] and s_tek[1] != s[1]:
-                        kol_crosses+=1
-                        
-                if (act[si_tek] >= 0.5):
-                    if s_tek[0]  != s[0] and s_tek[1] == s[1]:
-                        kol_crosses+=1
-    return(kol_crosses)
