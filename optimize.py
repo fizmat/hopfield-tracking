@@ -71,9 +71,11 @@ class MyWorker(Worker):
                 'loss' (scalar)
                 'info' (dict)
         """
-        loss = []
+        score = []
         for batch in (self.train_batch[:int(budget)], self.test_batch[:int(budget)]):
-            total = 0.
+            reds = 0
+            tracks = 0
+            crosses = 0
             for hits, track_segments in batch:
                 pos = hits[['x', 'y', 'z']].values
 
@@ -98,12 +100,18 @@ class MyWorker(Worker):
                 for i, t in enumerate(temp_curve):
                     grad = energy_gradient(e_matrix, act)
                     update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-                total += found_tracks(seg, act, build_segmented_tracks(hits).values()) - found_crosses(seg, act)
-            loss.append(-total)
+                reds += np.sum((act > config['threshold']) & (perfect_act < config['threshold']))
+                segmented_tracks = build_segmented_tracks(hits).values()
+                tracks += found_tracks(seg, act, segmented_tracks)
+                crosses += found_crosses(seg, act)
+            score.append({'reds': reds, 'tracks': tracks, 'crosses': crosses, 'loss': -(tracks-crosses-0.02*reds)})
 
         return ({
-            'loss': loss[0],
-            'info': {"test_loss": loss[1]},
+            'loss': score[0]['loss'],
+            'info': {
+                "train_score": score[0],
+                "test_score": score[1]
+            }
         })
 
     def get_configspace(self):
