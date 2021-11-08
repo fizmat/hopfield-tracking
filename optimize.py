@@ -105,7 +105,7 @@ class MyWorker(Worker):
                 tracks += found_tracks(seg, act, segmented_tracks)
                 crosses += found_crosses(seg, act)
             reds, tracks, crosses = (int(x) for x in (reds, tracks, crosses))
-            score.append({'reds': reds, 'tracks': tracks, 'crosses': crosses, 'loss': -(tracks-crosses-0.02*reds)})
+            score.append({'reds': reds, 'tracks': tracks, 'crosses': crosses, 'loss': -(tracks-crosses-0.035*reds)})
 
         return ({
             'loss': score[0]['loss'],
