@@ -10,3 +10,4 @@ workdir/
 *.out
 *.pclprof
 .pytest_cache
+event*.csv
