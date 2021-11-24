@@ -36,13 +36,16 @@ def mark_track_segments(hits):
 
 
 class MyWorker(Worker):
-    def __init__(self, max_hits, n_events, total_steps, *args, **kwargs):
+    def __init__(self, max_hits, n_events, total_steps, dataset, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.max_hits = max_hits
         self.total_steps = total_steps
-        simdata = pd.read_csv('simdata_ArPb_3.2AGeV_mb_1.zip', sep='\t',
-                              names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
-                                     'px', 'py', 'pz', 'vx', 'vy', 'vz'])
+        if dataset.lower() == 'bman':
+            transformBMaN(inputBMaN())
+        elif dataset.lower() == 'simple':
+            return
+        elif dataset.lower() == 'trackml':
+            transformTrackML(*inputTrackML())
         simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
         hit_count = simdata.groupby('event_id').count().x.rename('hit_count')
         sane_events = set(hit_count[hit_count <= max_hits].index)
@@ -105,7 +108,7 @@ class MyWorker(Worker):
                 tracks += found_tracks(seg, act, segmented_tracks)
                 crosses += found_crosses(seg, act)
             reds, tracks, crosses = (int(x) for x in (reds, tracks, crosses))
-            score.append({'reds': reds, 'tracks': tracks, 'crosses': crosses, 'loss': -(tracks-crosses-0.035*reds)})
+            score.append({'reds': reds, 'tracks': tracks, 'crosses': crosses, 'loss': -(tracks-crosses-0.036*reds)})
 
         return ({
             'loss': score[0]['loss'],
@@ -164,6 +167,7 @@ def main():
     parser.add_argument('--n_workers', type=int, help='Number of workers to run in parallel.', default=1)
     parser.add_argument('--shared_directory', type=str, default='workdir',
                         help='A directory that is accessible for all processes, e.g. a NFS share.')
+    parser.add_argument('--dataset', type=str, help='Dataset identifier string', default='simple')
 
     args = parser.parse_args()
 
@@ -176,7 +180,7 @@ def main():
     if args.worker:
         time.sleep(60)
         w = MyWorker(max_hits=args.max_hits, n_events=args.max_budget, total_steps=args.hopfield_steps,
-                     run_id=args.run_id, host=host)
+                     run_id=args.run_id, host=host, dataset=args.dataset)
         w.load_nameserver_credentials(working_directory=args.shared_directory)
         w.run(background=False)
         exit(0)
@@ -184,7 +188,7 @@ def main():
     ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
     ns_host, ns_port = ns.start()
     w = MyWorker(max_hits=args.max_hits, n_events=args.max_budget, run_id=args.run_id, total_steps=args.hopfield_steps,
-                 host=host, nameserver=ns_host, nameserver_port=ns_port)
+                 host=host, nameserver=ns_host, nameserver_port=ns_port, dataset=args.dataset)
     w.run(background=True)
 
     bohb = BOHB(configspace=w.get_configspace(),
