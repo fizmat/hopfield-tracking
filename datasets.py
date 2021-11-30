@@ -1,17 +1,23 @@
 import numpy as np
 
-def inputTrackML():
+def inputTrackML(fileTrackML):
     import pandas as pd
       
     hits_truth=[]
-    hits = pd.read_csv('event000001000-hits.csv')
     
-    particle = pd.read_csv('event000001000-particles.csv')
-    truth = pd.read_csv('event000001000-truth.csv')
-    
-    cels = pd.read_csv('event000001000-cells.csv')
-    blacklist_hits = pd.read_csv('event000001000-blacklist_hits.csv')
-    blacklist_particle = pd.read_csv('event000001000-blacklist_particles.csv')
+    file_hits = fileTrackML+'-hits.csv'
+    file_particles = fileTrackML+'-particles.csv'
+    file_truth = fileTrackML+'-truth.csv'
+    file_cells = fileTrackML+'-cells.csv'
+    file_blacklist_hits = fileTrackML+'-blacklist_hits.csv'
+    file_blacklist_particles = fileTrackML+'-blacklist_particles.csv'
+           
+    hits = pd.read_csv(file_hits)
+    particle = pd.read_csv(file_particles)
+    truth = pd.read_csv(file_truth)
+    cels = pd.read_csv(file_cells)
+    blacklist_hits = pd.read_csv(file_blacklist_hits)
+    blacklist_particle = pd.read_csv(file_blacklist_particles)
 
     hits_truth = hits.merge(truth, left_on='hit_id', right_on='hit_id', suffixes=('_left', '_right'))
     
