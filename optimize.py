@@ -18,6 +18,7 @@ from sklearn.metrics import f1_score
 
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix, segment_adjacent_pairs
+from datasets import get_hits_TrackML_by_module, get_hits_BMaN
 from reconstruct import annealing_curve, update_layer_grad, energy_gradient
 from metrics.tracks import build_segmented_tracks, found_tracks, found_crosses
 from segment import gen_segments_all
@@ -42,11 +43,11 @@ class MyWorker(Worker):
         self.max_hits = max_hits
         self.total_steps = total_steps
         if dataset.lower() == 'bman':
-            transformBMaN(inputBMaN())
+            simdata = get_hits_BMaN()
         elif dataset.lower() == 'simple':
             return
         elif dataset.lower() == 'trackml':
-            transformTrackML(*inputTrackML())
+            simdata = get_hits_TrackML_by_module()
         simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
         hit_count = simdata.groupby('event_id').count().x.rename('hit_count')
         sane_events = set(hit_count[hit_count <= max_hits].index)
@@ -142,7 +143,7 @@ class MyWorker(Worker):
 
 
 def test():
-    worker = MyWorker(run_id='0', max_hits=100, n_events=2, total_steps=10)
+    worker = MyWorker(run_id='0', max_hits=100, n_events=2, total_steps=10, dataset='BMaN')
     cs = worker.get_configspace()
     config = cs.sample_configuration().get_dictionary()
     print(config)
