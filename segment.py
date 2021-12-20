@@ -9,4 +9,6 @@ def gen_segments_layer(a: pd.Index, b: pd.Index) -> ndarray:
 
 def gen_segments_all(hits: pd.DataFrame) -> ndarray:
     vert_i_by_layer = [g.index for _, g in hits.groupby('layer')]
+    if len(vert_i_by_layer) < 2:
+        return np.zeros((0, 2))
     return np.concatenate([gen_segments_layer(a, b) for a, b in zip(vert_i_by_layer, vert_i_by_layer[1:])])

@@ -43,25 +43,19 @@ class MyWorker(Worker):
         self.max_hits = max_hits
         self.total_steps = total_steps
         if dataset.lower() == 'bman':
-            simdata = get_hits_BMaN()
+            hits = get_hits_BMaN(max_hits)
         elif dataset.lower() == 'simple':
             return
         elif dataset.lower() == 'trackml':
-            simdata = get_hits_TrackML_by_module()
-        simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
-        hit_count = simdata.groupby('event_id').count().x.rename('hit_count')
-        sane_events = set(hit_count[hit_count <= max_hits].index)
-        simdata = simdata[simdata.event_id.isin(sane_events)]
-        events = simdata.event_id.unique()
+            hits = get_hits_TrackML_by_module()
+        else:
+            raise ValueError(f'Unknown dataset: {dataset}')
+        events = hits.event_id.unique()
         sample = np.random.choice(events, size=n_events * 2, replace=False)
 
         train, test = sample[:n_events], sample[n_events:]
-        train_hits = [simdata[simdata.event_id == event].rename(columns={'track_id': 'track'}) \
-                          [['x', 'y', 'z', 'layer', 'track']].reset_index().drop(columns='index') for event in
-                      train]
-        test_hits = [simdata[simdata.event_id == event].rename(columns={'track_id': 'track'}) \
-                         [['x', 'y', 'z', 'layer', 'track']].reset_index().drop(columns='index') for event in
-                     test]
+        train_hits = [hits[hits.event_id == event].reset_index(drop=True) for event in train]
+        test_hits = [hits[hits.event_id == event].reset_index(drop=True) for event in test]
         self.train_batch = [(h, mark_track_segments(h)) for h in train_hits]
         self.test_batch = [(h, mark_track_segments(h)) for h in test_hits]
 
@@ -89,7 +83,8 @@ class MyWorker(Worker):
                 perfect_act = np.zeros(len(seg))
                 track_segment_set = set(tuple(s) for s in track_segments)
                 is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
-                perfect_act[is_in_track] = 1
+                if len(is_in_track):
+                    perfect_act[is_in_track] = 1
 
                 pairs = segment_adjacent_pairs(seg)
                 crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
@@ -142,12 +137,12 @@ class MyWorker(Worker):
         return config_space
 
 
-def test():
-    worker = MyWorker(run_id='0', max_hits=100, n_events=2, total_steps=10, dataset='BMaN')
+def test(dataset='BMaN'):
+    worker = MyWorker(run_id='0', max_hits=100, n_events=2, total_steps=10, dataset=dataset)
     cs = worker.get_configspace()
     config = cs.sample_configuration().get_dictionary()
     print(config)
-    res = worker.compute(config=config, budget=2, working_directory='.')
+    res = worker.compute(config=config, budget=2, working_directory='workdir')
     print(res)
 
 
@@ -174,7 +169,7 @@ def main():
     args = parser.parse_args()
 
     if args.test:
-        test()
+        test(args.dataset)
         exit(0)
 
     host = socket.gethostname()

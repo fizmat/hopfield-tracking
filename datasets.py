@@ -49,12 +49,13 @@ def get_hits_TrackML():
 def get_hits_TrackML_by_volume():
     hits = get_hits_TrackML()
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
+    return hits
 
 
 def get_hits_TrackML_by_module():
     hits = get_hits_TrackML()
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str) + '-' + hits.module_id.astype(str)
-
+    return hits
 
 def _read_BMaN():
     import pandas as pd
@@ -64,12 +65,13 @@ def _read_BMaN():
     return (simdata)
 
 
-def _transform_BMaN(simdata):
-    cc = simdata.groupby('event_id').x.count()
-    cc[cc == cc[cc <= 800].max()]
+def _transform_BMaN(simdata, max_hits=400):
+    hit_count = simdata.groupby('event_id').size()
+    small_events = set(hit_count[hit_count <= max_hits].index)
+    simdata = simdata[simdata.event_id.isin(small_events)].copy()
     simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
     return simdata.rename(columns={'track_id': 'track'})[['x', 'y', 'z', 'layer', 'track', 'event_id']]
 
 
-def get_hits_BMaN():
-    return _transform_BMaN(_read_BMaN())
+def get_hits_BMaN(max_hits=400):
+    return _transform_BMaN(_read_BMaN(), max_hits)
