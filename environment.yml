@@ -16,6 +16,7 @@ dependencies:
   - jupyter
   - jupyterlab
 
+  - seaborn
   - holoviews
   - bokeh
   - matplotlib

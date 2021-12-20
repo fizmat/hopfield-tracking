@@ -15,6 +15,7 @@ dependencies:
 
   - ipykernel
 
+  - seaborn
   - holoviews
   - bokeh
   - matplotlib
