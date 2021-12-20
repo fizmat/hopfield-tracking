@@ -18,7 +18,7 @@ from sklearn.metrics import f1_score
 
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix, segment_adjacent_pairs
-from datasets import get_hits_TrackML_by_module, get_hits_BMaN, get_hits_simple
+from datasets import get_hits_trackml_by_module, get_hits_bman, get_hits_simple
 from reconstruct import annealing_curve, update_layer_grad, energy_gradient
 from metrics.tracks import build_segmented_tracks, found_tracks, found_crosses
 from segment import gen_segments_all
@@ -43,11 +43,11 @@ class MyWorker(Worker):
         self.max_hits = max_hits
         self.total_steps = total_steps
         if dataset.lower() == 'bman':
-            hits = get_hits_BMaN(max_hits)
+            hits = get_hits_bman(max_hits)
         elif dataset.lower() == 'simple':
             hits = get_hits_simple()
         elif dataset.lower() == 'trackml':
-            hits = get_hits_TrackML_by_module()
+            hits = get_hits_trackml_by_module()
         else:
             raise ValueError(f'Unknown dataset: {dataset}')
         events = hits.event_id.unique()
