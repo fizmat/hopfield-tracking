@@ -1,6 +1,17 @@
 import numpy as np
 import pandas as pd
 
+from generator import SimpleEventGenerator
+
+
+def get_hits_simple(n_events=100, event_size=10):
+    hits_list = []
+    for i, event in enumerate(SimpleEventGenerator().gen_many_events(n_events, event_size)):
+        hits, seg = event
+        hits['event_id'] = i
+        hits_list.append(hits)
+    return pd.concat(hits_list, ignore_index=True)
+
 
 def _read_truth_TrackML(event_file):
     hits_truth = []
