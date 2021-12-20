@@ -14,26 +14,17 @@ def get_hits_simple(n_events=100, event_size=10):
 
 
 def _read_truth_trackml(event_file):
-    hits_truth = []
-    file_hits = 'datasets/trackml/train_100_events/' + event_file + '-hits.csv'
-    file_truth = 'datasets/trackml/train_100_events/' + event_file + '-truth.csv'
-    hits = pd.read_csv(file_hits)
-    truth = pd.read_csv(file_truth)
-    hits_truth = hits.merge(truth, left_on='hit_id', right_on='hit_id', suffixes=('_left', '_right'))
-    return hits_truth
+    hits = pd.read_csv('datasets/trackml/train_100_events/' + event_file + '-hits.csv')
+    truth = pd.read_csv('datasets/trackml/train_100_events/' + event_file + '-truth.csv')
+    return hits.merge(truth, on='hit_id')
 
 
 def _read_blacklist_trackml(event_file):
-    file_blacklist_hits = 'datasets/trackml/blacklist/' + event_file + '-blacklist_hits.csv'
-    # file_blacklist_particles = 'datasets/trackml/blacklist/'+event_file+'-blacklist_particles.csv'
-    blacklist_hits = pd.read_csv(file_blacklist_hits)
-    # blacklist_particles = pd.read_csv(file_blacklist_particles)
-    return blacklist_hits
+    return pd.read_csv('datasets/trackml/blacklist/' + event_file + '-blacklist_hits.csv')
 
 
 def _transform_trackml(hits_truth, blacklist_hits):
     hits_trackML = hits_truth[np.logical_not(hits_truth.hit_id.isin(blacklist_hits.hit_id))]
-
     hits = hits_trackML.rename(columns={'layer_id': 'layer', 'particle_id': 'track'})
     hits.track = hits.track.where(hits.track != 0, other=-1)
     hits.reset_index(drop=True, inplace=True)
@@ -46,9 +37,7 @@ def get_hits_trackml():
     event_prefix = 'event00000'
 
     for num_ev in range(1000, 1100):
-        strnum_ev = f'{num_ev:04}'
-
-        event_file = event_prefix + strnum_ev
+        event_file = event_prefix + f'{num_ev:04}'
         hits_truth = _read_truth_trackml(event_file)
         blacklist = _read_blacklist_trackml(event_file)
         hits = _transform_trackml(hits_truth, blacklist)
@@ -68,12 +57,13 @@ def get_hits_trackml_by_module():
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str) + '-' + hits.module_id.astype(str)
     return hits
 
+
 def _read_bman():
     import pandas as pd
     simdata = pd.read_csv('datasets/bman/simdata_ArPb_3.2AGeV_mb_1.zip', sep='\t',
                           names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id', 'px', 'py', 'pz',
                                  'vx', 'vy', 'vz'])
-    return (simdata)
+    return simdata
 
 
 def _transform_bman(simdata, max_hits=400):
