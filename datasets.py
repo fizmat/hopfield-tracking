@@ -66,13 +66,14 @@ def _read_bman():
     return simdata
 
 
-def _transform_bman(simdata, max_hits=400):
-    hit_count = simdata.groupby('event_id').size()
-    small_events = set(hit_count[hit_count <= max_hits].index)
-    simdata = simdata[simdata.event_id.isin(small_events)].copy()
+def _transform_bman(simdata, max_hits=None):
+    if max_hits is not None:
+        hit_count = simdata.groupby('event_id').size()
+        small_events = set(hit_count[hit_count <= max_hits].index)
+        simdata = simdata[simdata.event_id.isin(small_events)].copy()
     simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
     return simdata.rename(columns={'track_id': 'track'})[['x', 'y', 'z', 'layer', 'track', 'event_id']]
 
 
-def get_hits_bman(max_hits=400):
+def get_hits_bman(max_hits=None):
     return _transform_bman(_read_bman(), max_hits)
