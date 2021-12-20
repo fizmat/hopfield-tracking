@@ -70,7 +70,7 @@ def get_hits_TrackML_by_module():
 
 def _read_BMaN():
     import pandas as pd
-    simdata = pd.read_csv('simdata_ArPb_3.2AGeV_mb_1.zip', sep='\t',
+    simdata = pd.read_csv('datasets/bman/simdata_ArPb_3.2AGeV_mb_1.zip', sep='\t',
                           names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id', 'px', 'py', 'pz',
                                  'vx', 'vy', 'vz'])
     return (simdata)

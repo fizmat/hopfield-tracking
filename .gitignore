@@ -2,12 +2,11 @@
 *.pyc
 __pycache__/
 .ipynb_checkpoints/
-*.zip
 *.html
 Miniconda3-*.sh
 *.tar.lz4
 workdir/
+datasets/
 *.out
 *.pclprof
 .pytest_cache
-event*.csv
