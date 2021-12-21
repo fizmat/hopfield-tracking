@@ -6,7 +6,7 @@ __pycache__/
 Miniconda3-*.sh
 *.tar.lz4
 workdir/
-datasets/
+data/
 *.out
 *.pclprof
 .pytest_cache

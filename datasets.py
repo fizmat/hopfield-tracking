@@ -14,13 +14,13 @@ def get_hits_simple(n_events=100, event_size=10):
 
 
 def _read_truth_trackml(event_file):
-    hits = pd.read_csv('datasets/trackml/train_100_events/' + event_file + '-hits.csv')
-    truth = pd.read_csv('datasets/trackml/train_100_events/' + event_file + '-truth.csv')
+    hits = pd.read_csv('data/trackml/train_100_events/' + event_file + '-hits.csv')
+    truth = pd.read_csv('data/trackml/train_100_events/' + event_file + '-truth.csv')
     return hits.merge(truth, on='hit_id')
 
 
 def _read_blacklist_trackml(event_file):
-    return pd.read_csv('datasets/trackml/blacklist/' + event_file + '-blacklist_hits.csv')
+    return pd.read_csv('data/trackml/blacklist/' + event_file + '-blacklist_hits.csv')
 
 
 def _transform_trackml(hits_truth, blacklist_hits):
@@ -60,7 +60,7 @@ def get_hits_trackml_by_module():
 
 def _read_bman():
     import pandas as pd
-    simdata = pd.read_csv('datasets/bman/simdata_ArPb_3.2AGeV_mb_1.zip', sep='\t',
+    simdata = pd.read_csv('data/bman/simdata_ArPb_3.2AGeV_mb_1.zip', sep='\t',
                           names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id', 'px', 'py', 'pz',
                                  'vx', 'vy', 'vz'])
     return simdata
