@@ -38,6 +38,30 @@ def mark_track_segments(hits):
     return track_segments
 
 
+def hopfield_iterate(config, hits, track_segments):
+    pos = hits[['x', 'y', 'z']].values
+    seg = gen_segments_all(hits)
+    perfect_act = np.zeros(len(seg))
+    track_segment_set = set(tuple(s) for s in track_segments)
+    is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
+    if len(is_in_track):
+        perfect_act[is_in_track] = 1
+    pairs = segment_adjacent_pairs(seg)
+    crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
+    curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
+                                               config['cosine_power'], config['cosine_min_rewarded'],
+                                               config['distance_power'])
+    e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
+    tmin = config['tmin']
+    temp_curve = annealing_curve(tmin, config['tmax'],
+                                 config['anneal_steps'], config['total_steps'] - config['anneal_steps'])
+    act = np.full(len(seg), config['starting_act'])
+    for i, t in enumerate(temp_curve):
+        grad = energy_gradient(e_matrix, act)
+        update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
+    return act, perfect_act, seg
+
+
 class MyWorker(Worker):
     def __init__(self, max_hits, n_events, total_steps, dataset, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,30 +106,7 @@ class MyWorker(Worker):
             tracks = 0
             crosses = 0
             for hits, track_segments in batch:
-                pos = hits[['x', 'y', 'z']].values
-
-                seg = gen_segments_all(hits)
-
-                perfect_act = np.zeros(len(seg))
-                track_segment_set = set(tuple(s) for s in track_segments)
-                is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
-                if len(is_in_track):
-                    perfect_act[is_in_track] = 1
-
-                pairs = segment_adjacent_pairs(seg)
-                crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
-                curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
-                                                           config['cosine_power'], config['cosine_min_rewarded'],
-                                                           config['distance_power'])
-                e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
-                tmin = config['tmin']
-                temp_curve = annealing_curve(tmin, config['tmax'],
-                                             config['anneal_steps'], config['total_steps'] - config['anneal_steps'])
-
-                act = np.full(len(seg), config['starting_act'])
-                for i, t in enumerate(temp_curve):
-                    grad = energy_gradient(e_matrix, act)
-                    update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
+                act, perfect_act, seg = hopfield_iterate(config, hits, track_segments)
                 reds += np.sum((act > config['threshold']) & (perfect_act < config['threshold']))
                 segmented_tracks = build_segmented_tracks(hits).values()
                 tracks += found_tracks(seg, act, segmented_tracks)
