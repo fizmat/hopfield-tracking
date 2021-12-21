@@ -15,6 +15,7 @@ import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
 from sklearn.metrics import f1_score
+# from memory_profiler import profile
 
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix, segment_adjacent_pairs
@@ -38,6 +39,7 @@ def mark_track_segments(hits):
     return track_segments
 
 
+# @profile
 def hopfield_iterate(config, hits, track_segments):
     pos = hits[['x', 'y', 'z']].values
     seg = gen_segments_all(hits)
