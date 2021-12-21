@@ -14,16 +14,16 @@ import numpy as np
 import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
-from sklearn.metrics import f1_score
-# from memory_profiler import profile
 
 from cross import cross_energy_matrix
 from curvature import curvature_energy_matrix, segment_adjacent_pairs
 from datasets import get_hits_trackml_by_module, get_hits_bman, get_hits_simple, get_hits_trackml_by_volume, \
     get_hits_trackml
-from reconstruct import annealing_curve, update_layer_grad, energy_gradient
 from metrics.tracks import build_segmented_tracks, found_tracks, found_crosses
+from reconstruct import annealing_curve, update_layer_grad, energy_gradient
 from segment import gen_segments_all
+
+# from memory_profiler import profile
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -39,15 +39,21 @@ def mark_track_segments(hits):
     return track_segments
 
 
+def track_metrics(hits, seg, act, threshold):
+    perfect_act = gen_perfect_act(hits, seg)
+    reds = np.sum((act > threshold) & (perfect_act < threshold))
+    segmented_tracks = build_segmented_tracks(hits).values()
+    tracks = found_tracks(seg, act, segmented_tracks)
+    crosses = found_crosses(seg, act)
+    return {'reds': reds, 'tracks': tracks, 'crosses': crosses}
+
+
+def track_loss(metrics: pd.DataFrame) -> pd.Series:
+    return -(metrics.tracks - metrics.crosses - 0.036 * metrics.reds)
+
+
 # @profile
-def hopfield_iterate(config, hits, track_segments):
-    pos = hits[['x', 'y', 'z']].values
-    seg = gen_segments_all(hits)
-    perfect_act = np.zeros(len(seg))
-    track_segment_set = set(tuple(s) for s in track_segments)
-    is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
-    if len(is_in_track):
-        perfect_act[is_in_track] = 1
+def hopfield_iterate(config, pos, seg):
     pairs = segment_adjacent_pairs(seg)
     crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
     curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
@@ -61,7 +67,16 @@ def hopfield_iterate(config, hits, track_segments):
     for i, t in enumerate(temp_curve):
         grad = energy_gradient(e_matrix, act)
         update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-    return act, perfect_act, seg
+    return act
+
+
+def gen_perfect_act(hits, seg):
+    perfect_act = np.zeros(len(seg))
+    track_segment_set = set(tuple(s) for s in mark_track_segments(hits))
+    is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
+    if len(is_in_track):
+        perfect_act[is_in_track] = 1
+    return perfect_act
 
 
 class MyWorker(Worker):
@@ -84,12 +99,8 @@ class MyWorker(Worker):
             raise ValueError(f'Unknown dataset: {dataset}')
         events = hits.event_id.unique()
         sample = np.random.choice(events, size=n_events * 2, replace=False)
-
-        train, test = sample[:n_events], sample[n_events:]
-        train_hits = [hits[hits.event_id == event].reset_index(drop=True) for event in train]
-        test_hits = [hits[hits.event_id == event].reset_index(drop=True) for event in test]
-        self.train_batch = [(h, mark_track_segments(h)) for h in train_hits]
-        self.test_batch = [(h, mark_track_segments(h)) for h in test_hits]
+        self.train_batch = [hits[hits.event_id == event].reset_index(drop=True) for event in sample[:n_events]]
+        self.test_batch = [hits[hits.event_id == event].reset_index(drop=True) for event in sample[n_events:]]
 
     def compute(self, config, budget, **kwargs):
         """
@@ -104,17 +115,15 @@ class MyWorker(Worker):
         """
         score = []
         for batch in (self.train_batch[:int(budget)], self.test_batch[:int(budget)]):
-            reds = 0
-            tracks = 0
-            crosses = 0
-            for hits, track_segments in batch:
-                act, perfect_act, seg = hopfield_iterate(config, hits, track_segments)
-                reds += np.sum((act > config['threshold']) & (perfect_act < config['threshold']))
-                segmented_tracks = build_segmented_tracks(hits).values()
-                tracks += found_tracks(seg, act, segmented_tracks)
-                crosses += found_crosses(seg, act)
-            reds, tracks, crosses = (int(x) for x in (reds, tracks, crosses))
-            score.append({'reds': reds, 'tracks': tracks, 'crosses': crosses, 'loss': -(tracks-crosses-0.036*reds)})
+            event_metrics = []
+            for hits in batch:
+                pos = hits[['x', 'y', 'z']].values
+                seg = gen_segments_all(hits)
+                act = hopfield_iterate(config, pos, seg)
+                event_metrics.append(track_metrics(hits, seg, act, config['threshold']))
+            event_metrics = pd.DataFrame(event_metrics)
+            event_metrics['loss'] = track_loss(event_metrics)
+            score.append(event_metrics.sum().to_dict())
 
         return ({
             'loss': score[0]['loss'],
