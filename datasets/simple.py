@@ -1,10 +1,19 @@
 import math
-from typing import Generator, Tuple
+from typing import Tuple, Generator
 
 import numpy as np
 import pandas as pd
 from numpy import ndarray
 from numpy.random import default_rng
+
+
+def get_hits_simple(n_events=100, event_size=10):
+    hits_list = []
+    for i, event in enumerate(SimpleEventGenerator().gen_many_events(n_events, event_size)):
+        hits, seg = event
+        hits['event_id'] = i
+        hits_list.append(hits)
+    return pd.concat(hits_list, ignore_index=True)
 
 
 class SimpleEventGenerator:

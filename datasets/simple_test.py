@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
-from generator import SimpleEventGenerator
+from datasets.simple import SimpleEventGenerator
 
 
 def test_gen_directions_in_cone():
