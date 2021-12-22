@@ -18,9 +18,9 @@ from hpbandster.optimizers import BOHB
 from datasets.bman import get_hits_bman
 from datasets.trackml import get_hits_trackml, get_hits_trackml_by_volume, get_hits_trackml_by_module
 from datasets.simple import get_hits_simple
-from hopfield import hopfield_iterate
+from hopfield.iterate import hopfield_iterate
 from metrics.tracks import track_metrics, track_loss
-from segment import gen_segments_all
+from tracking.segment import gen_segments_all
 
 logging.basicConfig(level=logging.WARNING)
 

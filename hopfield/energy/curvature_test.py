@@ -2,8 +2,8 @@ import numpy as np
 from _pytest.python_api import approx
 from numpy.testing import assert_array_almost_equal, assert_array_equal, assert_array_almost_equal_nulp
 
-from curvature import curvature_energy_pairwise, curvature_energy_matrix, segment_adjacent_pairs
-from hopfield import energy, energy_gradient
+from hopfield.energy.curvature import curvature_energy_pairwise, curvature_energy_matrix, segment_adjacent_pairs
+from hopfield.energy import energy, energy_gradient
 
 
 def test_curvature_energy_pairwise():

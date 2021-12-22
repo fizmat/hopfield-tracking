@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
 
-from segment import gen_segments_layer, gen_segments_all
+from tracking.segment import gen_segments_layer, gen_segments_all
 
 
 def test_gen_segments_layer():

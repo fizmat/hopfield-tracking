@@ -2,8 +2,8 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from scipy.sparse import csr_matrix
 
-from cross import cross_energy_matrix, segment_forks, segment_joins
-from hopfield import energy, energy_gradient
+from hopfield.energy.cross import cross_energy_matrix, segment_forks, segment_joins
+from hopfield.energy import energy, energy_gradient
 
 
 def test_segment_forks():

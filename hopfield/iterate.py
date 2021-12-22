@@ -1,12 +1,12 @@
-from typing import List, Union
+from typing import List
 
 import numpy as np
 # from memory_profiler import profile
 from numpy import ndarray
-from scipy.sparse import spmatrix
 
-from cross import cross_energy_matrix
-from curvature import segment_adjacent_pairs, curvature_energy_matrix
+from hopfield.energy import energy_gradient
+from hopfield.energy.cross import cross_energy_matrix
+from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
 
 
 # @profile
@@ -48,11 +48,3 @@ def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float
 
 def should_stop(act: ndarray, acts: List[ndarray], min_act_change: float = 1e-5, lookback: int = 1) -> bool:
     return max(np.max(act - a0) for a0 in acts[-lookback:]) < min_act_change
-
-
-def energy(matrix: Union[spmatrix, ndarray], act: ndarray):
-    return matrix.dot(act).dot(act)
-
-
-def energy_gradient(matrix: Union[spmatrix, ndarray], act: ndarray):
-    return 2 * matrix.dot(act)

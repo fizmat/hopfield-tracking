@@ -2,7 +2,7 @@ import numpy as np
 from numpy import ndarray
 from scipy.sparse import csr_matrix, coo_matrix
 
-from curvature import segment_adjacent_pairs
+from hopfield.energy.curvature import segment_adjacent_pairs
 
 
 def segment_forks(seg: ndarray) -> csr_matrix:
