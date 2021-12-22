@@ -1,7 +1,10 @@
+from typing import List, Tuple
+
 import numpy as np
+import pandas as pd
 
 
-def gen_perfect_act(hits, seg):
+def gen_perfect_act(hits:pd.DataFrame, seg:np.ndarray) -> np.ndarray:
     perfect_act = np.zeros(len(seg))
     track_segment_set = set(tuple(s) for s in mark_track_segments(hits))
     is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
@@ -10,7 +13,7 @@ def gen_perfect_act(hits, seg):
     return perfect_act
 
 
-def mark_track_segments(hits):
+def mark_track_segments(hits:pd.DataFrame) -> List[Tuple[int, int]]:
     track_segments = []
     for track, g in hits.groupby('track'):
         if track >= 0:
