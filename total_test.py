@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from reconstruct import energy, energy_gradient
+from hopfield import energy, energy_gradient
 from total import total_activation_matrix_, total_activation_matrix
 
 

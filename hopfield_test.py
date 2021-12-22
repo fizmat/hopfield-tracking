@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from pytest import approx
 
-from reconstruct import annealing_curve, update_layer_grad, should_stop
+from hopfield import annealing_curve, update_layer_grad, should_stop
 
 
 def test_annealing_curve():

@@ -3,7 +3,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from scipy.sparse import csr_matrix
 
 from cross import cross_energy_matrix, segment_forks, segment_joins
-from reconstruct import energy, energy_gradient
+from hopfield import energy, energy_gradient
 
 
 def test_segment_forks():
