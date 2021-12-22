@@ -1,6 +1,9 @@
 from typing import List, Tuple
 
 import numpy as np
+import pandas as pd
+
+from metrics.segments import gen_perfect_act
 
 
 def build_segmented_tracks(hits):
@@ -56,3 +59,16 @@ def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
             condition2 = (seg_tek[:,0]!= s[0]) & (seg_tek[:,1] == s[1])
             kol_crosses += np.sum(condition2)
     return(kol_crosses//2)
+
+
+def track_metrics(hits, seg, act, threshold):
+    perfect_act = gen_perfect_act(hits, seg)
+    reds = np.sum((act > threshold) & (perfect_act < threshold))
+    segmented_tracks = build_segmented_tracks(hits).values()
+    tracks = found_tracks(seg, act, segmented_tracks)
+    crosses = found_crosses(seg, act)
+    return {'reds': reds, 'tracks': tracks, 'crosses': crosses}
+
+
+def track_loss(metrics: pd.DataFrame) -> pd.Series:
+    return -(metrics.tracks - metrics.crosses - 0.036 * metrics.reds)

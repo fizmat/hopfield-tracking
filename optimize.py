@@ -15,68 +15,13 @@ import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
 
-from cross import cross_energy_matrix
-from curvature import curvature_energy_matrix, segment_adjacent_pairs
 from datasets import get_hits_trackml_by_module, get_hits_bman, get_hits_simple, get_hits_trackml_by_volume, \
     get_hits_trackml
-from metrics.tracks import build_segmented_tracks, found_tracks, found_crosses
-from reconstruct import annealing_curve, update_layer_grad, energy_gradient
+from hopfield import hopfield_iterate
+from metrics.tracks import track_metrics, track_loss
 from segment import gen_segments_all
 
-# from memory_profiler import profile
-
 logging.basicConfig(level=logging.WARNING)
-
-
-def mark_track_segments(hits):
-    track_segments = []
-    for track, g in hits.groupby('track'):
-        if track >= 0:
-            for i in range(min(g.layer), max(g.layer)):
-                for a in g[g.layer == i].index:
-                    for b in g[g.layer == i + 1].index:
-                        track_segments.append((a, b))
-    return track_segments
-
-
-def track_metrics(hits, seg, act, threshold):
-    perfect_act = gen_perfect_act(hits, seg)
-    reds = np.sum((act > threshold) & (perfect_act < threshold))
-    segmented_tracks = build_segmented_tracks(hits).values()
-    tracks = found_tracks(seg, act, segmented_tracks)
-    crosses = found_crosses(seg, act)
-    return {'reds': reds, 'tracks': tracks, 'crosses': crosses}
-
-
-def track_loss(metrics: pd.DataFrame) -> pd.Series:
-    return -(metrics.tracks - metrics.crosses - 0.036 * metrics.reds)
-
-
-# @profile
-def hopfield_iterate(config, pos, seg):
-    pairs = segment_adjacent_pairs(seg)
-    crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
-    curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
-                                               config['cosine_power'], config['cosine_min_rewarded'],
-                                               config['distance_power'])
-    e_matrix = config['alpha'] / 2 * crossing_matrix - config['gamma'] / 2 * curvature_matrix
-    tmin = config['tmin']
-    temp_curve = annealing_curve(tmin, config['tmax'],
-                                 config['anneal_steps'], config['total_steps'] - config['anneal_steps'])
-    act = np.full(len(seg), config['starting_act'])
-    for i, t in enumerate(temp_curve):
-        grad = energy_gradient(e_matrix, act)
-        update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-    return act
-
-
-def gen_perfect_act(hits, seg):
-    perfect_act = np.zeros(len(seg))
-    track_segment_set = set(tuple(s) for s in mark_track_segments(hits))
-    is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
-    if len(is_in_track):
-        perfect_act[is_in_track] = 1
-    return perfect_act
 
 
 class MyWorker(Worker):
