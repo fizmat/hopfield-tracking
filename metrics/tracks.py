@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Hashable, Dict, Iterable
 
 import numpy as np
 import pandas as pd
@@ -6,7 +6,7 @@ import pandas as pd
 from metrics.segments import gen_perfect_act
 
 
-def build_segmented_tracks(hits):
+def build_segmented_tracks(hits: pd.DataFrame) -> Dict[Hashable, List[Tuple[int, int]]]:
     tracks = []
     for track, g in hits.groupby('track'):
         if track >= 0:
@@ -29,7 +29,7 @@ def enumerate_segmented_track(track: List[Tuple[int, int]], seg: np.array) -> Li
     return nom_seg
 
 
-def found_tracks(seg: np.ndarray, act: np.ndarray, all_tracks: List[List[Tuple[int, int]]]) -> int:
+def found_tracks(seg: np.ndarray, act: np.ndarray, all_tracks: Iterable[List[Tuple[int, int]]]) -> int:
 
     kol_act_track=0
     all_kol_track=0
@@ -61,7 +61,7 @@ def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
     return(kol_crosses//2)
 
 
-def track_metrics(hits, seg, act, threshold):
+def track_metrics(hits: pd.DataFrame, seg: np.ndarray, act: np.ndarray, threshold: float) -> Dict[str, int]:
     perfect_act = gen_perfect_act(hits, seg)
     reds = np.sum((act > threshold) & (perfect_act < threshold))
     segmented_tracks = build_segmented_tracks(hits).values()
