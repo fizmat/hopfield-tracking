@@ -45,13 +45,34 @@ def get_hits_trackml():
     return pd.concat(events, ignore_index=True)
 
 
+def get_hits_trackml_one_event():
+    event_file = 'event000001000'
+    hits = _transform(_read_truth(event_file), _read_blacklist(event_file))
+    hits['event_id'] = 1000
+    return hits
+
+
 def get_hits_trackml_by_volume():
     hits = get_hits_trackml()
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
     return hits
 
 
+def get_hits_trackml_one_event_by_volume():
+    hits = get_hits_trackml_one_event()
+    hits = hits[hits.volume_id == 7].reset_index(drop=True)
+    hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
+    return hits
+
+
 def get_hits_trackml_by_module():
     hits = get_hits_trackml()
+    hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str) + '-' + hits.module_id.astype(str)
+    return hits
+
+
+def get_hits_trackml_one_event_by_module():
+    hits = get_hits_trackml_one_event()
+    hits = hits[np.logical_and(hits.volume_id == 7, hits.module_id == 1)].reset_index(drop=True)
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str) + '-' + hits.module_id.astype(str)
     return hits

@@ -4,7 +4,8 @@ from numpy.testing import assert_array_equal
 from pandas._testing import assert_frame_equal
 
 from datasets.trackml import _read_truth, _read_blacklist, _transform, get_hits_trackml, get_hits_trackml_by_module, \
-    get_hits_trackml_by_volume
+    get_hits_trackml_by_volume, get_hits_trackml_one_event, get_hits_trackml_one_event_by_volume, \
+    get_hits_trackml_one_event_by_module
 
 _test_event = pd.DataFrame({
     'hit_id': [1, 2, 3, 4, 5],
@@ -87,6 +88,15 @@ def test_get_hits_trackml():
     assert events.track.dtype == 'int64'
 
 
+def test_get_hits_trackml_one_event():
+    events = get_hits_trackml_one_event()
+    assert_array_equal(events.index, range(120940-179))
+    assert_array_equal(events.event_id.unique(), 1000)
+    assert set(events.layer.unique()) == set(range(1, 8))
+    assert events.track.min() == -1
+    assert events.track.dtype == 'int64'
+
+
 @pytest.mark.slow
 @pytest.mark.bman
 def test_get_hits_trackml_by_volume():
@@ -98,11 +108,34 @@ def test_get_hits_trackml_by_volume():
     assert events.track.dtype == 'int64'
 
 
+def test_get_hits_trackml_one_event_by_volume():
+    events = get_hits_trackml_one_event_by_volume()
+    assert_array_equal(events.index, range(16873-15))
+    assert events.hit_id.min() == 1
+    assert events.hit_id.max() == 16873
+    assert_array_equal(events.event_id, '1000-7')
+    assert set(events.layer.unique()) == set(range(1, 8))
+    assert events.track.min() == -1
+    assert events.track.dtype == 'int64'
+
+
 @pytest.mark.slow
 @pytest.mark.bman
 def test_get_hits_trackml_by_module():
     events = get_hits_trackml_by_module()
     assert_array_equal(events.index, range(10952747))
+    assert_array_equal(events.event_id.str.fullmatch(r'\d{4}-\d{1,2}-\d{1,4}'), True)
+    assert set(events.layer.unique()) == set(range(1, 8))
+    assert events.track.min() == -1
+    assert events.track.dtype == 'int64'
+
+
+def test_get_hits_trackml_one_event_by_module():
+    events = get_hits_trackml_one_event_by_module()
+    # TODO: check that slicing by module makes any sense
+    assert_array_equal(events.index, range(287))
+    assert events.hit_id.min() == 1
+    assert events.hit_id.max() == 13906
     assert_array_equal(events.event_id.str.fullmatch(r'\d{4}-\d{1,2}-\d{1,4}'), True)
     assert set(events.layer.unique()) == set(range(1, 8))
     assert events.track.min() == -1

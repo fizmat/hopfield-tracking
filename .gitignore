@@ -7,7 +7,7 @@ Miniconda3-*.sh
 *.tar.lz4
 workdir/
 data/**/*.zip
-data/trackml/**/*.csv
+data/trackml/*/*.csv
 *.out
 *.pclprof
 .pytest_cache
