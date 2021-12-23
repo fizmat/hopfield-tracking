@@ -6,7 +6,8 @@ __pycache__/
 Miniconda3-*.sh
 *.tar.lz4
 workdir/
-data/
+data/**/*.zip
+data/trackml/**/*.csv
 *.out
 *.pclprof
 .pytest_cache
