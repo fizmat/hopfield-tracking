@@ -1,15 +1,25 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 
-def _read_truth(event_file):
-    hits = pd.read_csv('data/trackml/train_100_events/' + event_file + '-hits.csv')
-    truth = pd.read_csv('data/trackml/train_100_events/' + event_file + '-truth.csv')
+def _read_truth(event_file: str, prefix: str = None) -> pd.DataFrame:
+    if prefix is None:
+        prefix = Path(__file__) / '../../data/trackml/train_100_events'
+    else:
+        prefix = Path(prefix)
+    hits = pd.read_csv(prefix / (event_file + '-hits.csv'))
+    truth = pd.read_csv(prefix / (event_file + '-truth.csv'))
     return hits.merge(truth, on='hit_id')
 
 
-def _read_blacklist(event_file):
-    return pd.read_csv('data/trackml/blacklist/' + event_file + '-blacklist_hits.csv')
+def _read_blacklist(event_file: str, prefix: str = None) -> pd.DataFrame:
+    if prefix is None:
+        prefix = Path(__file__) / '../../data/trackml/blacklist'
+    else:
+        prefix = Path(prefix)
+    return pd.read_csv(prefix / (event_file + '-blacklist_hits.csv'))
 
 
 def _transform(hits_truth, blacklist_hits):

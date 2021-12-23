@@ -13,7 +13,7 @@ _test_event = pd.DataFrame(data=[[4, 0.5, 0.6, 0.7, 5, 6, 7, 0.8, 0.9, 1.1, 1.2,
 
 
 def test__read(tmp_path):
-    d = tmp_path / 'test__read'
+    d = tmp_path / 'test_datasets_bman'
     d.mkdir()
     s = ('4 0.5 0.6 0.7 5 6 7 0.8 0.9 1.1 1.2 1.3 1.4\n' +
          '4 0.4 0.5 0.6 5 5 7 0.7 0.8 0.9 1.1 1.2 1.3').replace(' ', '\t')
