@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
-from datasets.simple import SimpleEventGenerator
+from datasets.simple import SimpleEventGenerator, get_hits_simple, get_hits_simple_one_event
 
 
 def test_gen_directions_in_cone():
@@ -96,8 +96,8 @@ def test_gen_event_magnetic():
     assert_array_equal(seg, [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7],
                              [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15]])
 
-    hits, seg = SimpleEventGenerator(field_strength=-1, noisiness=0, seed=1).gen_event(momenta,
-                                                                  -np.ones(2))  # negative field and negative charge!
+    hits, seg = SimpleEventGenerator(field_strength=-1, noisiness=0, seed=1). \
+        gen_event(momenta, -np.ones(2))  # negative field and negative charge!
     assert_array_equal(hits.index, range(16))
     assert list(hits.columns) == ['x', 'y', 'z', 'layer', 'track', 'charge']
     assert_allclose(hits[['x', 'y']].values, [[0, 0]] * 8 +
@@ -119,3 +119,15 @@ def test_gen_many_events():
         assert len(hits.index) == 8 * 7
         assert len(hits.columns) == 6
         assert seg.shape == (7 * 7, 2)
+
+
+def test_get_hits_simple():
+    events = get_hits_simple(13, 7)
+    assert_array_equal(events.event_id.unique(), range(13))
+    assert_array_equal(events.columns, ['x', 'y', 'z', 'layer', 'track', 'charge', 'event_id'])
+
+
+def test_get_hits_simple_one_event():
+    events = get_hits_simple_one_event(7)
+    assert_array_equal(events.event_id, 0)
+    assert_array_equal(events.columns, ['x', 'y', 'z', 'layer', 'track', 'charge', 'event_id'])

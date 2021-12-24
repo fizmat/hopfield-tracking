@@ -16,6 +16,12 @@ def get_hits_simple(n_events=100, event_size=10):
     return pd.concat(hits_list, ignore_index=True)
 
 
+def get_hits_simple_one_event(event_size=10):
+    hits, seg = next(SimpleEventGenerator().gen_many_events(1, event_size))
+    hits['event_id'] = 0
+    return hits
+
+
 class SimpleEventGenerator:
     def __init__(self, halfwidth_degrees: float = 15, n_layers: int = 8, layers_thickness=0.5,
                  field_strength=1., xy_hit_deviation=0.005, noisiness=1., seed=None, box_size=None):
