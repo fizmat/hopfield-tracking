@@ -18,7 +18,7 @@ from hpbandster.optimizers import BOHB
 from datasets.bman import get_hits_bman
 from datasets.trackml import get_hits_trackml, get_hits_trackml_by_volume, get_hits_trackml_by_module
 from datasets.simple import get_hits_simple
-from hopfield.iterate import hopfield_iterate
+from hopfield.iterate import hopfield_iterate, construct_energy_matrix, construct_anneal
 from metrics.tracks import track_metrics, track_loss
 from tracking.segment import gen_segments_all
 
@@ -65,7 +65,9 @@ class MyWorker(Worker):
             for hits in batch:
                 pos = hits[['x', 'y', 'z']].values
                 seg = gen_segments_all(hits)
-                act = hopfield_iterate(config, pos, seg)
+                energy_matrix, _, __ = construct_energy_matrix(config, pos, seg)
+                temp_curve = construct_anneal(config)
+                act = hopfield_iterate(config, energy_matrix, temp_curve, seg)
                 event_metrics.append(track_metrics(hits, seg, act, config['threshold']))
             event_metrics = pd.DataFrame(event_metrics)
             event_metrics['loss'] = track_loss(event_metrics)
