@@ -50,7 +50,7 @@ def test__transform():
 
 
 @pytest.mark.slow
-@pytest.mark.bman
+@pytest.mark.trackml
 def test_get_hits_trackml():
     events = get_hits_trackml()
     assert_array_equal(events.index, range(10952747))
@@ -70,7 +70,7 @@ def test_get_hits_trackml_one_event():
 
 
 @pytest.mark.slow
-@pytest.mark.bman
+@pytest.mark.trackml
 def test_get_hits_trackml_by_volume():
     events = get_hits_trackml_by_volume()
     assert_array_equal(events.index, range(10952747))
@@ -92,7 +92,7 @@ def test_get_hits_trackml_one_event_by_volume():
 
 
 @pytest.mark.slow
-@pytest.mark.bman
+@pytest.mark.trackml
 def test_get_hits_trackml_by_module():
     events = get_hits_trackml_by_module()
     assert_array_equal(events.index, range(10952747))

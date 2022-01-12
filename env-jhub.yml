@@ -25,3 +25,4 @@ dependencies:
   - pip
   - pip:
       - nb-clean
+      - git+https://github.com/LAL/trackml-library@master#egg=trackml
