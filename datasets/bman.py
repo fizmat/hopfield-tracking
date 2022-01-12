@@ -5,7 +5,7 @@ import pandas as pd
 
 def _read(prefix: str = None, file: str = 'simdata_ArPb_3.2AGeV_mb_1.zip') -> pd.DataFrame:
     if prefix is None:
-        prefix = Path(__file__) / '../../data/bman'
+        prefix = Path(__file__).parents[1] / 'data/bman'
     file = Path(prefix) / file
     simdata = pd.read_csv(file, sep='\t',
                           names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
@@ -25,7 +25,8 @@ def _transform(simdata, max_hits=None):
 def _copy_hits_bman_event6():
     events = _read()
     e6 = events[events.event_id == 6]
-    e6.to_csv('../data/bman/event6.csv', sep='\t', header=False, index=False)
+    e6.to_csv(Path(__file__).parents[1] / 'data/bman/event6.csv',
+              sep='\t', header=False, index=False)
 
 
 def get_hits_bman(max_hits=None):

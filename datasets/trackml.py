@@ -14,8 +14,8 @@ def _transform(hits, blacklist_hits):
     return hits
 
 
-def get_hits_trackml(zip: Path = Path(__file__) / '../../data/trackml/train_sample.zip',
-                     blacklist_zip: Path = Path(__file__) / '../../data/trackml/blacklist_training.zip') \
+def get_hits_trackml(zip: Path = Path(__file__).parents[1] / 'data/trackml/train_sample.zip',
+                     blacklist_zip: Path = Path(__file__).parents[1] / 'data/trackml/blacklist_training.zip') \
         -> pd.DataFrame:
     events = []
     with ZipFile(zip) as z:
@@ -34,7 +34,7 @@ def get_hits_trackml(zip: Path = Path(__file__) / '../../data/trackml/train_samp
     return pd.concat(events, ignore_index=True)
 
 
-def get_hits_trackml_one_event(path: Path = Path(__file__) / '../../data/trackml'):
+def get_hits_trackml_one_event(path: Path = Path(__file__).parents[1] / 'data/trackml'):
     event_number = 1000
     hits = pd.read_csv(path / f'event{event_number:09}-hits.csv')
     truth = pd.read_csv(path / f'event{event_number:09}-truth.csv')
