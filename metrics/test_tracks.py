@@ -24,6 +24,11 @@ def test_build_segmented_tracks():
 
 def test_enumerate_segmented_track():
     assert enumerate_segmented_track([(2, 5), (5, 8)], _seg) == [8, 17]
+    assert enumerate_segmented_track(
+        [(21, 44), (44, 79), (79, 123), (123, 164), (164, 190), (190, 209), (209, 228), (228, 242)],
+        np.array([(21, 44), (44, 79), (79, 123), (123, 164), (164, 190), (190, 209), (209, 228), (228, 242)])
+    ) == [0, 1, 2, 3, 4, 5, 6, 7]
+    assert enumerate_segmented_track([(0, 1), (1, 3)], np.array([(0, 1), (0, 2), (1, 3)])) == [0, 2]
 
 
 def test_found_tracks():
@@ -49,6 +54,13 @@ def test_found_crosses():
                                          1, 0, 0, 0, 1, 0, 0, 1, 1])) == 2
     assert found_crosses(_seg, np.array([1, 0, 0, 0, 1, 0, 0, 0, 1,
                                          1, 0, 0, 0, 1, 0, 0, 1, 0])) == 1
+    _seg2 = np.array([(0, 2), (0, 3), (1, 2), (1, 3)])
+    assert found_crosses(_seg2, np.array((0, 0, 0, 0))) == 0
+    assert found_crosses(_seg2, np.array((1, 0, 0, 1))) == 0
+    assert found_crosses(_seg2, np.array((0, 1, 1, 0))) == 0
+    assert found_crosses(_seg2, np.array((1, 0, 1, 0))) == 1
+    assert found_crosses(_seg2, np.array((1, 1, 0, 0))) == 1
+    assert found_crosses(_seg2, np.array((1, 1, 1, 1))) == 4
 
 
 def test_track_metrics():
