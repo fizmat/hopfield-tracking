@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 import pytest
 from numpy.testing import assert_array_equal
@@ -60,9 +62,20 @@ def test_get_hits_trackml():
     assert events.track.dtype == 'int64'
 
 
+@pytest.mark.very_slow
+@pytest.mark.trackml_1
+def test_get_hits_trackml():
+    events = get_hits_trackml(Path(__file__).parents[1] / 'data/trackml/train_1.zip', nevents=200)
+    assert_array_equal(events.index, range(21899747))
+    assert_array_equal(events.event_id.unique(), range(1000, 1200))
+    assert set(events.layer.unique()) == set(range(1, 8))
+    assert events.track.min() == -1
+    assert events.track.dtype == 'int64'
+
+
 def test_get_hits_trackml_one_event():
     events = get_hits_trackml_one_event()
-    assert_array_equal(events.index, range(120940-179))
+    assert_array_equal(events.index, range(120940 - 179))
     assert_array_equal(events.event_id.unique(), 1000)
     assert set(events.layer.unique()) == set(range(1, 8))
     assert events.track.min() == -1
@@ -80,9 +93,20 @@ def test_get_hits_trackml_by_volume():
     assert events.track.dtype == 'int64'
 
 
+@pytest.mark.very_slow
+@pytest.mark.trackml_1
+def test_get_hits_trackml_by_volume():
+    events = get_hits_trackml_by_volume(Path(__file__).parents[1] / 'data/trackml/train_1.zip', nevents=200)
+    assert_array_equal(events.index, range(21899747))
+    assert_array_equal(events.event_id.str.fullmatch(r'\d{4}-\d{1,2}'), True)
+    assert set(events.layer.unique()) == set(range(1, 8))
+    assert events.track.min() == -1
+    assert events.track.dtype == 'int64'
+
+
 def test_get_hits_trackml_one_event_by_volume():
     events = get_hits_trackml_one_event_by_volume()
-    assert_array_equal(events.index, range(16873-15))
+    assert_array_equal(events.index, range(16873 - 15))
     assert events.hit_id.min() == 1
     assert events.hit_id.max() == 16873
     assert_array_equal(events.event_id, '1000-7')
@@ -96,6 +120,17 @@ def test_get_hits_trackml_one_event_by_volume():
 def test_get_hits_trackml_by_module():
     events = get_hits_trackml_by_module()
     assert_array_equal(events.index, range(10952747))
+    assert_array_equal(events.event_id.str.fullmatch(r'\d{4}-\d{1,2}-\d{1,4}'), True)
+    assert set(events.layer.unique()) == set(range(1, 8))
+    assert events.track.min() == -1
+    assert events.track.dtype == 'int64'
+
+
+@pytest.mark.very_slow
+@pytest.mark.trackml_1
+def test_get_hits_trackml_by_module():
+    events = get_hits_trackml_by_module(Path(__file__).parents[1] / 'data/trackml/train_1.zip', nevents=200)
+    assert_array_equal(events.index, range(21899747))
     assert_array_equal(events.event_id.str.fullmatch(r'\d{4}-\d{1,2}-\d{1,4}'), True)
     assert set(events.layer.unique()) == set(range(1, 8))
     assert events.track.min() == -1

@@ -16,11 +16,11 @@ def _transform(hits, blacklist_hits):
 
 
 def get_hits_trackml(train_zip: Path = Path(__file__).parents[1] / 'data/trackml/train_sample.zip',
-                     blacklist_zip: Path = Path(__file__).parents[1] / 'data/trackml/blacklist_training.zip') \
-        -> pd.DataFrame:
+                     blacklist_zip: Path = Path(__file__).parents[1] / 'data/trackml/blacklist_training.zip',
+                     nevents=None) -> pd.DataFrame:
     events = []
     with ZipFile(blacklist_zip) as bz:
-        for event_id, hits, truth in load_dataset(train_zip.resolve(), parts=['hits', 'truth']):
+        for event_id, hits, truth in load_dataset(train_zip.resolve(), nevents=nevents, parts=['hits', 'truth']):
             hits = hits.merge(truth, on='hit_id')
             with bz.open(f'event{event_id:09}-blacklist_hits.csv') as f:
                 blacklist_hits = pd.read_csv(f)
@@ -40,8 +40,8 @@ def get_hits_trackml_one_event(path: Path = Path(__file__).parents[1] / 'data/tr
     return hits
 
 
-def get_hits_trackml_by_volume():
-    hits = get_hits_trackml()
+def get_hits_trackml_by_volume(*args, **kwargs):
+    hits = get_hits_trackml(*args, **kwargs)
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
     return hits
 
@@ -53,8 +53,8 @@ def get_hits_trackml_one_event_by_volume():
     return hits
 
 
-def get_hits_trackml_by_module():
-    hits = get_hits_trackml()
+def get_hits_trackml_by_module(*args, **kwargs):
+    hits = get_hits_trackml(*args, **kwargs)
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str) + '-' + hits.module_id.astype(str)
     return hits
 
