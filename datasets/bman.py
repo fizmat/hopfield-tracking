@@ -1,4 +1,5 @@
 from pathlib import Path
+from zipfile import ZipFile, BadZipFile
 
 import pandas as pd
 
@@ -7,9 +8,16 @@ def _read(prefix: str = None, file: str = 'simdata_ArPb_3.2AGeV_mb_1.zip') -> pd
     if prefix is None:
         prefix = Path(__file__).parents[1] / 'data/bman'
     file = Path(prefix) / file
-    simdata = pd.read_csv(file, sep='\t',
-                          names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
-                                 'px', 'py', 'pz', 'vx', 'vy', 'vz'])
+    try:
+        with ZipFile(file) as z:
+            with z.open(f'simdata_ArPb_3.2AGeV_mb_1.txt') as f:
+                simdata = pd.read_csv(f, sep='\t',
+                                      names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
+                                             'px', 'py', 'pz', 'vx', 'vy', 'vz'])
+    except BadZipFile:
+        simdata = pd.read_csv(file, sep='\t',
+                              names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
+                                     'px', 'py', 'pz', 'vx', 'vy', 'vz'])
     return simdata
 
 
