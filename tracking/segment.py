@@ -12,3 +12,9 @@ def gen_segments_all(hits: pd.DataFrame) -> ndarray:
     if len(vert_i_by_layer) < 2:
         return np.zeros((0, 2))
     return np.concatenate([gen_segments_layer(a, b) for a, b in zip(vert_i_by_layer, vert_i_by_layer[1:])])
+
+
+def gen_seg_track_sequential(event: pd.DataFrame) -> np.ndarray:
+    return np.concatenate([np.stack((g.index[:-1], g.index[1:]), axis=-1)
+                           for track, g in event.groupby('track')
+                           if track >= 0])
