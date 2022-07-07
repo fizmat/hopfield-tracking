@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import numpy as np
 import pandas as pd
 from numpy import ndarray
@@ -18,3 +20,14 @@ def gen_seg_track_sequential(event: pd.DataFrame) -> np.ndarray:
     return np.concatenate([np.stack((g.index[:-1], g.index[1:]), axis=-1)
                            for track, g in event.groupby('track')
                            if track >= 0])
+
+
+def gen_seg_track_layered(hits: pd.DataFrame) -> List[Tuple[int, int]]:
+    track_segments = []
+    for track, g in hits.groupby('track'):
+        if track >= 0:
+            for i in range(min(g.layer), max(g.layer)):
+                for a in g[g.layer == i].index:
+                    for b in g[g.layer == i + 1].index:
+                        track_segments.append((a, b))
+    return track_segments

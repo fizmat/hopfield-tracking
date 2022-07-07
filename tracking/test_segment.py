@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
 
-from tracking.segment import _gen_segments_layer, gen_segments_all, gen_seg_track_sequential
+from tracking.segment import _gen_segments_layer, gen_segments_all, gen_seg_track_sequential, gen_seg_track_layered
 
 _hits = pd.DataFrame({'track': [1, -1, 3, 5, -1, 3, 5, 1, 3],
                       'layer': [0, 0, 0, 1, 1, 1, 2, 2, 2]})
@@ -23,3 +23,7 @@ def test_gen_segment_all():
 
 def test_gen_seg_track_sequential():
     assert_array_equal(list(gen_seg_track_sequential(_hits)), [(0, 7), (2, 5), (5, 8), (3, 6)])
+
+
+def test_gen_seg_track_layered():
+    assert_array_equal(gen_seg_track_layered(_hits), [(2, 5), (5, 8), (3, 6)])
