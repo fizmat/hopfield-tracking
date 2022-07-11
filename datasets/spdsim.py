@@ -111,7 +111,7 @@ if __name__ == '__main__':
                 z = random.uniform(-2386, 2386)
                 x = R * math.cos(phi)
                 y = R * math.sin(phi)
-                f.write("%d\t%f\t%f\t%f\t%f\t%f\t%f\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\n" % (
-                evt, 0, 0, 0, x, y, z, sta, -1, 0, 0, 0, 0, 0, 0))
+                f.write("%d\t%f\t%f\t%f\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\n" % (
+                evt, x, y, z, sta, -1, 0, 0, 0, 0, 0, 0))
 
     f.close()
