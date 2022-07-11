@@ -51,16 +51,3 @@ def get_hits_trackml_one_event_by_volume():
     hits = hits[hits.volume_id == 7].reset_index(drop=True)
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
     return hits
-
-
-def get_hits_trackml_by_module(*args, **kwargs):
-    hits = get_hits_trackml(*args, **kwargs)
-    hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str) + '-' + hits.module_id.astype(str)
-    return hits
-
-
-def get_hits_trackml_one_event_by_module():
-    hits = get_hits_trackml_one_event()
-    hits = hits[np.logical_and(hits.volume_id == 7, hits.module_id == 1)].reset_index(drop=True)
-    hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str) + '-' + hits.module_id.astype(str)
-    return hits

@@ -1,9 +1,59 @@
-from typing import Iterable
+from typing import Iterable, Union, Tuple
 
 import holoviews as hv
 import numpy as np
 import pandas as pd
 from holoviews import opts
+from vispy.color import ColorArray, Color, colormap
+from vispy.scene import ViewBox, visuals, SceneCanvas
+
+
+def _hits_view(event: pd.DataFrame, kdims: Iterable = ('x', 'y', 'z'),
+               color: Union[Color, ColorArray] = 'black') -> ViewBox:
+    view = ViewBox(border_color='black')
+    scatter = visuals.Markers()
+    scatter.set_data(event[kdims].to_numpy(), edge_color=color, face_color=color, size=3)
+    view.add(scatter)
+    visuals.XYZAxis(parent=view.scene)
+    view.camera = 'turntable'
+    return view
+
+
+def _seg_view(event: pd.DataFrame, seg: np.ndarray, kdims: Iterable = ('x', 'y', 'z'),
+              color: Union[Color, ColorArray] = 'black') -> ViewBox:
+    view = ViewBox(border_color='black')
+    seg_lines = visuals.Line(connect='segments')
+    seg_hits = event.loc[np.concatenate(seg)]
+    seg_lines.set_data(seg_hits[kdims].to_numpy(), color=color)
+    view.add(seg_lines)
+    visuals.XYZAxis(parent=view.scene)
+    view.camera = 'turntable'
+    return view
+
+
+def plot_event(event: pd.DataFrame, seg: np.ndarray = None, kdims: Iterable = ('x', 'y', 'z'),
+               fig_size: Tuple[int, int] = (1024, 768)) -> SceneCanvas:
+    kdims = list(kdims)
+    canvas = SceneCanvas(bgcolor='white', size=fig_size)
+    grid = canvas.central_widget.add_grid()
+
+    color = np.where((event.track.to_numpy() == -1)[..., np.newaxis], [.8, .1, .1], [.1, .8, .1])
+    fakes_view = _hits_view(event, kdims, color)
+    grid.add_widget(fakes_view)
+
+    cmap = colormap.MatplotlibColormap('tab20')
+    event = event[event.track != -1]
+    track_enum = {t: np.random.rand() for t in event.track.unique()}
+    color = cmap.map(event.track.map(track_enum))
+    track_view = _hits_view(event, kdims, color)
+    grid.add_widget(track_view)
+    fakes_view.camera.link(track_view.camera)
+
+    if seg is not None:
+        seg_view = _seg_view(event, seg, kdims)
+        grid.add_widget(seg_view)
+        seg_view.camera.link(fakes_view.camera)
+    return canvas
 
 
 def plot_segments(hits: pd.DataFrame, seg: np.ndarray, kdims: Iterable = ('x', 'y', 'z')) -> hv.Overlay:

@@ -21,6 +21,8 @@ dependencies:
   - bokeh
   - matplotlib
   - plotly=5
+  - vispy
+  - jupyter-rfb
 
   - memory_profiler
   - line_profiler
