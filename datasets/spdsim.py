@@ -22,13 +22,13 @@ def ExtrapToR(pt, charge, theta, phi, z0, Rc):
     y0 = R * math.sin(phit)
 
     if R < Rc / 2:  # no intersection
-        return (0, 0, 0)
+        return None
 
     R = charge * R;  # both polarities
     alpha = 2 * math.asin(Rc / 2 / R)
 
     if (alpha > pi):
-        return (0, 0, 0);  # algorithm doesn't work for spinning tracks
+        return None  # algorithm doesn't work for spinning tracks
 
     extphi = phi - alpha / 2
     if extphi > 2 * pi:
@@ -82,10 +82,11 @@ if __name__ == '__main__':
                 station = 1
                 for R in radii:
 
-                    x, y, z, px, py, pz = ExtrapToR(pt, charge, theta, phi, vtxz, R)
+                    result = ExtrapToR(pt, charge, theta, phi, vtxz, R)
 
-                    if (x, y, z) == (0, 0, 0):
+                    if result is None:
                         continue
+                    x, y, z, px, py, pz = result
                     if z >= 2386 or z <= -2386:
                         continue
                     z = z + random.gauss(0, 0.1)
