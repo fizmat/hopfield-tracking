@@ -25,21 +25,19 @@ def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: flo
     x0 = r * math.cos(phit)
     y0 = r * math.sin(phit)
 
-    is_intersection = r >= rc / 2
+    is_intersection = 2 * r >= rc
     rc = rc[is_intersection]
     stations = stations[is_intersection]
 
     r *= charge  # both polarities
-    alpha = 2 * np.arcsin(rc / 2 / r)
+    alpha = 2 * np.arcsin(rc / (2 * r))
 
     not_spinning_track = alpha <= pi
     rc = rc[not_spinning_track]  # algorithm doesn't work for spinning tracks
     stations = stations[not_spinning_track]
     alpha = alpha[not_spinning_track]
 
-    extphi = phi - alpha / 2
-    extphi = np.where(extphi > 2 * pi, extphi - 2 * pi, extphi)
-    extphi = np.where(extphi < 0, extphi + 2 * pi, extphi)
+    extphi = (phi - alpha / 2) % 2*pi
 
     x = rc * np.cos(extphi)
     y = rc * np.sin(extphi)
@@ -78,10 +76,7 @@ def main():
             phi = random.uniform(0, 2 * pi)
             theta = math.acos(random.uniform(-1, 1))
 
-            charge = 0
-
-            while charge == 0:
-                charge = random.randint(-1, 1)
+            charge = random.choice((-1, 1))
 
             stations, x, y, z, px, py, pz = extrapolate_to_r(pt, charge, theta, phi, vtxz, radii)
             for i, station in enumerate(stations):
