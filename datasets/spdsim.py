@@ -4,31 +4,30 @@ import sys
 import random
 import math
 import numpy as np
+from numpy import pi
 import pandas as pd
 from line_profiler_pycharm import profile
 
 
 @profile
-def ExtrapToR(pt, charge, theta, phi, z0, Rc):
-    pi = 3.14156
-    deg = 180 / pi
-    B = 0.8  # magnetic field [T}
+def extrapolate_to_r(pt, charge, theta, phi, z0, rc):
+    b = 0.8  # magnetic field [T}
 
     pz = pt / math.tan(theta) * charge
 
     phit = phi - pi / 2
-    R = pt / 0.29 / B  # mm
-    k0 = R / math.tan(theta)
-    x0 = R * math.cos(phit)
-    y0 = R * math.sin(phit)
+    r = pt / 0.29 / b  # mm
+    k0 = r / math.tan(theta)
+    x0 = r * math.cos(phit)
+    y0 = r * math.sin(phit)
 
-    if R < Rc / 2:  # no intersection
+    if r < rc / 2:  # no intersection
         return None
 
-    R = charge * R;  # both polarities
-    alpha = 2 * math.asin(Rc / 2 / R)
+    r = charge * r  # both polarities
+    alpha = 2 * math.asin(rc / 2 / r)
 
-    if (alpha > pi):
+    if alpha > pi:
         return None  # algorithm doesn't work for spinning tracks
 
     extphi = phi - alpha / 2
@@ -38,8 +37,8 @@ def ExtrapToR(pt, charge, theta, phi, z0, Rc):
     if extphi < 0:
         extphi = extphi + 2 * pi
 
-    x = Rc * math.cos(extphi)
-    y = Rc * math.sin(extphi)
+    x = rc * math.cos(extphi)
+    y = rc * math.sin(extphi)
 
     rax, ray = x - x0 * charge, y - y0 * charge
 
@@ -66,8 +65,6 @@ def main():
 
     records = []
     for evt in range(0, nevents):
-        pi = 3.14156
-
         vtxx = random.gauss(0, 10)
         vtxy = random.gauss(0, 10)
         vtxz = random.uniform(-300, 300)  # mm
@@ -84,9 +81,9 @@ def main():
                 charge = random.randint(-1, 1)
 
             station = 1
-            for R in radii:
+            for r in radii:
 
-                result = ExtrapToR(pt, charge, theta, phi, vtxz, R)
+                result = extrapolate_to_r(pt, charge, theta, phi, vtxz, r)
 
                 if result is None:
                     continue
@@ -102,11 +99,11 @@ def main():
         # add noise hits
         nhit = int(random.uniform(10, 100))  # up to 100 noise hits
         sta = np.random.randint(0, 35, nhit)
-        R = radii[sta]
+        r = radii[sta]
         phi = np.random.uniform(0, 2 * pi, nhit)
         z = np.random.uniform(-2386, 2386, nhit)
-        x = R * np.cos(phi)
-        y = R * np.sin(phi)
+        x = r * np.cos(phi)
+        y = r * np.sin(phi)
         for i in range(nhit):
             records.append((evt, x[i], y[i], z[i], sta[i], -1, 0, 0, 0, 0, 0, 0))
 
