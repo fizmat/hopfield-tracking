@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import os
 import sys
 import random
 import math
 import numpy as np
+import pandas as pd
 from line_profiler_pycharm import profile
 
 @profile
@@ -63,62 +62,60 @@ def main():
 
     radii = np.linspace(270, 850, 35)  # mm
 
-    with open('output.tsv', 'w') as f:
-        for evt in range(0, nevents):
-            pi = 3.14156
+    records = []
+    for evt in range(0, nevents):
+        pi = 3.14156
 
-            vtxx = random.gauss(0, 10)
-            vtxy = random.gauss(0, 10)
-            vtxz = random.uniform(-300, 300)  # mm
-            ntrk = int(random.uniform(1, 10))
-            for trk in range(0, ntrk):
+        vtxx = random.gauss(0, 10)
+        vtxy = random.gauss(0, 10)
+        vtxz = random.uniform(-300, 300)  # mm
+        ntrk = int(random.uniform(1, 10))
+        for trk in range(0, ntrk):
 
-                pt = random.uniform(100, 1000)  # MeV/c
-                phi = random.uniform(0, 2 * pi)
-                theta = math.acos(random.uniform(-1, 1))
+            pt = random.uniform(100, 1000)  # MeV/c
+            phi = random.uniform(0, 2 * pi)
+            theta = math.acos(random.uniform(-1, 1))
 
-                charge = 0
+            charge = 0
 
-                while charge == 0:
-                    charge = random.randint(-1, 1)
+            while charge == 0:
+                charge = random.randint(-1, 1)
 
-                station = 1
-                for R in radii:
+            station = 1
+            for R in radii:
 
-                    result = ExtrapToR(pt, charge, theta, phi, vtxz, R)
+                result = ExtrapToR(pt, charge, theta, phi, vtxz, R)
 
-                    if result is None:
-                        continue
-                    x, y, z, px, py, pz = result
-                    if z >= 2386 or z <= -2386:
-                        continue
-                    z = z + random.gauss(0, 0.1)
-                    phit = math.atan2(x, y)
-                    delta = random.gauss(0, 0.1)
-                    x = x + delta * math.sin(phit)
-                    y = y - delta * math.cos(phit)
+                if result is None:
+                    continue
+                x, y, z, px, py, pz = result
+                if z >= 2386 or z <= -2386:
+                    continue
+                if random.uniform(0, 1) > eff:
+                    continue
 
-                    if random.uniform(0, 1) > eff:
-                        continue
+                records.append((evt, x, y, z, station, trk, px, py, pz, vtxx, vtxy, vtxz))
+                station = station + 1
 
-                    f.write("%d\t%f\t%f\t%f\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\n" % (
-                    evt, x, y, z, station, trk, px, py, pz, vtxx, vtxy, vtxz))
+        # add noise hits
+        nhit = int(random.uniform(10, 100))  # up to 100 noise hits
+        for ihit in range(0, nhit):
+            sta = int(random.uniform(0, 35))
+            R = radii[sta]
+            phi = random.uniform(0, 2 * pi)
+            z = random.uniform(-2386, 2386)
+            x = R * math.cos(phi)
+            y = R * math.sin(phi)
+            records.append((evt, x, y, z, sta, -1, 0, 0, 0, 0, 0, 0))
 
-                    station = station + 1
+    df = pd.DataFrame(records, columns=['evt', 'x', 'y', 'z', 'station', 'trk', 'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
+    df.z += np.random.normal(0, 0.1, len(df))
+    phit = np.arctan2(df.x, df.y)
+    delta = np.random.normal(0, 0.1, len(df))
+    df.x += delta * np.sin(phit)
+    df.y -= delta * np.cos(phit)
 
-            # add noise hits
-            nhit = int(random.uniform(10, 100))  # up to 100 noise hits
-            for ihit in range(0, nhit):
-                sta = int(random.uniform(0, 35))
-                R = radii[sta]
-                phi = random.uniform(0, 2 * pi)
-                z = random.uniform(-2386, 2386)
-                x = R * math.cos(phi)
-                y = R * math.sin(phi)
-                f.write("%d\t%f\t%f\t%f\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\n" % (
-                evt, x, y, z, sta, -1, 0, 0, 0, 0, 0, 0))
-
-    f.close()
+    df.to_csv('output.tsv', sep='\t', index=False, header=False)
 
 if __name__ == '__main__':
     main()
