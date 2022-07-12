@@ -8,14 +8,12 @@ from typing import Tuple
 import numpy as np
 from numpy import pi
 import pandas as pd
-from line_profiler_pycharm import profile
 
 
-@profile
 def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: float, rc: np.ndarray
                      ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
     b = 0.8  # magnetic field [T}
-    stations = np.arange(1, len(rc)+1)
+    stations = np.arange(1, len(rc) + 1)
 
     pz = pt / math.tan(theta) * charge
 
@@ -37,7 +35,7 @@ def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: flo
     stations = stations[not_spinning_track]
     alpha = alpha[not_spinning_track]
 
-    extphi = (phi - alpha / 2) % 2*pi
+    extphi = (phi - alpha / 2) % 2 * pi
 
     x = rc * np.cos(extphi)
     y = rc * np.sin(extphi)
@@ -56,20 +54,28 @@ def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: flo
     return stations, x, y, z, tax, tay, pz
 
 
-@profile
-def main():
-    nevents = int(sys.argv[1])
+def get_hits_spdsim_one_event(event_size=10):
+    return get_hits_spdsim(1, event_size)
+
+
+def get_hits_spdsim(n_events=100, max_ntrk=10):
+    return gen_spdsim(n_events, max_ntrk).rename(
+        columns={'station': 'layer', 'evt': 'event_id', 'trk': 'track'}
+    )[['x', 'y', 'z', 'layer', 'track', 'event_id']]
+
+
+def gen_spdsim(n_events=100, max_ntrk=10):
     # track_coords_all = []
     eff = 1  # detector efficiency
 
     radii = np.linspace(270, 850, 35)  # mm
 
     records = []
-    for evt in range(0, nevents):
+    for evt in range(0, n_events):
         vtxx = random.gauss(0, 10)
         vtxy = random.gauss(0, 10)
         vtxz = random.uniform(-300, 300)  # mm
-        ntrk = int(random.uniform(1, 10))
+        ntrk = int(random.uniform(1, max_ntrk))
         for trk in range(0, ntrk):
 
             pt = random.uniform(100, 1000)  # MeV/c
@@ -105,9 +111,9 @@ def main():
     delta = np.random.normal(0, 0.1, len(df))
     df.x += delta * np.sin(phit)
     df.y -= delta * np.cos(phit)
-
-    df.to_csv('output.tsv', sep='\t', index=False, header=False)
+    return df
 
 
 if __name__ == '__main__':
-    main()
+    df = gen_spdsim(int(sys.argv[1]))
+    df.to_csv('output.tsv', sep='\t', index=False, header=False)
