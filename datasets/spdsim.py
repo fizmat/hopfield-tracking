@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from line_profiler_pycharm import profile
 
+
 @profile
 def ExtrapToR(pt, charge, theta, phi, z0, Rc):
     pi = 3.14156
@@ -54,6 +55,7 @@ def ExtrapToR(pt, charge, theta, phi, z0, Rc):
     z = z0 + k0 * alpha
     return x, y, z, px, py, pz
 
+
 @profile
 def main():
     nevents = int(sys.argv[1])
@@ -99,16 +101,18 @@ def main():
 
         # add noise hits
         nhit = int(random.uniform(10, 100))  # up to 100 noise hits
-        for ihit in range(0, nhit):
-            sta = int(random.uniform(0, 35))
-            R = radii[sta]
-            phi = random.uniform(0, 2 * pi)
-            z = random.uniform(-2386, 2386)
-            x = R * math.cos(phi)
-            y = R * math.sin(phi)
-            records.append((evt, x, y, z, sta, -1, 0, 0, 0, 0, 0, 0))
+        sta = np.random.randint(0, 35, nhit)
+        R = radii[sta]
+        phi = np.random.uniform(0, 2 * pi, nhit)
+        z = np.random.uniform(-2386, 2386, nhit)
+        x = R * np.cos(phi)
+        y = R * np.sin(phi)
+        for i in range(nhit):
+            records.append((evt, x[i], y[i], z[i], sta[i], -1, 0, 0, 0, 0, 0, 0))
 
-    df = pd.DataFrame(records, columns=['evt', 'x', 'y', 'z', 'station', 'trk', 'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
+    df = pd.DataFrame(records,
+                      columns=['evt', 'x', 'y', 'z', 'station', 'trk',
+                               'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
     df.z += np.random.normal(0, 0.1, len(df))
     phit = np.arctan2(df.x, df.y)
     delta = np.random.normal(0, 0.1, len(df))
@@ -116,6 +120,7 @@ def main():
     df.y -= delta * np.cos(phit)
 
     df.to_csv('output.tsv', sep='\t', index=False, header=False)
+
 
 if __name__ == '__main__':
     main()
