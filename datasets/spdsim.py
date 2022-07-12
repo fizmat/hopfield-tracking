@@ -6,8 +6,9 @@ import sys
 import random
 import math
 import numpy as np
+from line_profiler_pycharm import profile
 
-
+@profile
 def ExtrapToR(pt, charge, theta, phi, z0, Rc):
     pi = 3.14156
     deg = 180 / pi
@@ -40,20 +41,22 @@ def ExtrapToR(pt, charge, theta, phi, z0, Rc):
     x = Rc * math.cos(extphi)
     y = Rc * math.sin(extphi)
 
-    radial = np.array([x - x0 * charge, y - y0 * charge])
+    rax, ray = x - x0 * charge, y - y0 * charge
 
-    rotation_matrix = np.array([[0, -1], [1, 0]])
-    tangent = np.dot(rotation_matrix, radial)
+    tax, tay = -ray, rax
 
-    tangent /= np.sqrt(np.sum(tangent ** 2))  # pt
-    tangent *= -pt * charge
-    px, py = tangent[0], tangent[1]
+    tabs = math.sqrt(tax * tax + tay * tay)  # pt
+    tax /= tabs
+    tay /= tabs
+    tax *= -pt * charge
+    tay *= -pt * charge
+    px, py = tax, tay
 
     z = z0 + k0 * alpha
-    return (x, y, z, px, py, pz)
+    return x, y, z, px, py, pz
 
-
-if __name__ == '__main__':
+@profile
+def main():
     nevents = int(sys.argv[1])
     # track_coords_all = []
     eff = 1  # detector efficiency
@@ -116,3 +119,6 @@ if __name__ == '__main__':
                 evt, x, y, z, sta, -1, 0, 0, 0, 0, 0, 0))
 
     f.close()
+
+if __name__ == '__main__':
+    main()
