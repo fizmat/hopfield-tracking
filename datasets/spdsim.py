@@ -3,6 +3,8 @@
 import sys
 import random
 import math
+from typing import Tuple
+
 import numpy as np
 from numpy import pi
 import pandas as pd
@@ -10,8 +12,10 @@ from line_profiler_pycharm import profile
 
 
 @profile
-def extrapolate_to_r(pt, charge, theta, phi, z0, rc):
+def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: float, rc: np.ndarray
+                     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
     b = 0.8  # magnetic field [T}
+    stations = np.arange(1, len(rc)+1)
 
     pz = pt / math.tan(theta) * charge
 
@@ -21,38 +25,37 @@ def extrapolate_to_r(pt, charge, theta, phi, z0, rc):
     x0 = r * math.cos(phit)
     y0 = r * math.sin(phit)
 
-    if r < rc / 2:  # no intersection
-        return None
+    is_intersection = r >= rc / 2
+    rc = rc[is_intersection]
+    stations = stations[is_intersection]
 
-    r = charge * r  # both polarities
-    alpha = 2 * math.asin(rc / 2 / r)
+    r *= charge  # both polarities
+    alpha = 2 * np.arcsin(rc / 2 / r)
 
-    if alpha > pi:
-        return None  # algorithm doesn't work for spinning tracks
+    not_spinning_track = alpha <= pi
+    rc = rc[not_spinning_track]  # algorithm doesn't work for spinning tracks
+    stations = stations[not_spinning_track]
+    alpha = alpha[not_spinning_track]
 
     extphi = phi - alpha / 2
-    if extphi > 2 * pi:
-        extphi = extphi - 2 * pi
+    extphi = np.where(extphi > 2 * pi, extphi - 2 * pi, extphi)
+    extphi = np.where(extphi < 0, extphi + 2 * pi, extphi)
 
-    if extphi < 0:
-        extphi = extphi + 2 * pi
-
-    x = rc * math.cos(extphi)
-    y = rc * math.sin(extphi)
+    x = rc * np.cos(extphi)
+    y = rc * np.sin(extphi)
 
     rax, ray = x - x0 * charge, y - y0 * charge
 
     tax, tay = -ray, rax
 
-    tabs = math.sqrt(tax * tax + tay * tay)  # pt
+    tabs = np.sqrt(tax * tax + tay * tay)  # pt
     tax /= tabs
     tay /= tabs
     tax *= -pt * charge
     tay *= -pt * charge
-    px, py = tax, tay
 
     z = z0 + k0 * alpha
-    return x, y, z, px, py, pz
+    return stations, x, y, z, tax, tay, pz
 
 
 @profile
@@ -80,21 +83,13 @@ def main():
             while charge == 0:
                 charge = random.randint(-1, 1)
 
-            station = 1
-            for r in radii:
-
-                result = extrapolate_to_r(pt, charge, theta, phi, vtxz, r)
-
-                if result is None:
-                    continue
-                x, y, z, px, py, pz = result
-                if z >= 2386 or z <= -2386:
+            stations, x, y, z, px, py, pz = extrapolate_to_r(pt, charge, theta, phi, vtxz, radii)
+            for i, station in enumerate(stations):
+                if z[i] >= 2386 or z[i] <= -2386:
                     continue
                 if random.uniform(0, 1) > eff:
                     continue
-
-                records.append((evt, x, y, z, station, trk, px, py, pz, vtxx, vtxy, vtxz))
-                station = station + 1
+                records.append((evt, x[i], y[i], z[i], station, trk, px[i], py[i], pz, vtxx, vtxy, vtxz))
 
         # add noise hits
         nhit = int(random.uniform(10, 100))  # up to 100 noise hits
