@@ -31,3 +31,15 @@ def gen_seg_track_layered(event: pd.DataFrame) -> np.ndarray:
                     for b in g[g.layer == i + 1].index:
                         track_segments.append((a, b))
     return np.array(track_segments)
+
+
+def _profile():
+    from datasets import get_hits_trackml_one_event_by_volume
+    event = get_hits_trackml_one_event_by_volume()
+    gen_segments_all(event)
+    gen_seg_track_sequential(event)
+    gen_seg_track_layered(event)
+
+
+if __name__ == '__main__':
+    _profile()
