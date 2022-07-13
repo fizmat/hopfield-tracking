@@ -61,12 +61,12 @@ def plot_event(event: pd.DataFrame, seg: np.ndarray = None, kdims: Iterable = ('
     color = cmap.map(event.track.map(track_enum))
     track_view = _hits_view(event, kdims, color)
     grid.add_widget(track_view)
-    fakes_view.camera.link(track_view.camera)
+    track_view.camera = fakes_view.camera
 
     if seg is not None:
         seg_view = _seg_view(event, seg, kdims)
         grid.add_widget(seg_view)
-        seg_view.camera.link(fakes_view.camera)
+        seg_view.camera = fakes_view.camera
     return canvas
 
 
