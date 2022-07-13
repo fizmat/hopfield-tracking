@@ -23,11 +23,25 @@ def _seg_view(event: pd.DataFrame, seg: np.ndarray, kdims: Iterable = ('x', 'y',
               color: Union[Color, ColorArray] = 'black') -> ViewBox:
     view = ViewBox(border_color='black')
     seg_lines = visuals.Line(connect='segments')
-    seg_hits = event.loc[np.concatenate(seg)]
+    seg_hits = event.loc[seg.flatten()]
     seg_lines.set_data(seg_hits[kdims].to_numpy(), color=color)
     view.add(seg_lines)
     visuals.XYZAxis(parent=view.scene)
     view.camera = 'turntable'
+    return view
+
+
+def _seg_diff_view(event: pd.DataFrame, seg1: np.ndarray, seg2: np.ndarray,
+                   kdims: Iterable = ('x', 'y', 'z')) -> ViewBox:
+    view = ViewBox(border_color='black')
+    seg_lines = visuals.Line(connect='segments')
+    seg1, seg2 = {tuple(pair) for pair in seg1}, {tuple(pair) for pair in seg2}
+    red_hits = event.loc[np.array(list(seg1 - seg2)).flatten()]
+    green_hits = event.loc[np.array(list(seg2 - seg1)).flatten()]
+    seg_lines.set_data(red_hits[kdims].to_numpy(), color='red')
+    seg_lines.set_data(green_hits[kdims].to_numpy(), color='green')
+    view.add(seg_lines)
+    visuals.XYZAxis(parent=view.scene)
     return view
 
 

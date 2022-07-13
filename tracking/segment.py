@@ -22,7 +22,7 @@ def gen_seg_track_sequential(event: pd.DataFrame) -> np.ndarray:
                            if track >= 0])
 
 
-def gen_seg_track_layered(hits: pd.DataFrame) -> List[Tuple[int, int]]:
+def gen_seg_track_layered(event: pd.DataFrame) -> np.ndarray:
     track_segments = []
     for track, g in hits.groupby('track'):
         if track >= 0:
@@ -30,4 +30,4 @@ def gen_seg_track_layered(hits: pd.DataFrame) -> List[Tuple[int, int]]:
                 for a in g[g.layer == i].index:
                     for b in g[g.layer == i + 1].index:
                         track_segments.append((a, b))
-    return track_segments
+    return np.array(track_segments)
