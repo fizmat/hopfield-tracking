@@ -24,17 +24,17 @@ def gen_seg_track_sequential(event: pd.DataFrame) -> np.ndarray:
 
 def gen_seg_track_layered(event: pd.DataFrame) -> np.ndarray:
     track_segments = []
-    for track, g in hits.groupby('track'):
-        if track >= 0:
-            for i in range(min(g.layer), max(g.layer)):
-                for a in g[g.layer == i].index:
-                    for b in g[g.layer == i + 1].index:
-                        track_segments.append((a, b))
+    for track, g in event[event.track >= 0].groupby('track'):
+        layers = g.groupby('layer').groups
+        for layer, starts in layers.items():
+            for b in layers.get(layer + 1, ()):
+                for a in starts:
+                    track_segments.append((a, b))
     return np.array(track_segments)
 
 
 def _profile():
-    from datasets import get_hits_trackml_one_event_by_volume
+    from datasets import get_hits_trackml_one_event, get_hits_trackml_one_event_by_volume
     event = get_hits_trackml_one_event_by_volume()
     gen_segments_all(event)
     gen_seg_track_sequential(event)
