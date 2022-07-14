@@ -9,39 +9,25 @@ from vispy.scene import ViewBox, visuals, SceneCanvas
 
 
 def _hits_view(event: pd.DataFrame, kdims: Iterable = ('x', 'y', 'z'),
-               color: Union[Color, ColorArray] = 'black') -> ViewBox:
+               color: Union[Color, ColorArray] = 'black', camera='turntable') -> ViewBox:
     view = ViewBox(border_color='black')
     scatter = visuals.Markers()
     scatter.set_data(event[kdims].to_numpy(), edge_color=color, face_color=color, size=3)
     view.add(scatter)
     visuals.XYZAxis(parent=view.scene)
-    view.camera = 'turntable'
+    view.camera = camera
     return view
 
 
 def _seg_view(event: pd.DataFrame, seg: np.ndarray, kdims: Iterable = ('x', 'y', 'z'),
-              color: Union[Color, ColorArray] = 'black') -> ViewBox:
+              color: Union[Color, ColorArray] = 'black', camera='turntable') -> ViewBox:
     view = ViewBox(border_color='black')
     seg_lines = visuals.Line(connect='segments')
     seg_hits = event.loc[seg.flatten()]
     seg_lines.set_data(seg_hits[kdims].to_numpy(), color=color)
     view.add(seg_lines)
     visuals.XYZAxis(parent=view.scene)
-    view.camera = 'turntable'
-    return view
-
-
-def _seg_diff_view(event: pd.DataFrame, seg1: np.ndarray, seg2: np.ndarray,
-                   kdims: Iterable = ('x', 'y', 'z')) -> ViewBox:
-    view = ViewBox(border_color='black')
-    seg_lines = visuals.Line(connect='segments')
-    seg1, seg2 = {tuple(pair) for pair in seg1}, {tuple(pair) for pair in seg2}
-    red_hits = event.loc[np.array(list(seg1 - seg2)).flatten()]
-    green_hits = event.loc[np.array(list(seg2 - seg1)).flatten()]
-    seg_lines.set_data(red_hits[kdims].to_numpy(), color='red')
-    seg_lines.set_data(green_hits[kdims].to_numpy(), color='green')
-    view.add(seg_lines)
-    visuals.XYZAxis(parent=view.scene)
+    view.camera = camera
     return view
 
 
@@ -59,14 +45,34 @@ def plot_event(event: pd.DataFrame, seg: np.ndarray = None, kdims: Iterable = ('
     event = event[event.track != -1]
     track_enum = {t: np.random.rand() for t in event.track.unique()}
     color = cmap.map(event.track.map(track_enum))
-    track_view = _hits_view(event, kdims, color)
+    track_view = _hits_view(event, kdims, color, fakes_view.camera)
     grid.add_widget(track_view)
-    track_view.camera = fakes_view.camera
 
     if seg is not None:
-        seg_view = _seg_view(event, seg, kdims)
+        seg_view = _seg_view(event, seg, kdims, camera=fakes_view.camera)
         grid.add_widget(seg_view)
-        seg_view.camera = fakes_view.camera
+    return canvas
+
+
+def plot_seg_diff(event: pd.DataFrame, seg1: np.ndarray, seg2: np.ndarray, kdims: Iterable = ('x', 'y', 'z'),
+                  fig_size: Tuple[int, int] = (1024, 768)) -> SceneCanvas:
+    kdims = list(kdims)
+    canvas = SceneCanvas(bgcolor='white', size=fig_size)
+    grid = canvas.central_widget.add_grid()
+    view1 = _seg_view(event, seg1, kdims)
+    grid.add_widget(view1)
+
+    s1, s2 = {tuple(pair) for pair in seg1}, {tuple(pair) for pair in seg2}
+    red = np.array(list(s1 - s2))
+    red_view = _seg_view(event, red, kdims, 'red', view1.camera)
+    grid.add_widget(red_view)
+
+    green = np.array(list(s2 - s1))
+    green_view = _seg_view(event, green, kdims, 'green', view1.camera)
+    grid.add_widget(green_view, row=1, col=0)
+
+    view2 = _seg_view(event, seg2, kdims, camera=view1.camera)
+    grid.add_widget(view2, row=1, col=1)
     return canvas
 
 
@@ -106,3 +112,12 @@ def plot_segments_plotly(hits: pd.DataFrame, seg: np.ndarray, kdims: Iterable = 
         opts.Path3D('Segments.Segments', color='rgba(0, 0, 0, 0.3)'),
         opts.Overlay(width=800, height=800),
     )
+
+
+if __name__ == '__main__':
+    from datasets import get_hits_trackml_one_event
+    from tracking.segment import gen_seg_track_layered, gen_seg_track_sequential
+
+    event = get_hits_trackml_one_event()
+    plot_event(event, gen_seg_track_sequential(event))
+    plot_seg_diff(event, gen_seg_track_layered(event), gen_seg_track_sequential(event))
