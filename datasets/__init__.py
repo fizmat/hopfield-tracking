@@ -7,7 +7,7 @@ from datasets.trackml import get_hits_trackml, get_hits_trackml_by_volume, \
     get_hits_trackml_one_event, get_hits_trackml_one_event_by_volume
 
 
-def get_hits(dataset: str = 'simple', n_events=1, *args, **kwargs) -> pd.DataFrame:
+def get_hits(dataset: str = 'simple', n_events=None, *args, **kwargs) -> pd.DataFrame:
     dataset = dataset.lower()
     if n_events == 1:
         getter = {
