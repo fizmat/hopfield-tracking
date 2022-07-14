@@ -20,7 +20,7 @@ from datasets.trackml import get_hits_trackml, get_hits_trackml_by_volume, get_h
 from datasets.simple import get_hits_simple
 from hopfield.iterate import hopfield_iterate, construct_energy_matrix, construct_anneal
 from metrics.tracks import track_metrics, track_loss
-from tracking.segment import gen_segments_all
+from tracking.segment import gen_seg_layered
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -64,7 +64,7 @@ class MyWorker(Worker):
             event_metrics = []
             for hits in batch:
                 pos = hits[['x', 'y', 'z']].values
-                seg = gen_segments_all(hits)
+                seg = gen_seg_layered(hits)
                 energy_matrix, _, __ = construct_energy_matrix(config, pos, seg)
                 temp_curve = construct_anneal(config)
                 act = hopfield_iterate(config, energy_matrix, temp_curve, seg)
