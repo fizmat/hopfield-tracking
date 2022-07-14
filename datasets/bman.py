@@ -8,39 +8,34 @@ def _read(prefix: str = None, file: str = 'simdata_ArPb_3.2AGeV_mb_1.zip') -> pd
     if prefix is None:
         prefix = Path(__file__).parents[1] / 'data/bman'
     file = Path(prefix) / file
+    col_names = ['event_id', 'x', 'y', 'z', 'detector', 'station', 'track', 'px', 'py', 'pz', 'vx', 'vy', 'vz']
     try:
         with ZipFile(file) as z:
             with z.open(f'simdata_ArPb_3.2AGeV_mb_1.txt') as f:
-                simdata = pd.read_csv(f, sep='\t',
-                                      names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
-                                             'px', 'py', 'pz', 'vx', 'vy', 'vz'])
+                return pd.read_csv(f, sep='\t', names=col_names)
     except BadZipFile:
-        simdata = pd.read_csv(file, sep='\t',
-                              names=['event_id', 'x', 'y', 'z', 'detector_id', 'station_id', 'track_id',
-                                     'px', 'py', 'pz', 'vx', 'vy', 'vz'])
-    return simdata
+        return pd.read_csv(file, sep='\t', names=col_names)
 
 
 def _transform(simdata, max_hits=None):
     if max_hits is not None:
-        hit_count = simdata.groupby('event_id').size()
+        hit_count = simdata.groupby('event').size()
         small_events = set(hit_count[hit_count <= max_hits].index)
         simdata = simdata[simdata.event_id.isin(small_events)].copy()
-    simdata['layer'] = simdata.detector_id * 3 + simdata.station_id
-    return simdata.rename(columns={'track_id': 'track'})[['event_id', 'x', 'y', 'z', 'layer', 'track']]
+    simdata['layer'] = simdata.detector * 3 + simdata.station
+    return simdata[['event_id', 'x', 'y', 'z', 'layer', 'track']]
 
 
 def _copy_hits_bman_event6():
-    events = _read()
-    e6 = events[events.event_id == 6]
+    hits = _read()
+    e6 = hits[hits.event_id == 6]
     e6.to_csv(Path(__file__).parents[1] / 'data/bman/event6.csv',
               sep='\t', header=False, index=False)
 
 
 def get_hits_bman(n_events=None, max_hits=None):
-    events = _transform(_read(), max_hits)
-    return events if n_events is None else events[events.event_id.isin(events.event_id.unique()[:n_events])]
-
+    hits = _transform(_read(), max_hits)
+    return hits if n_events is None else hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
 
 
 def get_hits_bman_one_event():

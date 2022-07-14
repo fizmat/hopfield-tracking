@@ -54,11 +54,13 @@ def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: flo
     return stations, x, y, z, tax, tay, pz
 
 
-def get_hits_spdsim_one_event(event_size=10):
-    return get_hits_spdsim(1, event_size)
+def get_hits_spdsim_one_event(max_ntrk=10):
+    return get_hits_spdsim(1, max_ntrk)
 
 
-def get_hits_spdsim(n_events=100, max_ntrk=10):
+def get_hits_spdsim(n_events=None, max_ntrk=10):
+    if n_events is None:
+        n_events = 100
     return gen_spdsim(n_events, max_ntrk).rename(
         columns={'station': 'layer', 'evt': 'event_id', 'trk': 'track'}
     )[['x', 'y', 'z', 'layer', 'track', 'event_id']]
@@ -103,17 +105,17 @@ def gen_spdsim(n_events=100, max_ntrk=10):
         for i in range(nhit):
             records.append((evt, x[i], y[i], z[i], sta[i], -1, 0, 0, 0, 0, 0, 0))
 
-    df = pd.DataFrame(records,
-                      columns=['evt', 'x', 'y', 'z', 'station', 'trk',
-                               'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
-    df.z += np.random.normal(0, 0.1, len(df))
-    phit = np.arctan2(df.x, df.y)
-    delta = np.random.normal(0, 0.1, len(df))
-    df.x += delta * np.sin(phit)
-    df.y -= delta * np.cos(phit)
-    return df
+    hits = pd.DataFrame(records,
+                        columns=['evt', 'x', 'y', 'z', 'station', 'trk',
+                                 'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
+    hits.z += np.random.normal(0, 0.1, len(hits))
+    phit = np.arctan2(hits.x, hits.y)
+    delta = np.random.normal(0, 0.1, len(hits))
+    hits.x += delta * np.sin(phit)
+    hits.y -= delta * np.cos(phit)
+    return hits
 
 
 if __name__ == '__main__':
-    df = gen_spdsim(int(sys.argv[1]))
-    df.to_csv('output.tsv', sep='\t', index=False, header=False)
+    hits = gen_spdsim(int(sys.argv[1]))
+    hits.to_csv('output.tsv', sep='\t', index=False, header=False)

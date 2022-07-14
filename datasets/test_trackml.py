@@ -30,8 +30,8 @@ _test_blacklist = pd.DataFrame({'hit_id': [1, 5]})
 
 
 def test__transform():
-    events = _transform(_test_event, _test_blacklist)
-    assert_frame_equal(events, pd.DataFrame({
+    hits = _transform(_test_event, _test_blacklist)
+    assert_frame_equal(hits, pd.DataFrame({
         'hit_id': [2, 3, 4],
         'x': [2., 3., 4.],
         'y': [3., 4., 5.],
