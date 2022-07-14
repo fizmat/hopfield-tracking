@@ -10,6 +10,7 @@ from vispy.scene import ViewBox, visuals, SceneCanvas
 
 def _hits_view(event: pd.DataFrame, kdims: Iterable = ('x', 'y', 'z'),
                color: Union[Color, ColorArray] = 'black', camera='turntable') -> ViewBox:
+    kdims = list(kdims)
     view = ViewBox(border_color='black')
     scatter = visuals.Markers()
     scatter.set_data(event[kdims].to_numpy(), edge_color=color, face_color=color, size=3)
@@ -21,11 +22,29 @@ def _hits_view(event: pd.DataFrame, kdims: Iterable = ('x', 'y', 'z'),
 
 def _seg_view(event: pd.DataFrame, seg: np.ndarray, kdims: Iterable = ('x', 'y', 'z'),
               color: Union[Color, ColorArray] = 'black', camera='turntable') -> ViewBox:
+    kdims = list(kdims)
     view = ViewBox(border_color='black')
     seg_lines = visuals.Line(connect='segments')
     seg_hits = event.loc[seg.flatten()]
     seg_lines.set_data(seg_hits[kdims].to_numpy(), color=color)
     view.add(seg_lines)
+    visuals.XYZAxis(parent=view.scene)
+    view.camera = camera
+    return view
+
+
+def _seg_tseg_view(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
+                   kdims: Iterable = ('x', 'y', 'z'), camera='turntable') -> ViewBox:
+    kdims = list(kdims)
+    view = ViewBox(border_color='black')
+    seg_lines = visuals.Line(connect='segments')
+    tseg_lines = visuals.Line(connect='segments')
+    seg_hits = event.loc[seg.flatten()]
+    tseg_hits = event.loc[tseg.flatten()]
+    seg_lines.set_data(seg_hits[kdims].to_numpy(), color=(0, 0, 0, 0.3))
+    tseg_lines.set_data(tseg_hits[kdims].to_numpy(), color='green', width=5)
+    view.add(seg_lines)
+    view.add(tseg_lines)
     visuals.XYZAxis(parent=view.scene)
     view.camera = camera
     return view
