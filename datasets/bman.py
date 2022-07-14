@@ -37,8 +37,10 @@ def _copy_hits_bman_event6():
               sep='\t', header=False, index=False)
 
 
-def get_hits_bman(max_hits=None):
-    return _transform(_read(), max_hits)
+def get_hits_bman(n_events=None, max_hits=None):
+    events = _transform(_read(), max_hits)
+    return events if n_events is None else events[events.event_id.isin(events.event_id.unique()[:n_events])]
+
 
 
 def get_hits_bman_one_event():
