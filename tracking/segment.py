@@ -71,19 +71,21 @@ def build_segment_neighbor(event, nbr):
     return seg
 
 
-def stat_seg_neighbors_event_r(neighbors_model, radius, event):
+def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, radius: float, event: pd.DataFrame) -> pd.Series:
     return event.apply(neighbor_row, args=(neighbors_model, radius, event), axis=1).sum()
 
 
+@profile
 def stat_seg_neighbors(events: pd.DataFrame) -> pd.DataFrame:
     records = []
+    distances = np.linspace(100, 200, 3)
 
-    for radius in np.linspace(100, 200, 3):
-        for ei, event in events.groupby(by='event_id'):
-            event = event.reset_index(drop=True)
-            neighbors_model = NearestNeighbors().fit(event[['x', 'y', 'z']])
-            lnbr, lnbrn = stat_seg_neighbors_event_r(neighbors_model, radius, event)
-            records.append((radius, ei, lnbr, lnbrn))
+    for ei, event in events.groupby(by='event_id'):
+        event = event.reset_index(drop=True)
+        neighbors_model = NearestNeighbors().fit(event[['x', 'y', 'z']])
+        for r in distances:
+            lnbr, lnbrn = stat_seg_neighbors_event_r(neighbors_model, r, event)
+            records.append((r, ei, lnbr, lnbrn))
     stats = pd.DataFrame(records, columns=['r', 'event', 'all_segments', 'segments_not_same_level'])
     return stats.drop(columns='event').groupby('r').sum()
 
