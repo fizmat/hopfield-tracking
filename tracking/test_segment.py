@@ -2,20 +2,25 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
 
-from tracking.segment import _gen_seg_one_layer, gen_seg_layered, gen_seg_track_sequential, gen_seg_track_layered
+from tracking.segment import _gen_seg_one_layer, gen_seg_layered, gen_seg_track_sequential, gen_seg_track_layered, \
+    gen_seg_all
 
 _hits = pd.DataFrame({'track': [1, -1, 3, 5, -1, 3, 5, 1, 3],
                       'layer': [0, 0, 0, 1, 1, 1, 2, 2, 2]})
 
 
-def test_gen_segments_layer():
+def test_gen_seg_all():
+    assert {tuple(pair) for pair in gen_seg_all(_hits)} == {(i, j) for j in range(9) for i in range(j)}
+
+
+def test__gen_seg_one_layer():
     a = np.arange(2)
     b = np.arange(4)
     assert_array_equal(_gen_seg_one_layer(a, b), [[0, 0], [0, 1], [0, 2], [0, 3],
                                                   [1, 0], [1, 1], [1, 2], [1, 3]])
 
 
-def test_gen_segment_all():
+def test_gen_seg_layered():
     df = pd.DataFrame({'x': 0, 'y': 0, 'z': 0, 'layer': [0, 0, 1, 1, 1, 2], 'track': 0})
     seg = gen_seg_layered(df)
     assert_array_equal(seg, [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 5], [3, 5], [4, 5]])
