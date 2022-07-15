@@ -54,11 +54,12 @@ def nbr_drop_same_layer(nbr, current_hits, event):
 
 
 def neighbor_row(hit: pd.Series, neighbors_model: NearestNeighbors,
-                 distances: Iterable, event: pd.DataFrame) -> List[Tuple[float, float, float]]:
+                 distances: np.ndarray, event: pd.DataFrame) -> List[Tuple[float, float, float]]:
     current_hits = hit.to_frame().T
     records = []
+    nbr_dist, nbr_ind = neighbors_model.radius_neighbors(current_hits[['x', 'y', 'z']], radius=distances.max(initial=0))
     for r in distances:
-        nbr = neighbors_model.radius_neighbors(current_hits[['x', 'y', 'z']], radius=r, return_distance=False)
+        nbr = [ind[dist <= r] for dist, ind in zip(nbr_dist, nbr_ind)]
         nbrn = nbr_drop_same_layer(nbr, current_hits, event)
         lnbr = len(nbr[0]) - 1  # -1 for the hit being its own neighbor
         lnbrn = len(nbrn[0])  # [0] because there is only one hit, so one element in nbr
@@ -76,7 +77,7 @@ def build_segment_neighbor(event, nbr):
     return seg
 
 
-def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, distances: Iterable,
+def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, distances: np.ndarray,
                                event: pd.DataFrame) -> pd.Series:
     records = [record for _, hit in event.iterrows() for record in neighbor_row(hit, neighbors_model, distances, event)]
     return pd.DataFrame(records, columns=['r', 'all_segments', 'segments_not_same_level']).groupby('r').sum()
@@ -97,8 +98,8 @@ def stat_seg_neighbors(events: pd.DataFrame) -> pd.DataFrame:
 
 def _profile():
     from datasets import get_hits
-    event = get_hits('trackml_volume', 1)
-    print(stat_seg_neighbors(event.iloc[:1000]))
+    event = get_hits('trackml_volume', 2)
+    print(stat_seg_neighbors(event.iloc[:10000]))
 
 
 if __name__ == '__main__':
