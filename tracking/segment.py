@@ -39,32 +39,32 @@ def gen_seg_track_layered(event: pd.DataFrame) -> np.ndarray:
     return np.array(track_segments)
 
 
-def create_neighbor_with_radius_not_same_layer(nbr, current_hits, events):
+def seg_drop_same_layer(seg: np.ndarray, event: pd.DataFrame) -> np.ndarray:
+    return seg[event.loc[seg[:, 0], 'layer'] != event.loc[seg[:, 0]], 'layer']
+
+
+def nbr_drop_same_layer(nbr, current_hits, event):
     nbrn = np.empty_like(nbr, dtype='object')
-
     for i, neighbor_array in enumerate(nbr):
-        comparison_layer = current_hits.layer.iloc[i] != events.layer.iloc[neighbor_array]
-        # compariso_volume = current_hits.volume_id.iloc[i] != events.volume_id.iloc[neighbor_array]
-        comparison = comparison_layer
-        nbrn[i] = neighbor_array[comparison.values]
-
-    return (nbrn)
+        comparison: pd.Series = current_hits.layer.iloc[i] != event.layer.iloc[neighbor_array]
+        nbrn[i] = neighbor_array[comparison.to_numpy()]
+    return nbrn
 
 
-def neighbor_row(hit, neighbors, radius, events):
+def neighbor_row(hit, neighbors, radius, event):
     current_hits = hit.to_frame().T
     nbr = neighbors.radius_neighbors(current_hits[['x', 'y', 'z']], radius=radius, return_distance=False)
-    nbrn = create_neighbor_with_radius_not_same_layer(nbr, current_hits, events)
-    lnbr = len(nbr[0])-1
+    nbrn = nbr_drop_same_layer(nbr, current_hits, event)
+    lnbr = len(nbr[0]) - 1  # -1 for the hit being its own neighbor
     lnbrn = len(nbrn[0])
-    return pd.Series([lnbr,lnbrn],index = ('lnbr','lnbrn'))
+    return pd.Series([lnbr, lnbrn], index=('lnbr', 'lnbrn'))
 
 
-def build_segment_neighbor(event, nbrn):
+def build_segment_neighbor(event, nbr):
     seg_list = []
-    for i, neighbor_array in enumerate(nbrn):
-        hit_array = np.full_like(neighbor_array, event.index[i])
-        neighbor_seg = np.stack((hit_array, neighbor_array), axis=-1)
+    for i, ends in enumerate(nbr):
+        starts = np.full_like(ends, event.index[i])
+        neighbor_seg = np.stack((starts, ends), axis=-1)
         seg_list.append(neighbor_seg)
     seg = np.concatenate(seg_list, axis=0)
     return seg
@@ -74,21 +74,21 @@ def stat_seg_neighbors(events: pd.DataFrame) -> pd.DataFrame:
     records = []
 
     for radius in range(100, 201, 50):
-        all_segments = 0
-        neighbor_segments_not_level = 0
+        n_seg = 0
+        n_seg_lvl = 0
 
-        for ei, ev in events.groupby(by='event_id'):
-            event = ev.reset_index(drop=True)
+        for _, event in events.groupby(by='event_id'):
+            event = event.reset_index(drop=True)
             neighbors = NearestNeighbors().fit(event[['x', 'y', 'z']])
 
-            quantity_neighbor_hit = event.apply(neighbor_row, args=(neighbors, radius, event), axis=1)
-            lnbr, lnbrn = quantity_neighbor_hit.sum()
+            seg_counts = event.apply(neighbor_row, args=(neighbors, radius, event), axis=1)
+            lnbr, lnbrn = seg_counts.sum()
 
-            all_segments += lnbr
-            neighbor_segments_not_level += lnbrn
+            n_seg += lnbr
+            n_seg_lvl += lnbrn
 
-        records.append([radius, all_segments, neighbor_segments_not_level])
-    return pd.DataFrame(data=records, columns=['r','all_segments','neighbor_segments_not_level']).set_index('r')
+        records.append([radius, n_seg, n_seg_lvl])
+    return pd.DataFrame(data=records, columns=['r', 'all_segments', 'segments_not_same_level']).set_index('r')
 
 
 def _profile():
