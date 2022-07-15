@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from line_profiler_pycharm import profile
 from numpy import ndarray
 from numpy.typing import ArrayLike
 from sklearn.neighbors import NearestNeighbors
@@ -56,8 +57,8 @@ def neighbor_row(hit, neighbors, radius, event):
     nbr = neighbors.radius_neighbors(current_hits[['x', 'y', 'z']], radius=radius, return_distance=False)
     nbrn = nbr_drop_same_layer(nbr, current_hits, event)
     lnbr = len(nbr[0]) - 1  # -1 for the hit being its own neighbor
-    lnbrn = len(nbrn[0])
-    return pd.Series([lnbr, lnbrn], index=('lnbr', 'lnbrn'))
+    lnbrn = len(nbrn[0])  # [0] because there is only one hit, so one element in nbr
+    return pd.Series([lnbr, lnbrn], index=('all_segments', 'segments_not_same_level'))
 
 
 def build_segment_neighbor(event, nbr):
@@ -70,25 +71,21 @@ def build_segment_neighbor(event, nbr):
     return seg
 
 
+def stat_seg_neighbors_event_r(neighbors_model, radius, event):
+    return event.apply(neighbor_row, args=(neighbors_model, radius, event), axis=1).sum()
+
+
 def stat_seg_neighbors(events: pd.DataFrame) -> pd.DataFrame:
     records = []
 
-    for radius in range(100, 201, 50):
-        n_seg = 0
-        n_seg_lvl = 0
-
-        for _, event in events.groupby(by='event_id'):
+    for radius in np.linspace(100, 200, 3):
+        for ei, event in events.groupby(by='event_id'):
             event = event.reset_index(drop=True)
-            neighbors = NearestNeighbors().fit(event[['x', 'y', 'z']])
-
-            seg_counts = event.apply(neighbor_row, args=(neighbors, radius, event), axis=1)
-            lnbr, lnbrn = seg_counts.sum()
-
-            n_seg += lnbr
-            n_seg_lvl += lnbrn
-
-        records.append([radius, n_seg, n_seg_lvl])
-    return pd.DataFrame(data=records, columns=['r', 'all_segments', 'segments_not_same_level']).set_index('r')
+            neighbors_model = NearestNeighbors().fit(event[['x', 'y', 'z']])
+            lnbr, lnbrn = stat_seg_neighbors_event_r(neighbors_model, radius, event)
+            records.append((radius, ei, lnbr, lnbrn))
+    stats = pd.DataFrame(records, columns=['r', 'event', 'all_segments', 'segments_not_same_level'])
+    return stats.drop(columns='event').groupby('r').sum()
 
 
 def _profile():
