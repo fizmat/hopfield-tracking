@@ -53,16 +53,15 @@ def nbr_drop_same_layer(nbr, current_hits, event):
     return nbrn
 
 
-def neighbor_row(hit: pd.Series, neighbors_model: NearestNeighbors,
-                 distances: np.ndarray, event: pd.DataFrame) -> List[Tuple[float, float, float]]:
-    current_hits = hit.to_frame().T
+def nbr_stat_block(current_hits: pd.DataFrame, neighbors_model: NearestNeighbors,
+                   distances: np.ndarray, event: pd.DataFrame) -> List[Tuple[float, float, float]]:
     records = []
     nbr_dist, nbr_ind = neighbors_model.radius_neighbors(current_hits[['x', 'y', 'z']], radius=distances.max(initial=0))
     for r in distances:
         nbr = [ind[dist <= r] for dist, ind in zip(nbr_dist, nbr_ind)]
         nbrn = nbr_drop_same_layer(nbr, current_hits, event)
-        lnbr = len(nbr[0]) - 1  # -1 for the hit being its own neighbor
-        lnbrn = len(nbrn[0])  # [0] because there is only one hit, so one element in nbr
+        lnbr = sum(len(arr) - 1 for arr in nbr)  # -1 for the hit being its own neighbor
+        lnbrn = sum(len(arr) for arr in nbrn)
         records.append((r, lnbr, lnbrn))
     return records
 
@@ -79,7 +78,8 @@ def build_segment_neighbor(event, nbr):
 
 def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, distances: np.ndarray,
                                event: pd.DataFrame) -> pd.Series:
-    records = [record for _, hit in event.iterrows() for record in neighbor_row(hit, neighbors_model, distances, event)]
+    records = [record for _, g in event.groupby('layer') for record in
+               nbr_stat_block(g, neighbors_model, distances, event)]
     return pd.DataFrame(records, columns=['r', 'all_segments', 'segments_not_same_level']).groupby('r').sum()
 
 
