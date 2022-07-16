@@ -8,6 +8,8 @@ from numpy.typing import ArrayLike
 from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
+from pathos.pools import ProcessPool as Pool
+from pathos.helpers import cpu_count
 
 
 def gen_seg_all(event: pd.DataFrame) -> ndarray:
@@ -110,12 +112,16 @@ def build_segment_neighbor(event, nbr):
 @profile
 def stat_seg_neighbors_event(neighbors_model: NearestNeighbors, event: pd.DataFrame,
                              r_min: float, r_max: float, r_n: int) -> pd.Series:
-    max_batch_scale = int(1e8)
+    max_batch_scale = int(2e6)
     hits_per_batch = max(1, max_batch_scale // len(event))
     n_batches = len(event) // hits_per_batch + 1
     group = np.concatenate([np.full(hits_per_batch, i) for i in range(n_batches)])[:len(event)]
-    records = [record for _, g in tqdm(event.groupby(group)) for record in
-               nbr_stat_block(g, neighbors_model, event, r_min, r_max, r_n)]
+    with Pool(nodes=cpu_count()) as pool:
+        records = [record for results in
+                   tqdm(pool.imap(
+                       lambda batch: nbr_stat_block(batch[1], neighbors_model, event, r_min, r_max, r_n),
+                       event.groupby(group)), total=n_batches)
+                   for record in results]
     return pd.DataFrame(records, columns=['r', 'seg_all', 'seg_diff_level']).groupby('r').sum().reset_index()
 
 
@@ -134,7 +140,7 @@ def stat_seg_neighbors(events: pd.DataFrame, r_min=300, r_max=3000, r_n=10) -> p
 
 def _profile():
     from datasets import get_hits
-    event = get_hits('trackml', 1)
+    event = get_hits('trackml_volume', 3)
     print(stat_seg_neighbors(event, 50, 3000, 60))
 
 
