@@ -5,6 +5,7 @@ import pandas as pd
 from line_profiler_pycharm import profile
 from numpy import ndarray
 from numpy.typing import ArrayLike
+from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -51,31 +52,39 @@ def seg_drop_same_layer(seg: np.ndarray, event: pd.DataFrame) -> np.ndarray:
 
 
 @profile
-def nbr_drop_same_layer(nbr: np.ndarray, dist: np.ndarray, current_hits: pd.DataFrame,
-                        event: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
-    nbrn = np.empty_like(nbr, dtype='object')
-    distn = np.empty_like(dist, dtype='object')
-    for i, neighbor_array in enumerate(nbr):
-        hit_layer = current_hits.layer.iloc[i]
-        nbr_layers = event.layer.to_numpy()[neighbor_array]
-        comparison = hit_layer != nbr_layers
-        nbrn[i] = neighbor_array[comparison]
-        distn[i] = dist[i][comparison]
-    return distn, nbrn
+def graph_drop_same_layer(nbr: csr_matrix, event: pd.DataFrame, current_hits: pd.DataFrame) -> csr_matrix:
+    indptr = nbr.indptr
+    indices = nbr.indices
+    data = nbr.data
+    new_indptr = np.zeros_like(indptr)
+    new_indices = np.empty_like(indices)
+    new_data = np.empty_like(data)
+    for i in range(nbr.shape[0]):
+        start = indptr[i]
+        end = indptr[i + 1]
+        new_start = new_indptr[i]
+        jj = indices[start:end]
+        comparison = current_hits.layer.to_numpy()[i] != event.layer.to_numpy()[jj]
+        new_end = new_start + comparison.sum()
+        new_indptr[i + 1] = new_end
+        new_data[new_start:new_end] = data[start:end][comparison]
+        new_indices[new_start:new_end] = indices[start:end][comparison]
+    new_graph = csr_matrix((new_data[:new_indptr[-1]], new_indices[:new_indptr[-1]], new_indptr), nbr.shape)
+    return new_graph
 
 
 @profile
 def nbr_stat_block(current_hits: pd.DataFrame, neighbors_model: NearestNeighbors,
                    distances: np.ndarray, event: pd.DataFrame) -> List[Tuple[float, float, float]]:
     records = []
-    nbr_dist, nbr_ind = neighbors_model.radius_neighbors(current_hits[['x', 'y', 'z']], radius=distances.max(initial=0))
-    nbrn_dist, nbrn_ind = nbr_drop_same_layer(nbr_ind, nbr_dist, current_hits, event)
+    nbr = neighbors_model.radius_neighbors_graph(current_hits[['x', 'y', 'z']],
+                                                 radius=distances.max(initial=0),
+                                                 mode='distance')
+    nbr_diff_layer = graph_drop_same_layer(nbr, event, current_hits)
     for r in distances:
-        nbr = [ind[dist <= r] for dist, ind in zip(nbr_dist, nbr_ind)]
-        nbrn = [ind[dist <= r] for dist, ind in zip(nbrn_dist, nbrn_ind)]
-        lnbr = sum(len(arr) - 1 for arr in nbr)  # -1 for the hit being its own neighbor
-        lnbrn = sum(len(arr) for arr in nbrn)
-        records.append((r, lnbr, lnbrn))
+        n_seg_all = nbr.nnz - (nbr > r).nnz - nbr.shape[0]  # substract the hit being its own neighbor
+        n_seg_diff_layer = nbr_diff_layer.nnz - (nbr_diff_layer > r).nnz
+        records.append((r, n_seg_all, n_seg_diff_layer))
     return records
 
 
@@ -95,7 +104,7 @@ def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, distances: np.
                                event: pd.DataFrame) -> pd.Series:
     records = [record for _, g in event.groupby('layer') for record in
                nbr_stat_block(g, neighbors_model, distances, event)]
-    return pd.DataFrame(records, columns=['r', 'all_segments', 'segments_not_same_level']).groupby(
+    return pd.DataFrame(records, columns=['r', 'seg_all', 'seg_diff_level']).groupby(
         'r').sum().reset_index()
 
 
