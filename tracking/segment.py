@@ -75,15 +75,22 @@ def graph_drop_same_layer(nbr: csr_matrix, event: pd.DataFrame, current_hits: pd
 
 @profile
 def nbr_stat_block(current_hits: pd.DataFrame, neighbors_model: NearestNeighbors,
-                   distances: np.ndarray, event: pd.DataFrame) -> List[Tuple[float, float, float]]:
+                   event: pd.DataFrame, r_min: float, r_max: float, r_n: int) -> List[Tuple[float, float, float]]:
     records = []
     nbr = neighbors_model.radius_neighbors_graph(current_hits[['x', 'y', 'z']],
-                                                 radius=distances.max(initial=0),
+                                                 radius=r_max,
                                                  mode='distance')
     nbr_diff_layer = graph_drop_same_layer(nbr, event, current_hits)
+    distances = np.linspace(r_min, r_max, r_n)
+    nbr_big = nbr
+    nbr_diff_layer_current = nbr_diff_layer
     for r in distances:
-        n_seg_all = nbr.nnz - (nbr > r).nnz - nbr.shape[0]  # substract the hit being its own neighbor
-        n_seg_diff_layer = nbr_diff_layer.nnz - (nbr_diff_layer > r).nnz
+        too_big = nbr_big > r
+        nbr_big = nbr_big.multiply(too_big)
+        n_seg_all = nbr.nnz - nbr_big.nnz - nbr.shape[0]  # substract the hit being its own neighbor
+        too_big_layer = nbr_diff_layer_current > r
+        nbr_diff_layer_current = nbr_diff_layer_current.multiply(too_big_layer)
+        n_seg_diff_layer = nbr_diff_layer.nnz - nbr_diff_layer_current.nnz
         records.append((r, n_seg_all, n_seg_diff_layer))
     return records
 
@@ -100,23 +107,22 @@ def build_segment_neighbor(event, nbr):
 
 
 @profile
-def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, distances: np.ndarray,
-                               event: pd.DataFrame) -> pd.Series:
+def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, event: pd.DataFrame,
+                               r_min: float, r_max: float, r_n: int) -> pd.Series:
     records = [record for _, g in event.groupby('layer') for record in
-               nbr_stat_block(g, neighbors_model, distances, event)]
+               nbr_stat_block(g, neighbors_model, event, r_min, r_max, r_n)]
     return pd.DataFrame(records, columns=['r', 'seg_all', 'seg_diff_level']).groupby(
         'r').sum().reset_index()
 
 
 @profile
-def stat_seg_neighbors(events: pd.DataFrame) -> pd.DataFrame:
+def stat_seg_neighbors(events: pd.DataFrame, r_min=300, r_max=3000, r_n=10) -> pd.DataFrame:
     stat_blocks = []
-    distances = np.linspace(300, 3000, 10)
 
     for ei, event in events.groupby(by='event_id'):
         event = event.reset_index(drop=True)
         neighbors_model = NearestNeighbors().fit(event[['x', 'y', 'z']])
-        stats = stat_seg_neighbors_event_r(neighbors_model, distances, event)
+        stats = stat_seg_neighbors_event_r(neighbors_model, event, r_min, r_max, r_n)
         stats['event'] = ei
         stat_blocks.append(stats)
     return pd.concat(stat_blocks, ignore_index=True)
@@ -125,7 +131,7 @@ def stat_seg_neighbors(events: pd.DataFrame) -> pd.DataFrame:
 def _profile():
     from datasets import get_hits
     event = get_hits('trackml_volume', 1)
-    print(stat_seg_neighbors(event))
+    print(stat_seg_neighbors(event, 50, 3000, 60))
 
 
 if __name__ == '__main__':
