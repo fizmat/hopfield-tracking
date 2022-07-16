@@ -7,6 +7,7 @@ from numpy import ndarray
 from numpy.typing import ArrayLike
 from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
+from tqdm import tqdm
 
 
 def gen_seg_all(event: pd.DataFrame) -> ndarray:
@@ -107,12 +108,15 @@ def build_segment_neighbor(event, nbr):
 
 
 @profile
-def stat_seg_neighbors_event_r(neighbors_model: NearestNeighbors, event: pd.DataFrame,
-                               r_min: float, r_max: float, r_n: int) -> pd.Series:
-    records = [record for _, g in event.groupby('layer') for record in
+def stat_seg_neighbors_event(neighbors_model: NearestNeighbors, event: pd.DataFrame,
+                             r_min: float, r_max: float, r_n: int) -> pd.Series:
+    max_batch_scale = int(1e8)
+    hits_per_batch = max(1, max_batch_scale // len(event))
+    n_batches = len(event) // hits_per_batch + 1
+    group = np.concatenate([np.full(hits_per_batch, i) for i in range(n_batches)])[:len(event)]
+    records = [record for _, g in tqdm(event.groupby(group)) for record in
                nbr_stat_block(g, neighbors_model, event, r_min, r_max, r_n)]
-    return pd.DataFrame(records, columns=['r', 'seg_all', 'seg_diff_level']).groupby(
-        'r').sum().reset_index()
+    return pd.DataFrame(records, columns=['r', 'seg_all', 'seg_diff_level']).groupby('r').sum().reset_index()
 
 
 @profile
@@ -122,7 +126,7 @@ def stat_seg_neighbors(events: pd.DataFrame, r_min=300, r_max=3000, r_n=10) -> p
     for ei, event in events.groupby(by='event_id'):
         event = event.reset_index(drop=True)
         neighbors_model = NearestNeighbors().fit(event[['x', 'y', 'z']])
-        stats = stat_seg_neighbors_event_r(neighbors_model, event, r_min, r_max, r_n)
+        stats = stat_seg_neighbors_event(neighbors_model, event, r_min, r_max, r_n)
         stats['event'] = ei
         stat_blocks.append(stats)
     return pd.concat(stat_blocks, ignore_index=True)
@@ -130,7 +134,7 @@ def stat_seg_neighbors(events: pd.DataFrame, r_min=300, r_max=3000, r_n=10) -> p
 
 def _profile():
     from datasets import get_hits
-    event = get_hits('trackml_volume', 1)
+    event = get_hits('trackml', 1)
     print(stat_seg_neighbors(event, 50, 3000, 60))
 
 
