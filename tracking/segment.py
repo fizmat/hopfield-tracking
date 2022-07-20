@@ -166,8 +166,13 @@ def stat_seg_neighbors(hits: pd.DataFrame, r_min=300, r_max=3000, r_n=10,
 
 def _profile():
     from datasets import get_hits
-    stat_seg_neighbors(get_hits('simple', 1000), 50, 3000, 60, ProcessPool, cpu_count())
-    stat_seg_neighbors(get_hits('simple', 1000), 50, 3000, 60)
+    hits = get_hits('simple', 1000)
+    max_r = np.sqrt((hits.x.max() - hits.x.min()) ** 2 +
+                    (hits.y.max() - hits.y.min()) ** 2 +
+                    (hits.z.max() - hits.z.min()) ** 2)
+    print(max_r)
+    stat_seg_neighbors(hits, 0, max_r, 60, ProcessPool, cpu_count())
+    stat_seg_neighbors(hits, 0, max_r, 60)
 
 
 if __name__ == '__main__':
