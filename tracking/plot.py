@@ -134,9 +134,12 @@ def plot_segments_plotly(hits: pd.DataFrame, seg: np.ndarray, kdims: Iterable = 
 
 
 if __name__ == '__main__':
-    from datasets import get_hits_trackml_one_event
+    from datasets import get_hits
     from tracking.segment import gen_seg_track_layered, gen_seg_track_sequential
+    from vispy import app
 
-    event = get_hits_trackml_one_event()
-    plot_event(event, gen_seg_track_sequential(event))
-    plot_seg_diff(event, gen_seg_track_layered(event), gen_seg_track_sequential(event))
+    event = get_hits('simple', 1)
+    plot_event(event, gen_seg_track_sequential(event)).show()
+    app.run()
+    plot_seg_diff(event, gen_seg_track_layered(event), gen_seg_track_sequential(event)).show()
+    app.run()
