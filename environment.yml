@@ -11,6 +11,10 @@ dependencies:
   - scipy
   - scikit-learn
 
+  - tqdm
+  - pathos
+  - py-cpuinfo
+
   - hpbandster
 
   - jupyter
