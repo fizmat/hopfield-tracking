@@ -149,7 +149,7 @@ def plot_stat_seg_neighbors(hits: pd.DataFrame) -> Artist:
                  var_name='filter', value_name='number_of_segments')
     plot = sns.lineplot(data=df, x='r', y='number_of_segments', hue='filter', style='filter')
     every_pair = (hits.groupby('event_id').size() ** 2).mean()
-    plt.hlines(every_pair, df.r.min(), df.r.max())
+    plt.hlines(every_pair, df.r.min(), df.r.max(), color='black', linestyles='dashdot', linewidths=1.)
     return plot
 
 
