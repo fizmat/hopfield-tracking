@@ -1,55 +1,13 @@
+from multiprocessing import cpu_count
 from typing import List, Tuple, Type
 
 import numpy as np
 import pandas as pd
-from numpy import ndarray
-from numpy.typing import ArrayLike
 from pathos.abstract_launcher import AbstractWorkerPool
-from pathos.pools import ProcessPool
-from pathos.helpers import cpu_count
+from pathos.multiprocessing import ProcessPool
 from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
-
-
-def gen_seg_all(event: pd.DataFrame) -> ndarray:
-    seg = np.stack([x.ravel() for x in np.meshgrid(event.index, event.index)], axis=1)
-    return seg[seg[:, 0] < seg[:, 1]]
-
-
-def _gen_seg_one_layer(a: ArrayLike, b: ArrayLike) -> ndarray:
-    return np.stack([x.ravel() for x in np.meshgrid(a, b, indexing='ij')], axis=1)
-
-
-def gen_seg_layered(event: pd.DataFrame) -> ndarray:
-    vert_i_by_layer = [g.index for _, g in event.groupby('layer')]
-    if len(vert_i_by_layer) < 2:
-        return np.zeros((0, 2))
-    return np.concatenate([_gen_seg_one_layer(a, b) for a, b in zip(vert_i_by_layer, vert_i_by_layer[1:])])
-
-
-def gen_seg_track_sequential(event: pd.DataFrame) -> np.ndarray:
-    return np.concatenate([np.stack((g.index[:-1], g.index[1:]), axis=-1)
-                           for track, g in event.groupby('track')
-                           if track >= 0])
-
-
-def gen_seg_track_layered(event: pd.DataFrame) -> np.ndarray:
-    track_segments = []
-    for track, g in event[event.track >= 0].groupby('track'):
-        layers = g.groupby('layer').groups
-        for layer, starts in layers.items():
-            for b in layers.get(layer + 1, ()):
-                for a in starts:
-                    track_segments.append((a, b))
-    return np.array(track_segments)
-
-
-def seg_drop_same_layer(seg: np.ndarray, event: pd.DataFrame) -> np.ndarray:
-    a = event.loc[seg[:, 0], 'layer'].to_numpy()
-    b = event.loc[seg[:, 1], 'layer'].to_numpy()
-    comp = a != b
-    return seg[comp]
 
 
 def graph_drop_same_layer(nbr: csr_matrix, event: pd.DataFrame, current_hits: pd.DataFrame) -> csr_matrix:

@@ -1,15 +1,9 @@
 from typing import Iterable, Union, Tuple
 
 import holoviews as hv
+from holoviews import opts
 import numpy as np
 import pandas as pd
-from holoviews import opts
-from matplotlib.artist import Artist
-from matplotlib import pyplot as plt
-from pathos.multiprocessing import ProcessPool
-from pathos.helpers import cpu_count
-import seaborn as sns
-from tracking.segment import stat_seg_neighbors
 from vispy.color import ColorArray, Color, colormap
 from vispy.scene import ViewBox, visuals, SceneCanvas
 
@@ -139,28 +133,12 @@ def plot_segments_plotly(hits: pd.DataFrame, seg: np.ndarray, kdims: Iterable = 
     )
 
 
-def plot_stat_seg_neighbors(hits: pd.DataFrame) -> Artist:
-    max_r = np.sqrt((hits.x.max() - hits.x.min()) ** 2 +
-                    (hits.y.max() - hits.y.min()) ** 2 +
-                    (hits.z.max() - hits.z.min()) ** 2)
-    df = stat_seg_neighbors(hits, 0, max_r, 100, ProcessPool, cpu_count())
-    df = df.melt(id_vars=['r', 'event'],
-                 value_vars=['seg_all', 'seg_diff_level'],
-                 var_name='filter', value_name='number_of_segments')
-    plot = sns.lineplot(data=df, x='r', y='number_of_segments', hue='filter', style='filter')
-    every_pair = (hits.groupby('event_id').size() ** 2).mean()
-    plt.hlines(every_pair, df.r.min(), df.r.max(), color='black', linestyles='dashdot', linewidths=1.)
-    return plot
-
-
 if __name__ == '__main__':
     from datasets import get_hits
-    from tracking.segment import gen_seg_track_layered, gen_seg_track_sequential
+    from segment.track import gen_seg_track_layered, gen_seg_track_sequential
     from vispy import app
 
-    event = get_hits('simple', 1)
-    plot_stat_seg_neighbors(event)
-    plt.show()
+    event = get_hits('bman', 1)
     plot_event(event, gen_seg_track_sequential(event)).show()
     app.run()
     plot_seg_diff(event, gen_seg_track_layered(event), gen_seg_track_sequential(event)).show()

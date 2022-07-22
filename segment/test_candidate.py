@@ -2,11 +2,9 @@ import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal
 
-from tracking.segment import _gen_seg_one_layer, gen_seg_layered, gen_seg_track_sequential, gen_seg_track_layered, \
-    gen_seg_all
+from segment.candidate import gen_seg_all, _gen_seg_one_layer, gen_seg_layered
 
-_hits = pd.DataFrame({'track': [1, -1, 3, 5, -1, 3, 5, 1, 3],
-                      'layer': [0, 0, 0, 1, 1, 1, 2, 2, 2],
+_hits = pd.DataFrame({'layer': [0, 0, 0, 1, 1, 1, 2, 2, 2],
                       'hit_id': [1, 10, 3, 9, 4, 8, 5, 7, 6]}).set_index('hit_id')
 
 
@@ -29,11 +27,3 @@ def test_gen_seg_layered():
     df = pd.DataFrame({'x': 0, 'y': 0, 'z': 0, 'layer': [0, 0, 1, 1, 1, 2], 'track': 0})
     seg = gen_seg_layered(df)
     assert_array_equal(seg, [[0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 5], [3, 5], [4, 5]])
-
-
-def test_gen_seg_track_sequential():
-    assert_array_equal(list(gen_seg_track_sequential(_hits)), [(1, 7), (3, 8), (8, 6), (9, 5)])
-
-
-def test_gen_seg_track_layered():
-    assert_array_equal(gen_seg_track_layered(_hits), [(3, 8), (8, 6), (9, 5)])

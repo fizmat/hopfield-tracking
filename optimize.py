@@ -20,7 +20,7 @@ from datasets.trackml import get_hits_trackml, get_hits_trackml_by_volume, get_h
 from datasets.simple import get_hits_simple
 from hopfield.iterate import hopfield_iterate, construct_energy_matrix, construct_anneal
 from metrics.tracks import track_metrics, track_loss
-from tracking.segment import gen_seg_layered
+from segment import gen_seg_layered
 
 logging.basicConfig(level=logging.WARNING)
 

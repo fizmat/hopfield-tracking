@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from tracking.segment import gen_seg_track_layered
+from segment.track import gen_seg_track_layered
 
 
 def gen_perfect_act(hits: pd.DataFrame, seg: np.ndarray) -> np.ndarray:
