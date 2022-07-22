@@ -141,7 +141,7 @@ def stat_seg_neighbors_event(ei, event: pd.DataFrame,
                                    lambda batch: nbr_stat_block(batch[1], neighbors_model, event, r_min, r_max, r_n),
                                    batches), total=n_batches)
                                for record in results]
-    stats = pd.DataFrame(records, columns=['r', 'seg_all', 'seg_diff_level']).groupby('r').sum().reset_index()
+    stats = pd.DataFrame(records, columns=['r', 'seg_all', 'seg_diff_level']).groupby('r', as_index=False).sum()
     stats['event'] = ei
     return stats
 
