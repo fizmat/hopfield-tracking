@@ -2,15 +2,13 @@ from pathlib import Path
 from zipfile import ZipFile
 from trackml.dataset import load_dataset, load_event
 
-import numpy as np
 import pandas as pd
 
 
 def _transform(hits, blacklist_hits):
-    hits = hits[np.logical_not(hits.hit_id.isin(blacklist_hits.hit_id))]
-    hits = hits.rename(columns={'layer_id': 'layer', 'particle_id': 'track'})
+    hits = hits.drop(index=blacklist_hits.index, errors='ignore')
+    hits.rename(columns={'layer_id': 'layer', 'particle_id': 'track'}, inplace=True)
     hits.track = hits.track.where(hits.track != 0, other=-1)
-    hits.reset_index(drop=True, inplace=True)
     hits['layer'] = hits.layer // 2
     return hits
 
@@ -22,9 +20,11 @@ def get_hits_trackml(n_events=None,
     events = []
     with ZipFile(blacklist_zip) as bz:
         for event_id, hits, truth in load_dataset(train_zip.resolve(), nevents=n_events, parts=['hits', 'truth']):
-            hits = hits.merge(truth, on='hit_id')
+            hits.set_index('hit_id', inplace=True)
+            truth.set_index('hit_id', inplace=True)
+            hits = hits.join(truth)
             with bz.open(f'event{event_id:09}-blacklist_hits.csv') as f:
-                blacklist_hits = pd.read_csv(f)
+                blacklist_hits = pd.read_csv(f, index_col='hit_id')
             hits = _transform(hits, blacklist_hits)
             hits['event_id'] = event_id
             events.append(hits)
@@ -34,8 +34,10 @@ def get_hits_trackml(n_events=None,
 def get_hits_trackml_one_event(path: Path = Path(__file__).parents[1] / 'data/trackml'):
     event_number = 1000
     hits, truth = load_event(path / 'event000001000', ['hits', 'truth'])
-    hits = hits.merge(truth, on='hit_id')
-    blacklist_hits = pd.read_csv(path / f'event{event_number:09}-blacklist_hits.csv')
+    hits.set_index('hit_id', inplace=True)
+    truth.set_index('hit_id', inplace=True)
+    hits = hits.join(truth)
+    blacklist_hits = pd.read_csv(path / f'event{event_number:09}-blacklist_hits.csv', index_col='hit_id')
     hits = _transform(hits, blacklist_hits)
     hits['event_id'] = 1000
     return hits
@@ -49,6 +51,6 @@ def get_hits_trackml_by_volume(n_events=None, *args, **kwargs):
 
 def get_hits_trackml_one_event_by_volume():
     hits = get_hits_trackml_one_event()
-    hits = hits[hits.volume_id == 7].reset_index(drop=True)
+    hits = hits[hits.volume_id == 7]
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
     return hits

@@ -13,9 +13,8 @@ from tqdm import tqdm
 
 
 def gen_seg_all(event: pd.DataFrame) -> ndarray:
-    df = event.reset_index()
-    pairs = df.merge(df, how='cross')
-    return pairs[pairs.index_x < pairs.index_y][['index_x', 'index_y']].to_numpy()
+    seg = np.stack([x.ravel() for x in np.meshgrid(event.index, event.index)], axis=1)
+    return seg[seg[:, 0] < seg[:, 1]]
 
 
 def _gen_seg_one_layer(a: ArrayLike, b: ArrayLike) -> ndarray:
@@ -109,7 +108,6 @@ def stat_seg_neighbors_event(ei, event: pd.DataFrame,
                              r_min: float, r_max: float, r_n: int,
                              disable_progressbar=False, pool_class: Type[AbstractWorkerPool] = None,
                              nodes: int = 1) -> pd.DataFrame:
-    event = event.reset_index(drop=True)
     neighbors_model = NearestNeighbors().fit(event[['x', 'y', 'z']])
     max_batch_scale = int(2e6)
     hits_per_batch = max(1, max_batch_scale // len(event))

@@ -45,8 +45,8 @@ class MyWorker(Worker):
             raise ValueError(f'Unknown dataset: {dataset}')
         events = hits.event_id.unique()
         sample = np.random.choice(events, size=n_events * 2, replace=False)
-        self.train_batch = [hits[hits.event_id == event].reset_index(drop=True) for event in sample[:n_events]]
-        self.test_batch = [hits[hits.event_id == event].reset_index(drop=True) for event in sample[n_events:]]
+        self.train_batch = [hits[hits.event_id == event] for event in sample[:n_events]]
+        self.test_batch = [hits[hits.event_id == event] for event in sample[n_events:]]
 
     def compute(self, config, budget, **kwargs):
         """
