@@ -56,9 +56,9 @@ def plot_angle_intercept(gaussian: pd.DataFrame, max_intercept: float) -> None:
 
 
 def plot_angle_intercept_array(X: np.ndarray) -> None:
-    hv.extension('matplotlib')
-    hv.Bivariate(X).opts(colorbar=True, cmap='Blues', filled=True)
-    plt.show()
+    mr = hv.renderer('matplotlib')
+    plot = hv.Bivariate(X).opts(colorbar=True, cmap='Blues', filled=True)
+    mr.show(plot)
 
 
 def plot_kde_grid(zz: np.ndarray, nx: int, ny: int,
