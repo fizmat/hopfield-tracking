@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import holoviews as hv
 from matplotlib import pyplot as plt
 import numpy as np
@@ -12,33 +10,19 @@ from segment.track import gen_seg_track_sequential
 from tracking.hit import add_cylindric_coordinates
 
 
-def seg_angle(cyl: np.ndarray, seg: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    starts = cyl[seg[:, 0]]
-    ends = cyl[seg[:, 1]]
-    r1 = starts[:, 0]
-    r2 = ends[:, 0]
-    z1 = starts[:, 1]
-    z2 = ends[:, 1]
-    angle = np.arctan2((z2 - z1), (r2 - r1))
+def add_angle_intecept(hits: pd.DataFrame, seg: np.ndarray, axis='z', distance='r') -> pd.DataFrame:
+    r1, r2 = (hits.loc[seg[:, i], distance].to_numpy() for i in (0, 1))
+    z1, z2 = (hits.loc[seg[:, i], axis].to_numpy() for i in (0, 1))
+    directed_angle = np.arctan2((z2 - z1), (r2 - r1))
     with np.errstate(divide='ignore', invalid='ignore'):
         intercept = z1 - (z2 - z1) * r1 / (r2 - r1)
-    return angle, intercept
-
-
-def hits_to_seg_angle_intecept(hits: pd.DataFrame) -> pd.DataFrame:
-    all_g = []
-    for _, event in hits.groupby(by='event_id'):
-        event.reset_index(drop=True, inplace=True)
-        seg = gen_seg_track_sequential(event)
-        cyl = event[['r', 'z', 'phi']].values
-        angle, intercept = seg_angle(cyl, seg)
-        angle_intecept = pd.DataFrame({'angle': angle, 'intercept': intercept})
-        all_g.append(angle_intecept)
-    angle_intecept = pd.concat(all_g, ignore_index=True)
-    angle_intecept['directed_angle'] = angle_intecept.angle
-    angle_intecept.angle = angle_intecept.angle.where(angle_intecept.angle > -np.pi / 2, np.pi + angle_intecept.angle)
-    angle_intecept.angle = angle_intecept.angle.where(angle_intecept.angle < np.pi / 2, angle_intecept.angle - np.pi)
-    return angle_intecept
+    angle = np.where(directed_angle <= -np.pi / 2, np.pi + directed_angle, directed_angle)
+    angle = np.where(angle > np.pi / 2, angle - np.pi, angle)
+    segments = pd.DataFrame(seg, columns=['start', 'end'])
+    segments['angle'] = angle
+    segments['intercept'] = intercept
+    segments['directed_angle'] = directed_angle
+    return segments
 
 
 def plot_angle_intercept(gaussian: pd.DataFrame, max_intercept: float) -> None:
@@ -109,10 +93,12 @@ def plot(hits: pd.DataFrame, max_intercept=20, min_intercept=None, nx=201, ny=20
         min_intercept = -max_intercept
     if min_angle is None:
         min_angle = -max_angle
+
+    seg = np.concatenate([s for s in hits.groupby('event_id').apply(gen_seg_track_sequential) if len(s)])
     add_cylindric_coordinates(hits)
-    gaussian = hits_to_seg_angle_intecept(hits)
-    plot_angle_intercept(gaussian, max_intercept)
-    portion = gaussian[np.abs(gaussian.intercept) < max_intercept * 10].copy()
+    segments = add_angle_intecept(hits, seg)
+    plot_angle_intercept(segments, max_intercept)
+    portion = segments[np.abs(segments.intercept) < max_intercept * 10].copy()
     portion.intercept /= 10
     X = portion[['angle', 'intercept']].to_numpy()
     plot_angle_intercept_array(X)
@@ -122,16 +108,15 @@ def plot(hits: pd.DataFrame, max_intercept=20, min_intercept=None, nx=201, ny=20
     zz = kde.score_samples(xx)
     plot_kde_grid(zz, nx, ny, min_angle, max_angle, min_intercept, max_intercept, -6)
     pd.DataFrame(data=zz.reshape(nx, ny)).to_csv(r"zz.csv", index=False, sep=',')
-    apply_kde_grid(gaussian, max_angle, max_intercept, min_angle, min_intercept, nx, ny, zz)
-    gaussian.kde.hist(bins=50, density=True, cumulative=True)
+    apply_kde_grid(segments, max_angle, max_intercept, min_angle, min_intercept, nx, ny, zz)
+    segments.kde.hist(bins=50, density=True, cumulative=True)
     plt.show()
-    gaussian.kde.hist(bins=200,
+    segments.kde.hist(bins=200,
                       log=True, density=True, cumulative=1,
                       figsize=(10, 8)
                       )
     plt.yticks(np.logspace(np.log10(1e-2), 0, 9), np.logspace(np.log10(1e-2), 0, 9))
     plt.show()
-
 
 
 if __name__ == '__main__':
