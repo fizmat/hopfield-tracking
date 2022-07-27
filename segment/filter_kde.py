@@ -71,6 +71,38 @@ def plot_angle_intercept(gaussian: pd.DataFrame, max_intercept: float) -> None:
     plt.show()
 
 
+def plot_angle_intercept_array(X: np.ndarray) -> None:
+    hv.extension('matplotlib')
+    hv.Bivariate(X).opts(colorbar=True, cmap='Blues', filled=True)
+    plt.show()
+
+
+def plot_kde_grid(zz: np.ndarray, nx: int, ny: int,
+                  min_angle: float, max_angle: float, min_intercept: float, max_intercept: float,
+                  limit: float) -> None:
+    plt.imshow(zz.reshape(nx, ny).T,
+               extent=[min_angle, max_angle, min_intercept, max_intercept], aspect='auto')
+    plt.colorbar()
+    plt.show()
+    plt.imshow(zz.reshape(nx, ny).T > limit,
+               extent=[min_angle, max_angle, min_intercept, max_intercept], aspect='auto')
+    plt.show()
+
+
+def apply_kde_grid(gaussian, max_angle, max_intercept, min_angle, min_intercept, nx, ny, zz) -> pd.DataFrame:
+    size_pixel_x = 2 * max_angle / (nx - 1)
+    size_pixel_y = (max_intercept - min_intercept) / (ny - 1)
+    gaussian['pixel_x'] = ((gaussian.angle - min_angle) // size_pixel_x).astype(int)
+    gaussian['pixel_y'] = (((gaussian.intercept / 10) - min_intercept) // size_pixel_y).astype(int)
+    picture = zz.reshape(nx, ny).T
+    condition = np.logical_and(gaussian.pixel_y >= 0, gaussian.pixel_y <= (ny - 1))
+    good = gaussian[condition]
+    gaussian.loc[condition, 'kde'] = picture[good.pixel_y, good.pixel_x]
+    gaussian.loc[gaussian.pixel_y < 0, 'kde'] = gaussian[condition].kde.min()
+    gaussian.loc[gaussian.pixel_y > (ny - 1), 'kde'] = gaussian[condition].kde.min()
+    return gaussian
+
+
 def plot(hits: pd.DataFrame, max_intercept=20, min_intercept=None, nx=201, ny=201,
          bandwidth=0.2, rtol=0.1, atol=0, max_angle=2, min_angle=None) -> None:
     if min_intercept is None:
@@ -83,35 +115,14 @@ def plot(hits: pd.DataFrame, max_intercept=20, min_intercept=None, nx=201, ny=20
     portion = gaussian[np.abs(gaussian.intercept) < max_intercept * 10].copy()
     portion.intercept /= 10
     X = portion[['angle', 'intercept']].to_numpy()
-    kde = KernelDensity(kernel='gaussian', bandwidth=bandwidth, rtol=rtol, atol=atol).fit(X)
+    plot_angle_intercept_array(X)
+    kde = KernelDensity(kernel='gaussian', bandwidth=bandwidth, rtol=rtol, atol=atol)
+    kde.fit(X)
     xx = np.mgrid[-max_angle:max_angle:nx * 1j, -max_intercept:max_intercept:ny * 1j].reshape((2, -1)).T
     zz = kde.score_samples(xx)
-    plt.imshow(zz.reshape(nx, ny).T, extent=[-max_angle, max_angle, -max_intercept, max_intercept],
-               aspect='auto')
-    plt.colorbar()
-    plt.show()
-    plt.imshow(zz.reshape(nx, ny).T > -6, extent=[-max_angle, max_angle, -max_intercept, max_intercept],
-               aspect='auto')
-    plt.show()
-
-    hv.extension('matplotlib')
-    hv.Bivariate(X).opts(colorbar=True, cmap='Blues', filled=True)
-    plt.show()
-    zz1 = pd.DataFrame(data=zz.reshape(nx, ny))
-    zz1.to_csv(r"zz.csv", index=False, sep=',')
-    size_pixel_x = 2 * max_angle / (nx - 1)
-    size_pixel_y = (max_intercept - min_intercept) / (ny - 1)
-
-    gaussian['pixel_x'] = ((gaussian.angle - min_angle) // size_pixel_x).astype(int)
-    gaussian['pixel_y'] = (((gaussian.intercept / 10) - min_intercept) // size_pixel_y).astype(int)
-
-    picture = zz.reshape(nx, ny).T
-    condition = np.logical_and(gaussian.pixel_y >= 0, gaussian.pixel_y <= (ny - 1))
-    good = gaussian[condition]
-
-    gaussian.loc[condition, 'kde'] = picture[good.pixel_y, good.pixel_x]
-    gaussian.loc[gaussian.pixel_y < 0, 'kde'] = gaussian[condition].kde.min()
-    gaussian.loc[gaussian.pixel_y > (ny - 1), 'kde'] = gaussian[condition].kde.min()
+    plot_kde_grid(zz, nx, ny, min_angle, max_angle, min_intercept, max_intercept, -6)
+    pd.DataFrame(data=zz.reshape(nx, ny)).to_csv(r"zz.csv", index=False, sep=',')
+    apply_kde_grid(gaussian, max_angle, max_intercept, min_angle, min_intercept, nx, ny, zz)
     gaussian.kde.hist(bins=50, density=True, cumulative=True)
     plt.show()
     gaussian.kde.hist(bins=200,
@@ -120,6 +131,7 @@ def plot(hits: pd.DataFrame, max_intercept=20, min_intercept=None, nx=201, ny=20
                       )
     plt.yticks(np.logspace(np.log10(1e-2), 0, 9), np.logspace(np.log10(1e-2), 0, 9))
     plt.show()
+
 
 
 if __name__ == '__main__':
