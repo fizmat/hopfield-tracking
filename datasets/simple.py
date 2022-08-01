@@ -1,5 +1,5 @@
 import math
-from typing import Tuple, Generator
+from typing import Tuple, Generator, Optional
 
 import numpy as np
 import pandas as pd
@@ -7,7 +7,9 @@ from numpy import ndarray
 from numpy.random import default_rng
 
 
-def get_hits_simple(n_events=100, event_size=10):
+def get_hits_simple(n_events: Optional[int] = 100, event_size: int = 10) -> pd.DataFrame:
+    if n_events is None:
+        n_events = 100
     hits_list = []
     for i, event in enumerate(SimpleEventGenerator().gen_many_events(n_events, event_size)):
         hits, seg = event

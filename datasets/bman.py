@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 from zipfile import ZipFile, BadZipFile
 
 import pandas as pd
@@ -33,7 +34,7 @@ def _copy_hits_bman_event6():
               sep='\t', header=False, index=False)
 
 
-def get_hits_bman(n_events=None, max_hits=None):
+def get_hits_bman(n_events: Optional[int] = None, max_hits: Optional[int] = None) -> pd.DataFrame:
     hits = _transform(_read(), max_hits)
     return hits if n_events is None else hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
 

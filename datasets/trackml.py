@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 from zipfile import ZipFile
 from trackml.dataset import load_dataset, load_event
 
@@ -13,7 +14,7 @@ def _transform(hits, blacklist_hits):
     return hits
 
 
-def get_hits_trackml(n_events=None,
+def get_hits_trackml(n_events: Optional[int] = None,
                      train_zip: Path = Path(__file__).parents[1] / 'data/trackml/train_sample.zip',
                      blacklist_zip: Path = Path(__file__).parents[1] / 'data/trackml/blacklist_training.zip',
                      ) -> pd.DataFrame:
@@ -43,7 +44,7 @@ def get_hits_trackml_one_event(path: Path = Path(__file__).parents[1] / 'data/tr
     return hits
 
 
-def get_hits_trackml_by_volume(n_events=None, *args, **kwargs):
+def get_hits_trackml_by_volume(n_events: Optional[int] = None, *args, **kwargs) -> pd.DataFrame:
     hits = get_hits_trackml(n_events=n_events, *args, **kwargs)
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
     return hits if n_events is None else hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]

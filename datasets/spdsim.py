@@ -3,7 +3,7 @@
 import sys
 import random
 import math
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 from numpy import pi
@@ -58,7 +58,7 @@ def get_hits_spdsim_one_event(event_size=10, efficiency=1.):
     return get_hits_spdsim(1, event_size, efficiency)
 
 
-def get_hits_spdsim(n_events=None, event_size=10, efficiency=1.):
+def get_hits_spdsim(n_events: Optional[int] = 100, event_size: int = 10, efficiency: float = 1.) -> pd.DataFrame:
     if n_events is None:
         n_events = 100
     return gen_spdsim(n_events, event_size, efficiency).rename(
