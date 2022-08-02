@@ -15,9 +15,7 @@ import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
 
-from datasets.bman import get_hits_bman
-from datasets.trackml import get_hits_trackml, get_hits_trackml_by_volume, get_hits_trackml_by_module
-from datasets.simple import get_hits_simple
+from datasets import get_hits
 from hopfield.iterate import hopfield_iterate, construct_energy_matrix, construct_anneal
 from metrics.tracks import track_metrics, track_loss
 from segment import gen_seg_layered
@@ -31,22 +29,10 @@ class MyWorker(Worker):
         self.max_hits = max_hits
         self.total_steps = total_steps
         self.dataset = dataset.lower()
-        if self.dataset == 'bman':
-            hits = get_hits_bman(max_hits)
-        elif self.dataset == 'simple':
-            hits = get_hits_simple()
-        elif self.dataset == 'trackml':
-            hits = get_hits_trackml()
-        elif self.dataset == 'trackml_volume':
-            hits = get_hits_trackml_by_volume()
-        elif self.dataset == 'trackml_module':
-            hits = get_hits_trackml_by_module()
-        else:
-            raise ValueError(f'Unknown dataset: {dataset}')
+        hits = get_hits(self.dataset, n_events=n_events * 2)
         events = hits.event_id.unique()
-        sample = np.random.choice(events, size=n_events * 2, replace=False)
-        self.train_batch = [hits[hits.event_id == event] for event in sample[:n_events]]
-        self.test_batch = [hits[hits.event_id == event] for event in sample[n_events:]]
+        self.train_batch = [hits[hits.event_id == event] for event in events[:n_events]]
+        self.test_batch = [hits[hits.event_id == event] for event in events[n_events:]]
 
     def compute(self, config, budget, **kwargs):
         """
