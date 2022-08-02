@@ -49,6 +49,7 @@ class MyWorker(Worker):
         for batch in (self.train_batch[:int(budget)], self.test_batch[:int(budget)]):
             event_metrics = []
             for hits in batch:
+                hits.reset_index(drop=True, inplace=True)
                 pos = hits[['x', 'y', 'z']].values
                 seg = gen_seg_layered(hits)
                 energy_matrix, _, __ = construct_energy_matrix(config, pos, seg)
