@@ -13,6 +13,7 @@ import hpbandster.core.nameserver as hpns
 import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
+from pathos.multiprocessing import ProcessPool
 
 from datasets import get_hits
 from hopfield.iterate import hopfield_iterate, construct_energy_matrix, construct_anneal
@@ -98,7 +99,7 @@ def test(args):
 
 def worker(args):
     host = socket.gethostname()
-    time.sleep(60)  # wait to make sure master is online
+    time.sleep(args.worker_delay)  # wait to make sure master is online
     w = MyWorker(n_events=args.max_budget, total_steps=args.hopfield_steps,
                  run_id=args.run_id, host=host, dataset=args.dataset)
     w.load_nameserver_credentials(working_directory=args.shared_directory)
@@ -139,6 +140,9 @@ def main():
                         default=10)
     parser.add_argument('--n_iterations', type=int, help='Number of iterations performed by the optimizer', default=4)
     parser.add_argument('--worker', help='Flag to turn this into a worker process', action='store_true')
+    parser.add_argument('--master', help='Flag to turn this into a master process', action='store_true')
+    parser.add_argument('--worker_delay', type=float,
+                        help='Worker delay in seconds before connecting to master', default=60)
     parser.add_argument('--run_id', type=str,
                         help='A unique run id for this optimization run. \
                               An easy option is to use the job id of the clusters scheduler.')
@@ -153,8 +157,12 @@ def main():
         test(args)
     elif args.worker:
         worker(args)
-    else:
+    elif args.master:
         master(args)
+    else:
+        with ProcessPool(nodes=args.n_workers) as pool:
+            pool.amap(worker, [args] * args.n_workers)
+            master(args)
 
 
 if __name__ == '__main__':
