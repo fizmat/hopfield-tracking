@@ -18,7 +18,7 @@ from hpbandster.optimizers import BOHB
 from datasets import get_hits
 from hopfield.iterate import hopfield_iterate, construct_energy_matrix, construct_anneal
 from metrics.tracks import track_metrics, track_loss
-from segment import gen_seg_layered
+from segment.candidate import gen_seg_layered
 
 logging.basicConfig(level=logging.WARNING)
 
