@@ -24,9 +24,8 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class MyWorker(Worker):
-    def __init__(self, max_hits, n_events, total_steps, dataset, *args, **kwargs):
+    def __init__(self, n_events, total_steps, dataset, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.max_hits = max_hits
         self.total_steps = total_steps
         self.dataset = dataset.lower()
         hits = get_hits(self.dataset, n_events=n_events * 2)
@@ -80,7 +79,6 @@ class MyWorker(Worker):
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
         config_space.add_hyperparameter(CS.Constant('tmin', value=1.))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('tmax', lower=1, upper=100))
-        config_space.add_hyperparameter(CS.Constant('max_hits', value=self.max_hits))
         config_space.add_hyperparameter(CS.Constant('total_steps', value=self.total_steps))
         config_space.add_hyperparameter(
             CS.UniformIntegerHyperparameter('anneal_steps', lower=0, upper=self.total_steps))
@@ -91,7 +89,7 @@ class MyWorker(Worker):
 
 
 def test(dataset='BMaN'):
-    worker = MyWorker(run_id='0', max_hits=100, n_events=2, total_steps=10, dataset=dataset)
+    worker = MyWorker(run_id='0', n_events=2, total_steps=10, dataset=dataset)
     cs = worker.get_configspace()
     config = cs.sample_configuration().get_dictionary()
     print(config)
@@ -102,7 +100,6 @@ def test(dataset='BMaN'):
 def main():
     parser = argparse.ArgumentParser(description='Optimize hopfield-tracking')
     parser.add_argument('--test', help='Flag to run worker once locally', action='store_true')
-    parser.add_argument('--max_hits', type=int, help='Max number of hits per event (memory limits)', default=500)
     parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.',
                         default=1)
     parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.',
@@ -129,7 +126,7 @@ def main():
 
     if args.worker:
         time.sleep(60)
-        w = MyWorker(max_hits=args.max_hits, n_events=args.max_budget, total_steps=args.hopfield_steps,
+        w = MyWorker(n_events=args.max_budget, total_steps=args.hopfield_steps,
                      run_id=args.run_id, host=host, dataset=args.dataset)
         w.load_nameserver_credentials(working_directory=args.shared_directory)
         w.run(background=False)
@@ -137,7 +134,7 @@ def main():
 
     ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
     ns_host, ns_port = ns.start()
-    w = MyWorker(max_hits=args.max_hits, n_events=args.max_budget, run_id=args.run_id, total_steps=args.hopfield_steps,
+    w = MyWorker(n_events=args.max_budget, run_id=args.run_id, total_steps=args.hopfield_steps,
                  host=host, nameserver=ns_host, nameserver_port=ns_port, dataset=args.dataset)
     w.run(background=True)
 
