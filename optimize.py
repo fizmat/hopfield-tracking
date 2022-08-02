@@ -10,7 +10,6 @@ import time
 
 import ConfigSpace as CS
 import hpbandster.core.nameserver as hpns
-import numpy as np
 import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
@@ -88,13 +87,45 @@ class MyWorker(Worker):
         return config_space
 
 
-def test(dataset='BMaN'):
-    worker = MyWorker(run_id='0', n_events=2, total_steps=10, dataset=dataset)
+def test(args):
+    worker = MyWorker(run_id=0, n_events=args.max_budget, total_steps=args.hopfield_steps, dataset=args.dataset)
     cs = worker.get_configspace()
     config = cs.sample_configuration().get_dictionary()
     print(config)
     res = worker.compute(config=config, budget=2, working_directory='workdir')
     print(res)
+
+
+def worker(args):
+    host = socket.gethostname()
+    time.sleep(60)  # wait to make sure master is online
+    w = MyWorker(n_events=args.max_budget, total_steps=args.hopfield_steps,
+                 run_id=args.run_id, host=host, dataset=args.dataset)
+    w.load_nameserver_credentials(working_directory=args.shared_directory)
+    w.run(background=False)
+
+
+def master(args):
+    host = socket.gethostname()
+    ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
+    ns_host, ns_port = ns.start()
+    w = MyWorker(n_events=args.max_budget, run_id=args.run_id, total_steps=args.hopfield_steps,
+                 host=host, nameserver=ns_host, nameserver_port=ns_port, dataset=args.dataset)
+    w.run(background=True)
+
+    bohb = BOHB(configspace=w.get_configspace(),
+                run_id=args.run_id,
+                host=host,
+                nameserver=ns_host,
+                nameserver_port=ns_port,
+                min_budget=args.min_budget, max_budget=args.max_budget
+                )
+    res = bohb.run(n_iterations=args.n_iterations, min_n_workers=args.n_workers)
+
+    with open(os.path.join(args.shared_directory, f'{args.run_id}.pkl'), 'wb') as fh:
+        pickle.dump(res, fh)
+    bohb.shutdown(shutdown_workers=True)
+    ns.shutdown()
 
 
 def main():
@@ -119,38 +150,11 @@ def main():
     args = parser.parse_args()
 
     if args.test:
-        test(args.dataset)
-        exit(0)
-
-    host = socket.gethostname()
-
-    if args.worker:
-        time.sleep(60)
-        w = MyWorker(n_events=args.max_budget, total_steps=args.hopfield_steps,
-                     run_id=args.run_id, host=host, dataset=args.dataset)
-        w.load_nameserver_credentials(working_directory=args.shared_directory)
-        w.run(background=False)
-        exit(0)
-
-    ns = hpns.NameServer(run_id=args.run_id, host=host, port=0, working_directory=args.shared_directory)
-    ns_host, ns_port = ns.start()
-    w = MyWorker(n_events=args.max_budget, run_id=args.run_id, total_steps=args.hopfield_steps,
-                 host=host, nameserver=ns_host, nameserver_port=ns_port, dataset=args.dataset)
-    w.run(background=True)
-
-    bohb = BOHB(configspace=w.get_configspace(),
-                run_id=args.run_id,
-                host=host,
-                nameserver=ns_host,
-                nameserver_port=ns_port,
-                min_budget=args.min_budget, max_budget=args.max_budget
-                )
-    res = bohb.run(n_iterations=args.n_iterations, min_n_workers=args.n_workers)
-
-    with open(os.path.join(args.shared_directory, f'{args.run_id}.pkl'), 'wb') as fh:
-        pickle.dump(res, fh)
-    bohb.shutdown(shutdown_workers=True)
-    ns.shutdown()
+        test(args)
+    elif args.worker:
+        worker(args)
+    else:
+        master(args)
 
 
 if __name__ == '__main__':
