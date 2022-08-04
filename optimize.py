@@ -7,6 +7,8 @@ import os
 import pickle
 import socket
 import time
+from argparse import ArgumentError
+from datetime import datetime
 
 import ConfigSpace as CS
 import hpbandster.core.nameserver as hpns
@@ -89,7 +91,7 @@ class MyWorker(Worker):
         return config_space
 
 
-def test(args):
+def run(args):
     worker = MyWorker(run_id=0, n_events=args.max_budget, total_steps=args.hopfield_steps, dataset=args.dataset)
     cs = worker.get_configspace()
     config = cs.sample_configuration().get_dictionary()
@@ -132,7 +134,9 @@ def master(args):
 
 def main():
     parser = argparse.ArgumentParser(description='Optimize hopfield-tracking')
-    parser.add_argument('--test', help='Flag to run worker once locally', action='store_true')
+    parser.add_argument('mode', help='Run mode', type=str,
+                        choices=['sequential', 'parallel', 'worker', 'master'])
+    parser.add_argument('dataset', type=str, help='Dataset identifier string')
     parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.',
                         default=1)
     parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.',
@@ -140,27 +144,33 @@ def main():
     parser.add_argument('--hopfield_steps', type=int, help='Total length of iteration in anneal and post-anneal',
                         default=10)
     parser.add_argument('--n_iterations', type=int, help='Number of iterations performed by the optimizer', default=4)
-    parser.add_argument('--worker', help='Flag to turn this into a worker process', action='store_true')
-    parser.add_argument('--master', help='Flag to turn this into a master process', action='store_true')
-    parser.add_argument('--worker_delay', type=float,
-                        help='Worker delay in seconds before connecting to master', default=60)
-    parser.add_argument('--run_id', type=str,
-                        help='A unique run id for this optimization run. \
-                              An easy option is to use the job id of the clusters scheduler.')
+    parser.add_argument('--worker_delay', type=float, help='Worker delay in seconds before connecting to master')
+    parser.add_argument('--run_id', type=str, help='Unique run id for this optimization run.')
     parser.add_argument('--n_workers', type=int, help='Number of workers to run in parallel.', default=1)
     parser.add_argument('--shared_directory', type=str, default='workdir',
                         help='A directory that is accessible for all processes, e.g. a NFS share.')
-    parser.add_argument('--dataset', type=str, help='Dataset identifier string', default='simple')
 
     args = parser.parse_args()
 
-    if args.test:
-        test(args)
-    elif args.worker:
+    if args.mode == 'sequential':
+        if args.run_id is None:
+            args.run_id = datetime.now().strftime('%Y-%m-%d_%H-%M')
+        run(args)
+    elif args.mode == 'worker':
+        if args.run_id is None:
+            raise ArgumentError('run_id is required in worker mode')
+        if args.worker_delay is None:
+            args.worker_delay = 60
         worker(args)
-    elif args.master:
+    elif args.mode == 'master':
+        if args.run_id is None:
+            raise ArgumentError('run_id is required in master mode')
         master(args)
-    else:
+    elif args.mode == 'parallel':
+        if args.worker_delay is None:
+            args.worker_delay = 5
+        if args.run_id is None:
+            args.run_id = datetime.now().strftime('%Y-%m-%d_%H-%M')
         with ProcessPool(nodes=args.n_workers) as pool:
             pool.amap(worker, [args] * args.n_workers)
             master(args)
