@@ -12,8 +12,6 @@ dependencies:
   - pathos
   - py-cpuinfo
 
-  - hpbandster
-
   - jupyter
   - jupyterlab
 
@@ -30,6 +28,7 @@ dependencies:
   - pytest
   - pip
   - pip:
+      - hpbandster 
       - nb-clean
       - line-profiler-pycharm
       - git+https://github.com/LAL/trackml-library@master#egg=trackml

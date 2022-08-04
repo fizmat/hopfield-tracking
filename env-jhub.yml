@@ -1,15 +1,16 @@
 name: hopfield-tracking
 channels:
   - conda-forge
-  - pyviz
-  - defaults
+  - nodefaults
 dependencies:
-  - python=3.7
-
-  - pandas=1.2.5 #(for holoiews 1.14.4 ABCIndexClass warning)
+  - pandas
   - numpy
   - scipy
   - scikit-learn
+
+  - tqdm
+  - pathos
+  - py-cpuinfo
 
   - hpbandster
 
@@ -19,7 +20,7 @@ dependencies:
   - holoviews
   - bokeh
   - matplotlib
-  - plotly=5
+  - plotly
 
   - pytest
   - pip
