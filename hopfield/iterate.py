@@ -1,15 +1,16 @@
-from typing import List
+from typing import List, Dict, Tuple
 
 import numpy as np
-# from memory_profiler import profile
 from numpy import ndarray
+from scipy.sparse import csr_matrix, spmatrix
 
 from hopfield.energy import energy_gradient
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
 
 
-def construct_energy_matrix(config, pos, seg):
+def construct_energy_matrix(config: Dict, pos: np.ndarray, seg: np.ndarray
+                            ) -> Tuple[csr_matrix, csr_matrix, csr_matrix]:
     pairs = segment_adjacent_pairs(seg)
     crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
     curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
@@ -20,13 +21,7 @@ def construct_energy_matrix(config, pos, seg):
     return crossing_part - curvature_part, crossing_part, curvature_part
 
 
-def construct_anneal(config):
-    return annealing_curve(config['tmin'], config['tmax'], config['anneal_steps'],
-                           config['total_steps'] - config['anneal_steps'])
-
-
-# @profile
-def hopfield_iterate(config, energy_matrix, temp_curve, seg):
+def hopfield_iterate(config: Dict, energy_matrix: spmatrix, temp_curve: np.ndarray, seg: np.ndarray) -> np.ndarray:
     act = np.full(len(seg), config['starting_act'])
     for i, t in enumerate(temp_curve):
         grad = energy_gradient(energy_matrix, act)
@@ -34,7 +29,8 @@ def hopfield_iterate(config, energy_matrix, temp_curve, seg):
     return act
 
 
-def hopfield_history(config, energy_matrix, temp_curve, seg):
+def hopfield_history(config: Dict, energy_matrix: spmatrix, temp_curve: np.ndarray, seg: np.ndarray
+                     ) -> List[np.ndarray]:
     act = np.full(len(seg), config['starting_act'])
     acts = [act.copy()]
     for i, t in enumerate(temp_curve):
