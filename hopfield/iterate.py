@@ -21,14 +21,6 @@ def construct_energy_matrix(config: Dict, pos: np.ndarray, seg: np.ndarray
     return crossing_part - curvature_part, crossing_part, curvature_part
 
 
-def hopfield_iterate(config: Dict, energy_matrix: spmatrix, temp_curve: np.ndarray, seg: np.ndarray) -> np.ndarray:
-    act = np.full(len(seg), config['starting_act'])
-    for i, t in enumerate(temp_curve):
-        grad = energy_gradient(energy_matrix, act)
-        update_layer_grad(act, grad, t, config['dropout'], config['learning_rate'], config['bias'])
-    return act
-
-
 def hopfield_history(config: Dict, energy_matrix: spmatrix, temp_curve: np.ndarray, seg: np.ndarray
                      ) -> List[np.ndarray]:
     act = np.full(len(seg), config['starting_act'])

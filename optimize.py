@@ -18,7 +18,7 @@ from hpbandster.optimizers import BOHB
 from pathos.multiprocessing import ProcessPool
 
 from datasets import get_hits
-from hopfield.iterate import hopfield_iterate, construct_energy_matrix, annealing_curve
+from hopfield.iterate import construct_energy_matrix, annealing_curve, hopfield_history
 from metrics.tracks import track_metrics, track_loss
 from segment.candidate import gen_seg_layered
 
@@ -56,7 +56,7 @@ class MyWorker(Worker):
                 energy_matrix, _, __ = construct_energy_matrix(config, pos, seg)
                 temp_curve = annealing_curve(config['tmin'], config['tmax'], config['anneal_steps'],
                                              config['total_steps'] - config['anneal_steps'])
-                act = hopfield_iterate(config, energy_matrix, temp_curve, seg)
+                act = hopfield_history(config, energy_matrix, temp_curve, seg)[-1]
                 event_metrics.append(track_metrics(hits, seg, act, config['threshold']))
             event_metrics = pd.DataFrame(event_metrics)
             event_metrics['loss'] = track_loss(event_metrics)
