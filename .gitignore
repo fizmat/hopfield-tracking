@@ -10,3 +10,4 @@ data/**/*.zip
 *.out
 *.pclprof
 .pytest_cache
+.tox/
