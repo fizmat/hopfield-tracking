@@ -22,6 +22,10 @@ dependencies:
   - matplotlib
   - plotly
 
+  - vispy
+  - jupyter-rfb
+  - pillow
+
   - pytest
   - pip
   - pip:

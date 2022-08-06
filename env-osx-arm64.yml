@@ -20,8 +20,11 @@ dependencies:
   - bokeh
   - matplotlib
   - plotly
+
   - vispy
   - jupyter-rfb
+  - pillow
+  - pyglfw
 
   - memory_profiler
   - line_profiler
