@@ -158,13 +158,13 @@ def main():
         run(args)
     elif args.mode == 'worker':
         if args.run_id is None:
-            raise ArgumentError('run_id is required in worker mode')
+            raise ArgumentError(args.run_id, 'run_id is required in worker mode')
         if args.worker_delay is None:
             args.worker_delay = 60
         worker(args)
     elif args.mode == 'master':
         if args.run_id is None:
-            raise ArgumentError('run_id is required in master mode')
+            raise ArgumentError(args.run_id, 'run_id is required in master mode')
         master(args)
     elif args.mode == 'parallel':
         if args.worker_delay is None:
