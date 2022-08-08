@@ -27,6 +27,7 @@ dependencies:
   - pillow
 
   - pytest
+  - pytest-cov
   - pip
   - pip:
       - nb-clean
