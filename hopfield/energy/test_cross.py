@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal
 from scipy.sparse import csr_matrix
 
 from hopfield.energy.cross import cross_energy_matrix, segment_forks, segment_joins
@@ -65,13 +65,13 @@ def test_cross_energy():
 
 def test_cross_energy_gradient():
     m = np.array([[0, 1], [1, 0]])
-    assert_array_almost_equal(energy_gradient(m, np.array([0, 0])),
-                              np.array([0, 0]))
-    assert_array_almost_equal(energy_gradient(m, np.array([1, 0])),
-                              np.array([0, 2]))
-    assert_array_almost_equal(energy_gradient(csr_matrix(m), np.array([0, 1])),
-                              np.array([2, 0]))
-    assert_array_almost_equal(energy_gradient(m, np.array([1, 1])),
-                              np.array([2, 2]))
-    assert_array_almost_equal(energy_gradient(csr_matrix(m), np.array([0.5, 1])),
-                              np.array([2, 1]))
+    assert_array_equal(energy_gradient(m, np.array([0, 0])),
+                       np.array([0, 0]))
+    assert_array_equal(energy_gradient(m, np.array([1, 0])),
+                       np.array([0, 2]))
+    assert_array_equal(energy_gradient(csr_matrix(m), np.array([0, 1])),
+                       np.array([2, 0]))
+    assert_array_equal(energy_gradient(m, np.array([1, 1])),
+                       np.array([2, 2]))
+    assert_array_equal(energy_gradient(csr_matrix(m), np.array([0.5, 1])),
+                       np.array([2, 1]))
