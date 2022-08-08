@@ -1,17 +1,24 @@
+from typing import Tuple
+
 import numpy as np
 from numpy import ndarray
 from scipy.sparse import coo_matrix, csr_matrix
 
 
-def curvature_energy_pairwise(a: ndarray, b: ndarray, c: ndarray,
-                              cosine_power: float = 3., cosine_threshold: float = 0.,
-                              distance_prod_power_in_denominator: float = 1.) -> ndarray:
+def curvature_pairwise(a: ndarray, b: ndarray, c: ndarray) -> Tuple[ndarray, ndarray]:
     d1 = b - a
     d2 = c - b
     r1 = np.linalg.norm(d1, axis=-1)
     r2 = np.linalg.norm(d2, axis=-1)
     rr = r1 * r2
     cosines = (d1 * d2).sum(axis=-1) / rr
+    return cosines, rr
+
+
+def curvature_energy(cosines: np.ndarray, rr: np.ndarray,
+                     cosine_power: float = 3., cosine_threshold: float = 0.,
+                     distance_prod_power_in_denominator: float = 1.) -> ndarray:
+    cosines = cosines.copy()
     cosines[cosines < cosine_threshold] = 0
     return cosines ** cosine_power / rr ** distance_prod_power_in_denominator
 
@@ -32,6 +39,7 @@ def segment_adjacent_pairs(seg: ndarray) -> ndarray:
     ii = [i for ai in ii for i in ai]
     return np.stack([ii, jj], axis=1)
 
+
 def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
                             curvature_cosine_power: float = 3.,
                             cosine_threshold: float = 0., distance_prod_power_in_denominator: float = 1.) -> csr_matrix:
@@ -39,8 +47,9 @@ def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
         return csr_matrix(np.empty((len(seg), len(seg)), dtype=float))
     s1, s2 = seg[pairs.T]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
-    w = curvature_energy_pairwise(a, b, c, cosine_power=curvature_cosine_power,
-                                  cosine_threshold=cosine_threshold,
-                                  distance_prod_power_in_denominator=distance_prod_power_in_denominator)
+    cosines, rr = curvature_pairwise(a, b, c)
+    w = curvature_energy(cosines, rr, cosine_power=curvature_cosine_power,
+                         cosine_threshold=cosine_threshold,
+                         distance_prod_power_in_denominator=distance_prod_power_in_denominator)
     m = coo_matrix((w, pairs.T), shape=(len(seg), len(seg)))
     return (m + m.transpose()).tocsr()
