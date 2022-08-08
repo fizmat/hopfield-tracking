@@ -18,11 +18,7 @@ def _read(prefix: str = None, file: str = 'simdata_ArPb_3.2AGeV_mb_1.zip') -> pd
         return pd.read_csv(file, sep='\t', names=col_names)
 
 
-def _transform(simdata, max_hits=None):
-    if max_hits is not None:
-        hit_count = simdata.groupby('event').size()
-        small_events = set(hit_count[hit_count <= max_hits].index)
-        simdata = simdata[simdata.event_id.isin(small_events)].copy()
+def _transform(simdata):
     simdata['layer'] = simdata.detector * 3 + simdata.station
     return simdata[['event_id', 'x', 'y', 'z', 'layer', 'track']]
 
@@ -34,10 +30,10 @@ def _copy_hits_bman_event6():
               sep='\t', header=False, index=False)
 
 
-def get_hits_bman(n_events: Optional[int] = None, max_hits: Optional[int] = None) -> pd.DataFrame:
-    hits = _transform(_read(), max_hits)
+def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
+    hits = _transform(_read())
     return hits if n_events is None else hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
 
 
 def get_hits_bman_one_event():
-    return _transform(_read(file='event6.csv'), None)
+    return _transform(_read(file='event6.csv'))
