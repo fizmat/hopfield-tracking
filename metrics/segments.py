@@ -1,15 +1,14 @@
 import numpy as np
+import pandas as pd
 
 
 def gen_perfect_act(seg: np.ndarray, tseg: np.ndarray) -> np.ndarray:
     # Can't just use hits.track[a] = hits.track[b]: if there's a segment connecting far away hits in the track,
     # they should not activate.
-    perfect_act = np.zeros(len(seg))
-    track_segment_set = set(tuple(s) for s in tseg)
-    is_in_track = np.array([tuple(s) in track_segment_set for s in seg])
-    if len(is_in_track):
-        perfect_act[is_in_track] = 1
-    return perfect_act
+    dfseg = pd.DataFrame(seg, columns=('a', 'b'))
+    dftseg = pd.DataFrame(tseg, columns=('a', 'b'))
+    df = pd.merge(dfseg, dftseg, on=['a', 'b'], how='left', indicator=True)
+    return (df._merge == 'both').to_numpy().astype(float)
 
 
 def _profile():
