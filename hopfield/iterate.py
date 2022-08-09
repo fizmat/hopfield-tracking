@@ -1,6 +1,8 @@
 from typing import List
 
+from matplotlib import pyplot as plt
 import numpy as np
+import pandas as pd
 from numpy import ndarray
 from scipy.sparse import spmatrix
 
@@ -8,6 +10,7 @@ from datasets import get_hits
 from hopfield.energy import energy_gradient
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
+from metrics.tracks import trackml_score
 from segment.candidate import gen_seg_layered
 from segment.track import gen_seg_track_layered
 
@@ -70,7 +73,9 @@ def main():
     tseg = gen_seg_track_layered(event)
     perfect_act = gen_perfect_act(seg, tseg)
     act = acts[-1]
-    print(act)
+    df = pd.DataFrame({'trackml_score': [trackml_score(event, seg, a) for a in acts]})
+    df.plot()
+    plt.show()
     act_view = _act_view(event, seg, act)
     grid.add_widget(act_view)
     grid.add_widget(_result_view(event, seg, act, perfect_act, camera=act_view.camera))
