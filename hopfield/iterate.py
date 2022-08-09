@@ -12,13 +12,11 @@ from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_m
 def construct_energy_matrix(config: Dict, pos: np.ndarray, seg: np.ndarray
                             ) -> Tuple[csr_matrix, csr_matrix, csr_matrix]:
     pairs = segment_adjacent_pairs(seg)
-    crossing_matrix = cross_energy_matrix(seg, pos, config['cosine_min_allowed'], pairs)
+    crossing_matrix = cross_energy_matrix(seg)
     curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
                                                config['cosine_power'], config['cosine_min_rewarded'],
                                                config['distance_power'])
-    crossing_part = config['alpha'] / 2 * crossing_matrix
-    curvature_part = config['gamma'] / 2 * curvature_matrix
-    return crossing_part - curvature_part, crossing_part, curvature_part
+    return crossing_matrix + curvature_matrix, crossing_matrix, curvature_matrix
 
 
 def hopfield_history(config: Dict, energy_matrix: spmatrix, temp_curve: np.ndarray, seg: np.ndarray

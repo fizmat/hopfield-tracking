@@ -16,11 +16,15 @@ def curvature_pairwise(a: ndarray, b: ndarray, c: ndarray) -> Tuple[ndarray, nda
 
 
 def curvature_energy(cosines: np.ndarray, rr: np.ndarray,
+                     alpha: float, gamma: float,
                      cosine_power: float = 3., cosine_threshold: float = 0.,
-                     distance_prod_power_in_denominator: float = 1.) -> ndarray:
-    cosines = cosines.copy()
-    cosines[cosines < cosine_threshold] = 0
-    return cosines ** cosine_power / rr ** distance_prod_power_in_denominator
+                     distance_prod_power_in_denominator: float = 1.,
+                     cosine_min_allowed: float = -2.) -> ndarray:
+    curve = cosines.copy()
+    curve[cosines < cosine_threshold] = 0
+    curve = curve ** cosine_power / rr ** distance_prod_power_in_denominator
+    kink = (cosines < cosine_min_allowed).astype(int)
+    return alpha * kink - gamma * curve
 
 
 def segment_adjacent_pairs(seg: ndarray) -> ndarray:
@@ -41,15 +45,19 @@ def segment_adjacent_pairs(seg: ndarray) -> ndarray:
 
 
 def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
+                            alpha: float, gamma:float,
                             curvature_cosine_power: float = 3.,
-                            cosine_threshold: float = 0., distance_prod_power_in_denominator: float = 1.) -> csr_matrix:
+                            cosine_threshold: float = 0., distance_prod_power_in_denominator: float = 1.,
+                            cosine_min_allowed: float = -2.) -> csr_matrix:
     if len(pairs) == 0:
         return csr_matrix(np.empty((len(seg), len(seg)), dtype=float))
     s1, s2 = seg[pairs.T]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
     cosines, rr = curvature_pairwise(a, b, c)
-    w = curvature_energy(cosines, rr, cosine_power=curvature_cosine_power,
+    w = curvature_energy(cosines, rr, alpha, gamma, cosine_power=curvature_cosine_power,
                          cosine_threshold=cosine_threshold,
-                         distance_prod_power_in_denominator=distance_prod_power_in_denominator)
+                         distance_prod_power_in_denominator=distance_prod_power_in_denominator,
+                         cosine_min_allowed=cosine_min_allowed)
     m = coo_matrix((w, pairs.T), shape=(len(seg), len(seg)))
+    m.eliminate_zeros()
     return (m + m.transpose()).tocsr()
