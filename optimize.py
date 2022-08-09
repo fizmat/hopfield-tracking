@@ -51,7 +51,7 @@ class MyWorker(Worker):
             event_metrics = []
             for hits in batch:
                 hits.reset_index(drop=True, inplace=True)
-                pos = hits[['x', 'y', 'z']].values
+                pos = hits[['x', 'y', 'z']].to_numpy()
                 seg = gen_seg_layered(hits)
                 energy_matrix, _, __ = construct_energy_matrix(config, pos, seg)
                 temp_curve = annealing_curve(config['tmin'], config['tmax'], config['anneal_steps'],
