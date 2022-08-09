@@ -16,6 +16,7 @@ _seg = np.array([(0, 3), (0, 4), (0, 5),
                  (5, 6), (5, 7), (5, 8)])
 
 _tracks = {1: [], 3: [(2, 5), (5, 8)], 5: [(3, 6)]}
+_tseg = np.array([(2, 5), (5, 8), (3, 6)])
 
 
 def test_build_segmented_tracks():
@@ -64,16 +65,16 @@ def test_found_crosses():
 
 
 def test_track_metrics():
-    assert track_metrics(_hits, _seg, np.zeros(len(_seg)), 0.5) == {'reds': 0, 'tracks': 1, 'crosses': 0}
-    assert track_metrics(_hits, _seg, np.ones(len(_seg)), 0.5) == {'reds': 15, 'tracks': 3, 'crosses': 36}
-    assert track_metrics(_hits, _seg, np.array([1, 0, 0, 0, 1, 0, 0, 0, 1,
-                                                1, 0, 0, 0, 1, 0, 0, 0, 1]), 0.5) == {'reds': 3,
-                                                                                      'tracks': 3,
-                                                                                      'crosses': 0}
-    assert track_metrics(_hits, _seg, np.array([0, 0, 0, 0, 0, 0, 0, 0, 1,
-                                                1, 0, 0, 0, 0, 0, 0, 0, 1]), 0.5) == {'reds': 0,
-                                                                                      'tracks': 3,
-                                                                                      'crosses': 0}
+    assert track_metrics(_hits, _seg, _tseg, np.zeros(len(_seg)), 0.5) == {'reds': 0, 'tracks': 1, 'crosses': 0}
+    assert track_metrics(_hits, _seg, _tseg, np.ones(len(_seg)), 0.5) == {'reds': 15, 'tracks': 3, 'crosses': 36}
+    assert track_metrics(_hits, _seg, _tseg, np.array([1, 0, 0, 0, 1, 0, 0, 0, 1,
+                                                       1, 0, 0, 0, 1, 0, 0, 0, 1]), 0.5) == {'reds': 3,
+                                                                                             'tracks': 3,
+                                                                                             'crosses': 0}
+    assert track_metrics(_hits, _seg, _tseg, np.array([0, 0, 0, 0, 0, 0, 0, 0, 1,
+                                                       1, 0, 0, 0, 0, 0, 0, 0, 1]), 0.5) == {'reds': 0,
+                                                                                             'tracks': 3,
+                                                                                             'crosses': 0}
 
 
 def test_track_loss():

@@ -9,6 +9,7 @@ from hopfield.energy import energy_gradient
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
 from segment.candidate import gen_seg_layered
+from segment.track import gen_seg_track_layered
 
 
 def hopfield_history(energy_matrix: spmatrix, temp_curve: np.ndarray, starting_act: np.ndarray,
@@ -66,7 +67,8 @@ def main():
 
     canvas = SceneCanvas(bgcolor='white', size=(1024, 768))
     grid = canvas.central_widget.add_grid()
-    perfect_act = gen_perfect_act(event, seg)
+    tseg = gen_seg_track_layered(event)
+    perfect_act = gen_perfect_act(seg, tseg)
     act = acts[-1]
     print(act)
     act_view = _act_view(event, seg, act)

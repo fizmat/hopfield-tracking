@@ -14,7 +14,9 @@ _seg = np.array([(0, 3), (0, 4), (0, 5),
                  (4, 6), (4, 7), (4, 8),
                  (5, 6), (5, 7), (5, 8)])
 
+_tseg = np.array([(2, 5), (5, 8), (3, 6)])
+
 
 def test_gen_perfect_act():
-    assert_array_equal(gen_perfect_act(_hits, _seg), [0, 0, 0, 0, 0, 0, 0, 0, 1,
+    assert_array_equal(gen_perfect_act(_seg, _tseg), [0, 0, 0, 0, 0, 0, 0, 0, 1,
                                                       1, 0, 0, 0, 0, 0, 0, 0, 1])

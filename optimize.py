@@ -24,6 +24,7 @@ from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_m
 from hopfield.iterate import annealing_curve, hopfield_history
 from metrics.tracks import track_metrics, track_loss
 from segment.candidate import gen_seg_layered
+from segment.track import gen_seg_track_layered
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -67,7 +68,8 @@ class MyWorker(Worker):
                 starting_act = np.full(len(seg), config['starting_act'])
                 act = hopfield_history(energy_matrix, temp_curve, starting_act, config['dropout'], config['learning_rate'],
                                        config['bias'])[-1]
-                event_metrics.append(track_metrics(hits, seg, act, config['threshold']))
+                tseg = gen_seg_track_layered(hits)
+                event_metrics.append(track_metrics(hits, seg, tseg, act, config['threshold']))
             event_metrics = pd.DataFrame(event_metrics)
             event_metrics['loss'] = track_loss(event_metrics)
             score.append(event_metrics.sum().to_dict())
