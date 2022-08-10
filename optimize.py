@@ -22,7 +22,7 @@ from datasets import get_hits
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
 from hopfield.iterate import annealing_curve, hopfield_history
-from metrics.tracks import track_metrics, track_loss
+from metrics.tracks import track_metrics
 from segment.candidate import gen_seg_layered
 from segment.track import gen_seg_track_layered
 
@@ -71,7 +71,7 @@ class MyWorker(Worker):
                 tseg = gen_seg_track_layered(hits)
                 event_metrics.append(track_metrics(hits, seg, tseg, act, config['threshold']))
             event_metrics = pd.DataFrame(event_metrics)
-            event_metrics['loss'] = track_loss(event_metrics)
+            event_metrics['loss'] = 0
             score.append(event_metrics.sum().to_dict())
 
         return ({

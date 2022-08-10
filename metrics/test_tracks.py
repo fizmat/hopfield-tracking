@@ -3,7 +3,7 @@ import pandas as pd
 from numpy.testing import assert_array_equal
 
 from metrics.tracks import build_segmented_tracks, enumerate_segmented_track, found_tracks, found_crosses, \
-    track_metrics, track_loss
+    track_metrics
 
 _hits = pd.DataFrame({'track': [1, -1, 3, 5, -1, 3, 5, 1, 3],
                       'layer': [0, 0, 0, 1, 1, 1, 2, 2, 2]})
@@ -75,8 +75,3 @@ def test_track_metrics():
                                                        1, 0, 0, 0, 0, 0, 0, 0, 1]), 0.5) == {'reds': 0,
                                                                                              'tracks': 3,
                                                                                              'crosses': 0}
-
-
-def test_track_loss():
-    assert_array_equal(track_loss(pd.DataFrame({'reds': [3, 4, 5], 'tracks': [0, 1, 2], 'crosses': [2, 3, 1]})),
-                       [2 + 3 * 0.036, 2 + 4 * 0.036, -1 + 5 * 0.036])

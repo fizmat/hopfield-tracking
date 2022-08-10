@@ -68,7 +68,3 @@ def track_metrics(hits: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
     tracks = found_tracks(seg, act, segmented_tracks)
     crosses = found_crosses(seg, act)
     return {'reds': reds, 'tracks': tracks, 'crosses': crosses}
-
-
-def track_loss(metrics: pd.DataFrame) -> pd.Series:
-    return -(metrics.tracks - metrics.crosses - 0.036 * metrics.reds)
