@@ -62,7 +62,7 @@ class Optimizer:
             'runcount-limit': args.runcount_limit,
             'cs': self.get_configspace(),
             'instances': [[str(eid)] for eid in self.hits.event_id.unique()],
-            'multi_objectives': ['trackml_loss', 'total_steps']
+            'multi_objectives': ['trackml_loss', 'total_steps', 'n_fp_seg']
         })
 
         if args.output_directory:

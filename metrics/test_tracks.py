@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from numpy.testing import assert_array_equal
 
 from metrics.tracks import build_segmented_tracks, enumerate_segmented_track, found_tracks, found_crosses, \
     track_metrics
@@ -65,19 +64,19 @@ def test_found_crosses():
 
 
 def test_track_metrics():
-    assert track_metrics(_hits, _seg, _tseg, np.zeros(len(_seg)), np.full(len(_seg), False)) == {'trackml': 0.0}
-    #{'reds': 0, 'tracks': 1, 'crosses': 0}
-    assert track_metrics(_hits, _seg, _tseg, np.ones(len(_seg)), np.full(len(_seg), True)) == {'trackml': 0.0}
-    #{'reds': 15, 'tracks': 3, 'crosses': 36}
+    assert track_metrics(_hits, _seg, _tseg,
+                         np.zeros(len(_seg)),
+                         np.full(len(_seg), False)) == {'n_fp_seg': 0,
+                                                        'trackml': 0.0}
+    assert track_metrics(_hits, _seg, _tseg,
+                         np.ones(len(_seg)),
+                         np.full(len(_seg), True)) == {'n_fp_seg': 15,
+                                                       'trackml': 0.0}
     act = np.array([1, 0, 0, 0, 1, 0, 0, 0, 1,
                     1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(bool)
-    assert track_metrics(_hits, _seg, _tseg, act, act.astype(bool)) == {'trackml': 0.7142857142857142}
-                                                                                            # {'reds': 3,
-                                                                                            #  'tracks': 3,
-                                                                                            #  'crosses': 0}
+    assert track_metrics(_hits, _seg, _tseg, act, act.astype(bool)) == {'trackml': 0.7142857142857142,
+                                                                        'n_fp_seg': 3}
     act = np.array([0, 0, 0, 0, 0, 0, 0, 0, 1,
                     1, 0, 0, 0, 0, 0, 0, 0, 1])
-    assert track_metrics(_hits, _seg, _tseg, act, act.astype(bool)) == {'trackml': 0.7142857142857142}
-                                                                                            # {'reds': 0,
-                                                                                            #  'tracks': 3,
-                                                                                            #  'crosses': 0}
+    assert track_metrics(_hits, _seg, _tseg, act, act.astype(bool)) == {'trackml': 0.7142857142857142,
+                                                                        'n_fp_seg': 0}
