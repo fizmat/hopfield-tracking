@@ -1,4 +1,4 @@
-from typing import Tuple, List, Dict, Any, Iterable, Union
+from typing import Tuple, List, Dict, Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -43,17 +43,16 @@ def _act_view(event: pd.DataFrame, seg: np.ndarray, act: np.ndarray,
 
 
 def _result_view(event: pd.DataFrame, seg: np.ndarray, act: np.ndarray, perfect_act: np.ndarray,
-                 threshold: float = 0.5, kdims: Iterable = ('x', 'y', 'z'), camera='turntable') -> ViewBox:
+                 positive: np.ndarray, kdims: Iterable = ('x', 'y', 'z'), camera='turntable') -> ViewBox:
     kdims = list(kdims)
     view = ViewBox(border_color='black')
-    is_true = perfect_act > threshold
-    is_positive = act > threshold
-    draw_first = np.logical_or(is_true, is_positive)
+    is_true = perfect_act > 0.5
+    draw_first = np.logical_or(is_true, positive)
     for do_draw in draw_first, np.logical_not(draw_first):
         seg_lines = visuals.Line(connect='segments')
         seg_hits = event.loc[seg[do_draw].flatten()]
         trueness = np.stack([is_true[do_draw], is_true[do_draw]], axis=1).flatten().astype(int)
-        positiveness = np.stack([is_positive[do_draw], is_positive[do_draw]], axis=1).flatten().astype(int)
+        positiveness = np.stack([positive[do_draw], positive[do_draw]], axis=1).flatten().astype(int)
         color_map = np.array([[(.5, .5, .5, 0.2), (.8, 0, 0, 1)],
                               [(0, 0, 1, 1), (0, .7, 0, 1)]])
         colors = color_map[trueness, positiveness]
@@ -64,21 +63,25 @@ def _result_view(event: pd.DataFrame, seg: np.ndarray, act: np.ndarray, perfect_
     return view
 
 
+def plot_result(event: pd.DataFrame, seg: np.ndarray, act: np.ndarray, perfect_act: np.ndarray,
+                positive: np.ndarray, kdims: Iterable = ('x', 'y', 'z')):
+    canvas = SceneCanvas(bgcolor='white', size=(1024, 768))
+    grid = canvas.central_widget.add_grid()
+    act_view = _act_view(event, seg, act, kdims)
+    grid.add_widget(act_view)
+    grid.add_widget(_result_view(event, seg, act, perfect_act, positive, kdims, camera=act_view.camera))
+    return canvas
+
+
 def main():
     from datasets import get_hits
     from vispy import app
-
-    canvas = SceneCanvas(bgcolor='white', size=(1024, 768))
-    grid = canvas.central_widget.add_grid()
-
     event = get_hits('simple', 1)
     seg = gen_seg_layered(event)
     tseg = gen_seg_track_layered(event)
     perfect_act = gen_perfect_act(seg, tseg)
-    act = np.random.random(perfect_act.shape) ** 4
-    act_view = _act_view(event, seg, act)
-    grid.add_widget(act_view)
-    grid.add_widget(_result_view(event, seg, act, perfect_act, camera=act_view.camera))
+    act = np.random.random(perfect_act.shape)
+    canvas = plot_result(event, seg, act, perfect_act, positive=act > 0.9)
     canvas.show()
     app.run()
 
