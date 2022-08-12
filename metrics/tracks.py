@@ -65,7 +65,7 @@ def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
 
 
 def track_metrics(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
-                  act: np.ndarray, positive: np.ndarray) -> Dict[str, int]:
+                  act: np.ndarray, positive: np.ndarray) -> Dict[str, float]:
     # perfect_act = gen_perfect_act(seg, tseg)
     # reds = np.sum((act > threshold) & (perfect_act < threshold))
     # segmented_tracks = build_segmented_tracks(event).values()

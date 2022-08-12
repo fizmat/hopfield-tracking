@@ -1,7 +1,7 @@
 import argparse
 import logging
 from argparse import ArgumentError
-from typing import Dict, Tuple
+from typing import Dict
 
 import ConfigSpace as CS
 import pandas as pd
@@ -27,16 +27,15 @@ class Optimizer:
     def __init__(self, dataset: str, n_events: int = None):
         self.hits = get_hits(dataset, n_events=n_events)
 
-    def evaluate(self, config: Configuration, instance: str) -> Tuple[float, Dict]:
+    def evaluate(self, config: Configuration, instance: str) -> Dict:
         event = self.hits[self.hits.event_id == int(instance)]
         event.reset_index(drop=True, inplace=True)
         seg, acts, positives = iterate.run(event, **config)
         tseg = gen_seg_track_layered(event)
         score = track_metrics(event, seg, tseg, acts[-1], positives[-1])
-        return (
-            1. - score['trackml'],
-            score
-        )
+        score['total_steps'] = config['cooling_steps'] + config['rest_steps']
+        score['trackml_loss'] = 1. - score['trackml']
+        return score
 
     def get_configspace(self):
         config_space = CS.ConfigurationSpace()
@@ -50,8 +49,8 @@ class Optimizer:
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
         config_space.add_hyperparameter(CS.Constant('t_min', value=1.))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('t_max', lower=1, upper=100))
-        config_space.add_hyperparameter(CS.Constant('cooling_steps', value=20))
-        config_space.add_hyperparameter(CS.Constant('rest_steps', value=5))
+        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('cooling_steps', lower=1, upper=100))
+        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('rest_steps', lower=0, upper=50))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('initial_act', lower=0, upper=1))
         config_space.add_hyperparameter(CS.Constant('dropout', value=0))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
@@ -62,7 +61,8 @@ class Optimizer:
             'run_obj': 'quality',
             'runcount-limit': args.runcount_limit,
             'cs': self.get_configspace(),
-            'instances': [[str(eid)] for eid in self.hits.event_id.unique()]
+            'instances': [[str(eid)] for eid in self.hits.event_id.unique()],
+            'multi_objectives': ['trackml_loss', 'total_steps']
         })
 
         if args.output_directory:
@@ -81,8 +81,6 @@ def main():
     parser.add_argument('--batch', action='store_true', help='Share output directory')
     parser.add_argument('--n-events', type=int, default=100,
                         help='Total number of events to read/generate for training.')
-    parser.add_argument('--hopfield-iterations', type=int, default=10,
-                        help='Total number of iteration in the anneal and post-anneal phases')
     parser.add_argument('--runcount-limit', type=int, default=10,
                         help='Maximum number of runs to perform')
     parser.add_argument('--output-directory', type=str, default=None,
