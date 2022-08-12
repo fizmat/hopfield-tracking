@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 from ConfigSpace import Configuration
 from matplotlib import pyplot as plt
-from smac.facade.smac_hpo_facade import SMAC4HPO
+from smac.facade.smac_mf_facade import SMAC4MF
 from smac.scenario.scenario import Scenario
 from vispy import app
 
@@ -27,18 +27,15 @@ class Optimizer:
     def __init__(self, dataset: str, n_events: int = None):
         self.hits = get_hits(dataset, n_events=n_events)
 
-    def compute(self, config: Configuration) -> Tuple[float, Dict]:
-        event_metrics = []
-        for eid, event in self.hits.groupby('event_id'):
-            event.reset_index(drop=True, inplace=True)
-            seg, acts, positives = iterate.run(event, **config)
-            tseg = gen_seg_track_layered(event)
-            event_metrics.append(track_metrics(event, seg, tseg, acts[-1], positives[-1]))
-        event_metrics = pd.DataFrame(event_metrics)
-        score = event_metrics.mean()
+    def evaluate(self, config: Configuration, instance: str) -> Tuple[float, Dict]:
+        event = self.hits[self.hits.event_id == int(instance)]
+        event.reset_index(drop=True, inplace=True)
+        seg, acts, positives = iterate.run(event, **config)
+        tseg = gen_seg_track_layered(event)
+        score = track_metrics(event, seg, tseg, acts[-1], positives[-1])
         return (
-            1. - score.trackml,
-            score.to_dict()
+            1. - score['trackml'],
+            score
         )
 
     def get_configspace(self):
@@ -64,15 +61,15 @@ class Optimizer:
         scenario = Scenario({
             'run_obj': 'quality',
             'runcount-limit': args.runcount_limit,
-            'cs': self.get_configspace()
+            'cs': self.get_configspace(),
+            'instances': [[str(eid)] for eid in self.hits.event_id.unique()]
         })
 
         if args.output_directory:
             scenario.output_dir = args.output_directory
             scenario.input_psmac_dirs = args.output_directory
         scenario.shared_model = args.batch
-
-        optimizer = SMAC4HPO(scenario=scenario, tae_runner=self.compute)
+        optimizer = SMAC4MF(scenario=scenario, tae_runner=self.evaluate, n_jobs=-1)
         best_config = optimizer.optimize()
         return best_config, optimizer.get_runhistory(), optimizer.get_trajectory()
 
@@ -82,10 +79,8 @@ def main():
     parser.add_argument('--dataset', type=str, default='simple', help='Dataset identifier string',
                         choices=get_datasets())
     parser.add_argument('--batch', action='store_true', help='Share output directory')
-    parser.add_argument('--min-budget', type=int, default=1,
-                        help='Minimum budget (in events) used during the optimization.')
-    parser.add_argument('--max-budget', type=int, default=10,
-                        help='Maximum budget (in events) used during the optimization.')
+    parser.add_argument('--n-events', type=int, default=100,
+                        help='Total number of events to read/generate for training.')
     parser.add_argument('--hopfield-iterations', type=int, default=10,
                         help='Total number of iteration in the anneal and post-anneal phases')
     parser.add_argument('--runcount-limit', type=int, default=10,
@@ -98,7 +93,7 @@ def main():
     if args.batch:
         raise ArgumentError(args.shared_directory,
                             'Shared output directory is required when running in a batch system')
-    best_config, history, trajectory = Optimizer(args.dataset, args.max_budget).run(args)
+    best_config, history, trajectory = Optimizer(args.dataset, args.n_events).run(args)
     print(best_config.get_dictionary())
     event = get_hits(args.dataset, 1)
     seg, acts, positives = iterate.run(event, **best_config)
