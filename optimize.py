@@ -8,6 +8,7 @@ import pandas as pd
 import seaborn as sns
 from ConfigSpace import Configuration
 from matplotlib import pyplot as plt
+from sklearn.model_selection import train_test_split
 from smac.facade.smac_mf_facade import SMAC4MF
 from smac.scenario.scenario import Scenario
 from vispy import app
@@ -26,10 +27,10 @@ logging.basicConfig(level=logging.WARNING)
 class Optimizer:
     def __init__(self, dataset: str, n_events: int = None):
         self.hits = get_hits(dataset, n_events=n_events)
+        self.events = {str(eid): event.reset_index(drop=True) for eid, event in self.hits.groupby('event_id')}
 
     def evaluate(self, config: Configuration, instance: str) -> Dict:
-        event = self.hits[self.hits.event_id == int(instance)]
-        event.reset_index(drop=True, inplace=True)
+        event = self.events[instance]
         seg, acts, positives = iterate.run(event, **config)
         tseg = gen_seg_track_layered(event)
         score = track_metrics(event, seg, tseg, acts[-1], positives[-1])
@@ -57,11 +58,13 @@ class Optimizer:
         return config_space
 
     def run(self, args):
+        train, test = train_test_split(list(self.events.keys()))
         scenario = Scenario({
             'run_obj': 'quality',
             'runcount-limit': args.runcount_limit,
             'cs': self.get_configspace(),
-            'instances': [[str(eid)] for eid in self.hits.event_id.unique()],
+            'instances': [[s] for s in train],
+            'test_instances': [[s] for s in test],
             'multi_objectives': ['trackml_loss', 'total_steps', 'n_fp_seg']
         })
 
@@ -71,7 +74,9 @@ class Optimizer:
         scenario.shared_model = args.batch
         optimizer = SMAC4MF(scenario=scenario, tae_runner=self.evaluate, n_jobs=-1)
         best_config = optimizer.optimize()
-        return best_config, optimizer.get_runhistory(), optimizer.get_trajectory()
+        vtrain_history = optimizer.validate(instance_mode='train')
+        vtest_history = optimizer.validate(instance_mode='test')
+        return best_config, optimizer.get_runhistory(), optimizer.get_trajectory(), vtrain_history, vtest_history
 
 
 def main():
@@ -91,7 +96,7 @@ def main():
     if args.batch:
         raise ArgumentError(args.shared_directory,
                             'Shared output directory is required when running in a batch system')
-    best_config, history, trajectory = Optimizer(args.dataset, args.n_events).run(args)
+    best_config, history, trajectory, vtrain_history, vtest_history = Optimizer(args.dataset, args.n_events).run(args)
     print(best_config.get_dictionary())
     event = get_hits(args.dataset, 1)
     seg, acts, positives = iterate.run(event, **best_config)
@@ -104,13 +109,29 @@ def main():
     plt.show()
     df = pd.DataFrame(trajectory).drop(columns='incumbent')
     sns.relplot(data=df.reset_index().melt('index'), row='variable', x='index', y='value', kind="line",
-        facet_kws = {'sharey': False, 'sharex': True})
+                facet_kws={'sharey': False, 'sharex': True})
     plt.show()
     df = pd.DataFrame([rec for rec in pd.DataFrame(trajectory).incumbent])
     sns.relplot(data=df.reset_index().melt('index'), row='variable', x='index', y='value', kind="line",
-        facet_kws = {'sharey': False, 'sharex': True})
+                facet_kws={'sharey': False, 'sharex': True})
     plt.show()
     plot_result(event, seg, act, perfect_act, positives[-1]).show()
+    df_val = pd.DataFrame([{'kind': 'train',
+                            'event': int(k.instance_id),
+                            'trackml_cost': v.cost[0],
+                            'fp': v.cost[2]}
+                           for k, v in vtrain_history.items()] +
+                          [{'kind': 'test',
+                            'event': int(k.instance_id),
+                            'trackml_cost': v.cost[0],
+                            'fp': v.cost[2]}
+                           for k, v in vtest_history.items()]
+                          ).set_index('event').sort_index()
+    print(df_val)
+    sns.stripplot(data=df_val, y='trackml_cost', x='kind')
+    plt.show()
+    sns.stripplot(data=df_val, y='fp', x='kind')
+    plt.show()
     app.run()
 
 
