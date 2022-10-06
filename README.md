@@ -12,10 +12,20 @@ conda activate hopfield-tracking
 nb-clean add-filter --remove-empty-cells
 ```
 
-### Experiment
+### Jupyter notebooks
 
-- easy generated tracks: `jupyter lab main.ipynb`
-- noisy real data: `jupyter lab real-events.ipynb`
+`jupyter lab`
+
+- [dataset_stats](dataset_stats.ipynb): visualize distribution of tracks/event and hits/event
+- [demo_datasets](demo_datasets.ipynb): visualize hits/tracks of one event per dataset
+- [demo_seg](demo_seg.ipynb): compare different segment generation methods
+- [demo_track_seg](demo_track_seg.ipynb): compare different track-segment generators
+- [stat_seg_length](stat_seg_length.ipynb): visualize distribution of segment length to predict neighbor-filtering effectiveness
+- [stat_seg_neighbors](stat_seg_neighbors.ipynb): visualize segment length in a more detailed but less efficient way
+- [profile_seg_pools](profile_seg_pools.ipynb): compare performance of parallelization methods (for stat_seg_neighbors): processes are best  
+- [demo_event](demo_event.ipynb): demonstrate hopfield tracking for one event
+- [hydra-setup](hydra-setup.ipynb): prepare to run on jhub2 and jlab-hpc
+- [sbatch](sbatch.ipynb): run distributed optimization on jlab-hpc
 
 ### Test locally
 
