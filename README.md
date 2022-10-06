@@ -29,7 +29,9 @@ nb-clean add-filter --remove-empty-cells
 
 ### Test locally
 
-`pytest`
+`pytest` - unit tests
+
+`tox` - run pytest in multiple environments
 
 ## Jhub on hybrilit
 
