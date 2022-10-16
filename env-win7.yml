@@ -1,0 +1,41 @@
+name: hopfield-tracking
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python==3.8.*
+
+  - pandas
+  - numpy
+  - scipy
+  - scikit-learn
+  - networkx
+
+  - tqdm
+  - pathos
+  - py-cpuinfo
+
+  - hpbandster
+
+  - jupyter
+  - jupyterlab
+
+  - seaborn
+  - holoviews
+  - bokeh
+  - matplotlib
+  - plotly
+
+  - vispy
+  - jupyter-rfb
+  - pillow
+
+  - memory_profiler
+  - line_profiler
+  - pytest
+  - pytest-cov
+  - pip
+  - pip:
+      - nb-clean
+      - line-profiler-pycharm
+      - git+https://github.com/LAL/trackml-library@master#egg=trackml
