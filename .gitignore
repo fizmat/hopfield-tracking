@@ -11,3 +11,4 @@ data/**/*.zip
 *.pclprof
 .pytest_cache
 .tox/
+venv/
