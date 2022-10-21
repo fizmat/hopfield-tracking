@@ -11,12 +11,6 @@ dependencies:
   - scikit-learn
   - networkx
 
-  - tqdm
-  - pathos
-  - py-cpuinfo
-
-  - hpbandster
-
   - jupyter
   - jupyterlab
 

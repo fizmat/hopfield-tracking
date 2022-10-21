@@ -60,5 +60,6 @@ The conda environment will take up ~ 5 Gb
 In Anaconda Powershell Prompt
 - `cd {local project repo directory}`
 - `conda env create --experimental-solver=libmamba -f environment-win7.yml`
+- Cleanup to minimize disk usage: `conda clean --all`
 - activate the new environment `conda activate hopfield-tracking`
 - `pytest` to check what works
