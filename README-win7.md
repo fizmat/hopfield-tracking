@@ -8,8 +8,9 @@ How to run on Win7-x64 with 2Gb of memory?
 2. If not, install git for windows (both links point to the same setup):
     - https://gitforwindows.org/
     - https://git-scm.com/download/win
-    - Setup asks many questions, default answers are ususally OK.
+    - Setup asks many questions, default answers are usually OK.
 3. `git clone {repo url}` in any shell (cmd, Powershell, git bash)
+    - ![location of git clone url](readme-resources/git-url.png)
 
 ## 1. Without conda: python + venv
 
@@ -30,11 +31,11 @@ The virtual environment will take up ~ 1 Gb
 
 ### Create virtual environment
 1. Find the full path to your python 3.8 executable
-    - for example `C:\Users\{username}\AppData\Local\Programs\Python38\python.exe`
+    - for example `C:\Users\{username}\AppData\Local\Programs\Python38\python.exe` or `C:\Python310\python.exe`
 2. Create and activate virtual python environment
     - in CMD:
         - `cd {local project repo directory}`
-        - `{python.exe path} -m venv venv`
+        - `{python.exe full path} -m venv venv`
         - `venv\Scripts\activate.bat`
         - `pip install -r requirements.txt`
     - in git bash:
@@ -63,3 +64,8 @@ In Anaconda Powershell Prompt
 - Cleanup to minimize disk usage: `conda clean --all`
 - activate the new environment `conda activate hopfield-tracking`
 - `pytest` to check what works
+
+## Use whatever IDE or editor you like
+- PyCharm
+- Visual Studio Code
+- Notepad++
