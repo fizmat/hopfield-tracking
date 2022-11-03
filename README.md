@@ -27,6 +27,24 @@ nb-clean add-filter --remove-empty-cells
 - [hydra-setup](hydra-setup.ipynb): prepare to run on jhub2 and jlab-hpc
 - [sbatch](sbatch.ipynb): run distributed optimization on jlab-hpc
 
+### Before run notebooks
+Before starting the cells in notebooks, it is necessary to check the availability of datasets in the directories:
+- [dataset_stats](dataset_stats.ipynb):
+```
+...\data\bman\simdata_ArPb_3.2AGeV_mb_1.zip
+...\data\trackml\blacklist_training.zip
+...\data\trackml\train_sample.zip
+```
+- [demo_datasets](demo_datasets.ipynb):
+- [demo_seg](demo_seg.ipynb):
+- [demo_track_seg](demo_track_seg.ipynb):
+- [stat_seg_length](stat_seg_length.ipynb):
+- [stat_seg_neighbors](stat_seg_neighbors.ipynb):
+- [profile_seg_pools](profile_seg_pools.ipynb):
+- [demo_event](demo_event.ipynb):
+- [hydra-setup](hydra-setup.ipynb):
+- [sbatch](sbatch.ipynb):
+
 ### Test locally
 
 `pytest` - unit tests
