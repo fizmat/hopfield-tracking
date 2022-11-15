@@ -1,0 +1,20 @@
+# important core libraries
+pandas # tables (dataframes)
+numpy # arrays
+scipy # sparse matrices
+scikit-learn # nearest neighbors filter and error metrics
+networkx # graph library to reconstruct tracks for the trackml score function
+
+# utility to read trackml data
+# also provides a tracking quality score function
+git+https://github.com/LAL/trackml-library@master#egg=trackml
+
+# plotting libraries
+seaborn
+holoviews
+bokeh
+matplotlib
+plotly
+
+# unit testing libraries
+pytest
