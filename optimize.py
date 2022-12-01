@@ -18,7 +18,7 @@ from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
 from pathos.multiprocessing import ProcessPool
 
-from datasets import get_hits
+from datasets import get_hits, get_datasets
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
 from hopfield.iterate import annealing_curve, hopfield_history
@@ -148,7 +148,8 @@ def main():
     parser = argparse.ArgumentParser(description='Optimize hopfield-tracking')
     parser.add_argument('mode', help='Run mode', type=str,
                         choices=['sequential', 'parallel', 'worker', 'master'])
-    parser.add_argument('dataset', type=str, help='Dataset identifier string')
+    parser.add_argument('dataset', type=str, help='Dataset identifier string',
+                        choices=get_datasets())
     parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.',
                         default=1)
     parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.',
