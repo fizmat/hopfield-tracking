@@ -62,7 +62,7 @@ def test_get_hits_trackml():
     assert events.track.dtype == 'int64'
 
 
-@pytest.mark.very_slow
+@pytest.mark.slow
 @pytest.mark.trackml_1
 def test_get_hits_trackml_1():
     events = get_hits_trackml(train_zip=Path(__file__).parents[1] / 'data/trackml/train_1.zip', n_events=200)
@@ -93,7 +93,7 @@ def test_get_hits_trackml_by_volume():
     assert events.track.dtype == 'int64'
 
 
-@pytest.mark.very_slow
+@pytest.mark.slow
 @pytest.mark.trackml_1
 def test_get_hits_trackml_1_by_volume():
     events = get_hits_trackml_by_volume(train_zip=Path(__file__).parents[1] / 'data/trackml/train_1.zip', n_events=200)

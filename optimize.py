@@ -12,15 +12,19 @@ from datetime import datetime
 
 import ConfigSpace as CS
 import hpbandster.core.nameserver as hpns
+import numpy as np
 import pandas as pd
 from hpbandster.core.worker import Worker
 from hpbandster.optimizers import BOHB
 from pathos.multiprocessing import ProcessPool
 
-from datasets import get_hits
-from hopfield.iterate import construct_energy_matrix, annealing_curve, hopfield_history
-from metrics.tracks import track_metrics, track_loss
+from datasets import get_hits, get_datasets
+from hopfield.energy.cross import cross_energy_matrix
+from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
+from hopfield.iterate import annealing_curve, hopfield_history
+from metrics.tracks import track_metrics
 from segment.candidate import gen_seg_layered
+from segment.track import gen_seg_track_layered
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -53,13 +57,21 @@ class MyWorker(Worker):
                 hits.reset_index(drop=True, inplace=True)
                 pos = hits[['x', 'y', 'z']].to_numpy()
                 seg = gen_seg_layered(hits)
-                energy_matrix, _, __ = construct_energy_matrix(config, pos, seg)
+                pairs = segment_adjacent_pairs(seg)
+                crossing_matrix = cross_energy_matrix(seg)
+                curvature_matrix = curvature_energy_matrix(pos, seg, pairs, config['alpha'], config['gamma'],
+                                                           config['cosine_power'], config['cosine_min_rewarded'],
+                                                           config['distance_power'], config['cosine_min_allowed'])
+                energy_matrix = crossing_matrix + curvature_matrix
                 temp_curve = annealing_curve(config['tmin'], config['tmax'], config['anneal_steps'],
                                              config['total_steps'] - config['anneal_steps'])
-                act = hopfield_history(config, energy_matrix, temp_curve, seg)[-1]
-                event_metrics.append(track_metrics(hits, seg, act, config['threshold']))
+                starting_act = np.full(len(seg), config['starting_act'])
+                act = hopfield_history(energy_matrix, temp_curve, starting_act, config['dropout'], config['learning_rate'],
+                                       config['bias'])[-1]
+                tseg = gen_seg_track_layered(hits)
+                event_metrics.append(track_metrics(hits, seg, tseg, act, config['threshold']))
             event_metrics = pd.DataFrame(event_metrics)
-            event_metrics['loss'] = track_loss(event_metrics)
+            event_metrics['loss'] = 0
             score.append(event_metrics.sum().to_dict())
 
         return ({
@@ -136,7 +148,8 @@ def main():
     parser = argparse.ArgumentParser(description='Optimize hopfield-tracking')
     parser.add_argument('mode', help='Run mode', type=str,
                         choices=['sequential', 'parallel', 'worker', 'master'])
-    parser.add_argument('dataset', type=str, help='Dataset identifier string')
+    parser.add_argument('dataset', type=str, help='Dataset identifier string',
+                        choices=get_datasets())
     parser.add_argument('--min_budget', type=int, help='Minimum budget (in events) used during the optimization.',
                         default=1)
     parser.add_argument('--max_budget', type=int, help='Maximum budget (in events) used during the optimization.',

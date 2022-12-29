@@ -1,0 +1,37 @@
+# important core libraries
+pandas # tables (dataframes)
+numpy # arrays
+scipy # sparse matrices
+scikit-learn # nearest neighbors filter and error metrics
+networkx # graph library to reconstruct tracks for the trackml score function
+
+# utility to read trackml data
+# also provides a tracking quality score function
+git+https://github.com/LAL/trackml-library@master#egg=trackml
+
+# jupyter notebooks for prototyping and easy visualizing results
+jupyter
+jupyterlab
+nb-clean # clean up notebook outputs before git commit
+
+# plotting libraries
+seaborn
+holoviews
+bokeh
+matplotlib
+plotly
+
+# fast 3d visualization with opengl
+vispy
+jupyter-rfb # jupyter browser-side library
+pillow # image library neede by vispy (TODO: check if it's only needed in jupyter)
+pyglfw # one lightweight opengl backend
+
+# extra profiling libraries
+memory_profiler
+line_profiler
+line-profiler-pycharm
+
+# unit testing libraries
+pytest
+pytest-cov

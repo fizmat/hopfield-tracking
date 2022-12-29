@@ -7,6 +7,7 @@ from vispy.scene import ViewBox, visuals, SceneCanvas
 
 from metrics.segments import gen_perfect_act
 from segment.candidate import gen_seg_layered
+from segment.track import gen_seg_track_layered
 
 
 def make_tracks_3d(
@@ -72,7 +73,8 @@ def main():
 
     event = get_hits('simple', 1)
     seg = gen_seg_layered(event)
-    perfect_act = gen_perfect_act(event, seg)
+    tseg = gen_seg_track_layered(event)
+    perfect_act = gen_perfect_act(seg, tseg)
     act = np.random.random(perfect_act.shape) ** 4
     act_view = _act_view(event, seg, act)
     grid.add_widget(act_view)

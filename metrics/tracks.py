@@ -1,9 +1,13 @@
 from typing import List, Tuple, Hashable, Dict, Iterable
 
+import networkx as nx
 import numpy as np
 import pandas as pd
+from trackml.score import score_event
 
 from metrics.segments import gen_perfect_act
+from segment.candidate import gen_seg_layered
+from segment.track import gen_seg_track_sequential
 
 
 def build_segmented_tracks(hits: pd.DataFrame) -> Dict[Hashable, List[Tuple[int, int]]]:
@@ -60,8 +64,9 @@ def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
     return (kol_crosses // 2)
 
 
-def track_metrics(hits: pd.DataFrame, seg: np.ndarray, act: np.ndarray, threshold: float) -> Dict[str, int]:
-    perfect_act = gen_perfect_act(hits, seg)
+def track_metrics(hits: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
+                  act: np.ndarray, threshold: float) -> Dict[str, int]:
+    perfect_act = gen_perfect_act(seg, tseg)
     reds = np.sum((act > threshold) & (perfect_act < threshold))
     segmented_tracks = build_segmented_tracks(hits).values()
     tracks = found_tracks(seg, act, segmented_tracks)
@@ -69,5 +74,31 @@ def track_metrics(hits: pd.DataFrame, seg: np.ndarray, act: np.ndarray, threshol
     return {'reds': reds, 'tracks': tracks, 'crosses': crosses}
 
 
-def track_loss(metrics: pd.DataFrame) -> pd.Series:
-    return -(metrics.tracks - metrics.crosses - 0.036 * metrics.reds)
+def reconstruct_tracks(seg: np.ndarray, act: np.ndarray, threshold: float = 0.5) -> pd.DataFrame:
+    g = nx.Graph([(a, b) for a, b in seg[act > threshold]])
+    df = pd.DataFrame([(hit_id, track_id)
+                       for track_id, hit_indices in enumerate(nx.connected_components(g))
+                       for hit_id in hit_indices], columns=('hit_id', 'track_id'))
+    return df
+
+
+def trackml_score(event, seg, act, threshold=0.5):
+    reconstruction = reconstruct_tracks(seg, act, threshold)
+    truth = event.reset_index().rename(columns={'index': 'hit_id', 'track': 'particle_id'})
+    if 'weight' not in truth:
+        truth['weight'] = 1.
+        truth.loc[truth.particle_id == -1, 'weight'] = 0
+    return score_event(truth, reconstruction)
+
+
+def main():
+    from datasets import get_hits
+    event = get_hits('spdsim', 1)
+    seg = gen_seg_layered(event)
+    tseg = gen_seg_track_sequential(event)
+    act = gen_perfect_act(seg, tseg)
+    print(trackml_score(event, seg, act))
+
+
+if __name__ == '__main__':
+    main()

@@ -3,15 +3,13 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
+  - python==3.8.*
+
   - pandas
   - numpy
   - scipy
   - scikit-learn
   - networkx
-
-  - tqdm
-  - pathos
-  - py-cpuinfo
 
   - jupyter
   - jupyterlab
@@ -25,7 +23,6 @@ dependencies:
   - vispy
   - jupyter-rfb
   - pillow
-  - pyglfw
 
   - memory_profiler
   - line_profiler
@@ -33,7 +30,6 @@ dependencies:
   - pytest-cov
   - pip
   - pip:
-      - hpbandster 
       - nb-clean
       - line-profiler-pycharm
       - git+https://github.com/LAL/trackml-library@master#egg=trackml

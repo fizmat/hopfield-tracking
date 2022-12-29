@@ -7,6 +7,7 @@ dependencies:
   - numpy
   - scipy
   - scikit-learn
+  - networkx
 
   - tqdm
   - pathos
@@ -14,6 +15,7 @@ dependencies:
 
   - hpbandster
 
+  # full jupyter is not needed, just ipykernel to register this env as a kernel in the server's jupyter
   - ipykernel
 
   - seaborn
@@ -24,11 +26,12 @@ dependencies:
 
   - vispy
   - jupyter-rfb
-  - pillow
 
+  # no profiling dependencies compared to the normal env
   - pytest
   - pytest-cov
   - pip
   - pip:
+      - simplejpeg # improve jupyter-rfb performance
       - nb-clean
       - git+https://github.com/LAL/trackml-library@master#egg=trackml
