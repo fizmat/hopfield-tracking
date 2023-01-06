@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from numpy import ndarray
-from scipy.sparse import spmatrix
+from scipy.sparse import csr_matrix, spmatrix
 
 from datasets import get_hits
 from hopfield.energy import energy_gradient
@@ -14,6 +14,14 @@ from metrics.tracks import trackml_score
 from segment.candidate import gen_seg_layered
 from segment.track import gen_seg_track_layered
 
+def construct_energy_matrix(config: Dict, pos: np.ndarray, seg: np.ndarray
+                            ) -> Tuple[csr_matrix, csr_matrix, csr_matrix]:
+    pairs = segment_adjacent_pairs(seg)
+    crossing_matrix = cross_energy_matrix(seg)
+    curvature_matrix = curvature_energy_matrix(pos, seg, pairs,
+                                               config['cosine_power'], config['cosine_min_rewarded'],
+                                               config['distance_power'])
+    return crossing_matrix + curvature_matrix, crossing_matrix, curvature_matrix
 
 def hopfield_history(energy_matrix: spmatrix, temp_curve: np.ndarray, starting_act: np.ndarray,
                      dropout: float = 0, learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
