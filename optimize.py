@@ -47,6 +47,7 @@ class Optimizer:
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_power', lower=0, upper=20))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_allowed', lower=-1, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_rewarded', lower=0, upper=1))
+        config_space.add_hyperparameter(CS.CategoricalHyperparameter('distance_op', ['sum', 'prod']))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
         config_space.add_hyperparameter(CS.Constant('t_min', value=1.))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('t_max', lower=1, upper=100))

@@ -7,16 +7,27 @@ from hopfield.energy import energy, energy_gradient
 
 
 def test_curvature_pairwise():
-    cosines, rr = curvature_pairwise(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)))
+    cosines, denominator = curvature_pairwise(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), False)
     assert_array_equal(cosines, np.zeros(0))
-    assert_array_equal(rr, np.zeros(0))
+    assert_array_equal(denominator, np.zeros(0))
     a = np.array([[0., 0], [0., 1], [0., 2], [0., 1]])
     b = np.array([[1., 0], [1., 1], [1., 2], [1., 1]])
     c = np.array([[2., 0], [2., 0], [3., 4], [0., 2]])
     r2 = np.sqrt(2)
-    cosines, rr = curvature_pairwise(a, b, c)
+    cosines, denominator = curvature_pairwise(a, b, c, False)
     assert_array_equal(cosines, [1, 1/r2, 1/r2, -1/r2])
-    assert_array_equal(rr, [1, r2, 2*r2, r2])
+    assert_array_equal(denominator, [1, r2, 2*r2, r2])
+
+    cosines, denominator = curvature_pairwise(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), True)
+    assert_array_equal(cosines, np.zeros(0))
+    assert_array_equal(denominator, np.zeros(0))
+    a = np.array([[0., 0], [0., 1], [0., 2], [0., 1]])
+    b = np.array([[1., 0], [1., 1], [1., 2], [1., 1]])
+    c = np.array([[2., 0], [2., 0], [3., 4], [0., 2]])
+    r2 = np.sqrt(2)
+    cosines, denominator = curvature_pairwise(a, b, c, True)
+    assert_array_equal(cosines, [1, 1/r2, 1/r2, -1/r2])
+    assert_array_equal(denominator, [2, 1 + r2, 1 + 2*r2, 1 + r2])
 
 
 def test_curvature_energy():
@@ -62,7 +73,7 @@ def test_curvature_energy_matrix():
     assert w.shape == (0, 0)
 
     seg = np.array([[7, 11], [7, 12], [0, 1], [1, 2], [1, 3], [1, 4], [2, 5], [3, 6]])
-    w = curvature_energy_matrix(pos, seg, segment_adjacent_pairs(seg), 1., 1.)
+    w = curvature_energy_matrix(pos, seg, segment_adjacent_pairs(seg), 1., 1., do_sum_r=False)
     s = -1.  # straight cosine energy
     c = -1 / 4  # 45 degrees cosine energy
     l = -1 / 2  # straight diagonal
@@ -81,7 +92,7 @@ def test_curvature_energy_matrix():
 def test_curvature_energy_total():
     pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
     seg = np.array([[0, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6]])
-    w = curvature_energy_matrix(pos, seg, segment_adjacent_pairs(seg), 1., 1.)
+    w = curvature_energy_matrix(pos, seg, segment_adjacent_pairs(seg), 1., 1., do_sum_r=False)
     assert energy(w, np.array([1, 1, 0, 0, 0, 0])) == -2
     assert energy(w, np.array([1, 0, 1, 0, 0, 0])) == approx(-1. / 2)
     assert energy(w, np.array([1, 0, 0, 1, 0, 0])) == approx(-1. / 2)
@@ -94,7 +105,7 @@ def test_curvature_energy_total():
 def test_curvature_energy_gradient():
     pos = np.array([[0., 0], [1., 0], [2., 0], [2, 1], [2, -1], [3, 0], [3, 2]])
     seg = np.array([[0, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6]])
-    w = curvature_energy_matrix(pos, seg, segment_adjacent_pairs(seg), 1., 1.)
+    w = curvature_energy_matrix(pos, seg, segment_adjacent_pairs(seg), 1., 1., do_sum_r=False)
     act = np.array([1, 1, 0, 0, 0, 0])
     g = energy_gradient(w, act)
     assert_array_almost_equal_nulp(g, -np.array([2, 2, 1. / 2, 1. / 2, 1, 1. / 4]), 3)
