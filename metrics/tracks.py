@@ -3,7 +3,7 @@ from typing import List, Tuple, Hashable, Dict, Iterable
 import networkx as nx
 import numpy as np
 import pandas as pd
-from trackml.score import score_event
+from trackml.score import _analyze_tracks
 
 from metrics.segments import gen_perfect_act
 from segment.candidate import gen_seg_layered
@@ -68,9 +68,12 @@ def track_metrics(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
                   act: np.ndarray, positive: np.ndarray) -> Dict[str, float]:
     perfect_act = gen_perfect_act(seg, tseg)
     n_fp_seg = np.sum(positive & (perfect_act < 0.5))
+    trackml, fakes, missed = trackml_score(event, seg, positive)
     return {
-        'n_fp_seg': n_fp_seg,
-        'trackml': trackml_score(event, seg, positive)
+        'false positive segments': n_fp_seg,
+        'trackml score': trackml,
+        'false tracks': fakes,
+        'missed tracks': missed
     }
 
 
@@ -82,13 +85,27 @@ def reconstruct_tracks(seg: np.ndarray, positive: np.ndarray) -> pd.DataFrame:
     return df
 
 
+def score_event(truth, submission):
+    tracks = _analyze_tracks(truth, submission)
+    purity_rec = np.true_divide(tracks['major_nhits'], tracks['nhits'])
+    purity_maj = np.true_divide(tracks['major_nhits'], tracks['major_particle_nhits'])
+    good_track = (0.5 < purity_rec) & (0.5 < purity_maj)
+    return tracks['major_weight'][good_track].sum(), good_track.sum()
+
+
 def trackml_score(event, seg, positive):
     reconstruction = reconstruct_tracks(seg, positive)
     truth = event.reset_index().rename(columns={'index': 'hit_id', 'track': 'particle_id'})
     if 'weight' not in truth:
         truth['weight'] = 1.
         truth.loc[truth.particle_id == -1, 'weight'] = 0
-    return score_event(truth, reconstruction)
+    n_tracks_total = reconstruction.groupby('track_id').count().hit_id.count()
+    trackml, n_tracks_good = score_event(truth, reconstruction)
+    fakes = n_tracks_total - n_tracks_good
+    missed = len(set(truth.particle_id) - {-1}) - n_tracks_good
+    if fakes == -1:
+        print(reconstruction.groupby('track_id').count())
+    return trackml, fakes, missed
 
 
 def main():

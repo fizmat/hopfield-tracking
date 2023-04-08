@@ -35,7 +35,7 @@ class Optimizer:
         tseg = gen_seg_track_layered(event)
         score = track_metrics(event, seg, tseg, acts[-1], positives[-1])
         score['total_steps'] = config['cooling_steps'] + config['rest_steps']
-        score['trackml_loss'] = 1. - score['trackml']
+        score['trackml_loss'] = 1. - score['trackml score']
         return score
 
     def get_configspace(self):
@@ -66,7 +66,7 @@ class Optimizer:
             'cs': self.get_configspace(),
             'instances': [[s] for s in train],
             'test_instances': [[s] for s in test],
-            'multi_objectives': ['trackml_loss', 'total_steps', 'n_fp_seg']
+            'multi_objectives': ['trackml_loss', 'total_steps', 'false positive segments']
         })
 
         if args.output_directory:
