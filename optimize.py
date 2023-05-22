@@ -25,8 +25,8 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class Optimizer:
-    def __init__(self, dataset: str, n_events: int = None, event_size: int = None):
-        self.hits = get_hits(dataset, n_events=n_events, event_size=event_size)
+    def __init__(self, dataset: str, n_events: int = None, event_size: int = None, n_noise_hits=100):
+        self.hits = get_hits(dataset, n_events=n_events, n_noise_hits=n_noise_hits, event_size=event_size)
         self.events = {str(eid): event.reset_index(drop=True) for eid, event in self.hits.groupby('event_id')}
 
     def evaluate(self, config: Configuration, instance: str) -> Dict:
@@ -82,7 +82,7 @@ class Optimizer:
 
 def main():
     parser = argparse.ArgumentParser(description='Optimize hopfield-tracking')
-    parser.add_argument('--dataset', type=str, default='simple', help='Dataset identifier string',
+    parser.add_argument('--dataset', type=str, default='spdsim', help='Dataset identifier string',
                         choices=get_datasets())
     parser.add_argument('--batch', action='store_true', help='Share output directory')
     parser.add_argument('--n-events', type=int, default=100,
