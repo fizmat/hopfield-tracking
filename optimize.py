@@ -58,7 +58,7 @@ class Optimizer:
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
         return config_space
 
-    def run(self, args):
+    def run(self, args, n_jobs=-1):
         train, test = train_test_split(list(self.events.keys()))
         scenario = Scenario({
             'run_obj': 'quality',
@@ -73,7 +73,7 @@ class Optimizer:
             scenario.output_dir = args.output_directory
             scenario.input_psmac_dirs = args.output_directory
         scenario.shared_model = args.batch
-        optimizer = SMAC4MF(scenario=scenario, tae_runner=self.evaluate, n_jobs=-1)
+        optimizer = SMAC4MF(scenario=scenario, tae_runner=self.evaluate, n_jobs=n_jobs)
         best_config = optimizer.optimize()
         vtrain_history = optimizer.validate(instance_mode='train')
         vtest_history = optimizer.validate(instance_mode='test')
