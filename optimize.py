@@ -111,16 +111,15 @@ def main():
     metrics = metric_history(event, seg, tseg, acts, positives)
     sns.relplot(data=metrics.reset_index().melt('index'), row='variable', x='index', y='value', kind="line",
                 facet_kws={'sharey': False, 'sharex': True})
-    plt.show()
+    plt.savefig('metrics.png')
     df = pd.DataFrame(trajectory).drop(columns='incumbent')
     sns.relplot(data=df.reset_index().melt('index'), row='variable', x='index', y='value', kind="line",
                 facet_kws={'sharey': False, 'sharex': True})
-    plt.show()
+    plt.savefig('trajectory.png')
     df = pd.DataFrame([rec for rec in pd.DataFrame(trajectory).incumbent])
     sns.relplot(data=df.reset_index().melt('index'), row='variable', x='index', y='value', kind="line",
                 facet_kws={'sharey': False, 'sharex': True})
-    plt.show()
-    plot_result(event, seg, act, perfect_act, positives[-1]).show()
+    plt.savefig('incumbent.png')
     df_val = pd.DataFrame([{'kind': 'train',
                             'event': int(k.instance_id),
                             'trackml_cost': v.cost
@@ -132,10 +131,8 @@ def main():
                             }
                            for k, v in vtest_history.items()]
                           ).set_index('event').sort_index()
-    print(df_val)
     sns.stripplot(data=df_val, y='trackml_cost', x='kind')
-    plt.show()
-    app.run()
+    plt.savefig('iterate_trackml_cost.png')
 
 
 if __name__ == '__main__':
