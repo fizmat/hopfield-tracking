@@ -13,7 +13,7 @@ def _hits_view(event: pd.DataFrame, kdims: Iterable = ('x', 'y', 'z'),
     kdims = list(kdims)
     view = ViewBox(border_color='black')
     scatter = visuals.Markers()
-    scatter.set_data(event[kdims].to_numpy(), edge_color=color, face_color=color, size=3)
+    scatter.set_data(event[kdims].to_numpy(), edge_color=color, face_color=color, size=5)
     view.add(scatter)
     visuals.XYZAxis(parent=view.scene)
     view.camera = camera
@@ -37,27 +37,27 @@ def _seg_tseg_view(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
                    kdims: Iterable = ('x', 'y', 'z'), camera='turntable') -> ViewBox:
     kdims = list(kdims)
     view = ViewBox(border_color='black')
-    seg_lines = visuals.Line(connect='segments')
-    tseg_lines = visuals.Line(connect='segments')
+    tseg_lines = visuals.Line(connect='segments', width=2, color='black')
+    seg_lines = visuals.Line(connect='segments', color=(.2, .2, .2, 0.4))
     seg_hits = event.loc[seg.flatten()]
     tseg_hits = event.loc[tseg.flatten()]
-    seg_lines.set_data(seg_hits[kdims].to_numpy(), color=(0, 0, 0, 0.3))
-    tseg_lines.set_data(tseg_hits[kdims].to_numpy(), color='green', width=5)
-    view.add(seg_lines)
+    tseg_lines.set_data(tseg_hits[kdims].to_numpy())
+    seg_lines.set_data(seg_hits[kdims].to_numpy())
     view.add(tseg_lines)
+    view.add(seg_lines)
     visuals.XYZAxis(parent=view.scene)
     view.camera = camera
     return view
 
 
 def plot_event(event: pd.DataFrame, seg: np.ndarray = None, kdims: Iterable = ('x', 'y', 'z'),
-               fig_size: Tuple[int, int] = (1024, 768)) -> SceneCanvas:
+               fig_size: Tuple[int, int] = (1024, 768), camera='turntable') -> SceneCanvas:
     kdims = list(kdims)
     canvas = SceneCanvas(bgcolor='white', size=fig_size)
     grid = canvas.central_widget.add_grid()
 
     color = np.where((event.track.to_numpy() == -1)[..., np.newaxis], [.8, .1, .1], [.1, .8, .1])
-    fakes_view = _hits_view(event, kdims, color)
+    fakes_view = _hits_view(event, kdims, color, camera=camera)
     grid.add_widget(fakes_view)
 
     cmap = colormap.MatplotlibColormap('tab20')

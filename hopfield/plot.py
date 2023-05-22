@@ -48,8 +48,8 @@ def _result_view(event: pd.DataFrame, seg: np.ndarray, act: np.ndarray, perfect_
     view = ViewBox(border_color='black')
     is_true = perfect_act > 0.5
     draw_first = np.logical_or(is_true, positive)
-    for do_draw in draw_first, np.logical_not(draw_first):
-        seg_lines = visuals.Line(connect='segments')
+    for width, do_draw in (3, draw_first), (1, np.logical_not(draw_first)):
+        seg_lines = visuals.Line(connect='segments', width=width)
         seg_hits = event.loc[seg[do_draw].flatten()]
         trueness = np.stack([is_true[do_draw], is_true[do_draw]], axis=1).flatten().astype(int)
         positiveness = np.stack([positive[do_draw], positive[do_draw]], axis=1).flatten().astype(int)
