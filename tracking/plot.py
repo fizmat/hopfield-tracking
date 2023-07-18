@@ -9,11 +9,12 @@ from vispy.scene import ViewBox, visuals, SceneCanvas
 
 
 def _hits_view(event: pd.DataFrame, kdims: Iterable = ('x', 'y', 'z'),
-               color: Union[Color, ColorArray] = 'black', camera='turntable') -> ViewBox:
+               color: Union[Color, ColorArray] = 'black',
+               symbol = 'o', size=5, camera='turntable') -> ViewBox:
     kdims = list(kdims)
     view = ViewBox(border_color='black')
     scatter = visuals.Markers()
-    scatter.set_data(event[kdims].to_numpy(), edge_color=color, face_color=color, size=5)
+    scatter.set_data(event[kdims].to_numpy(), edge_color=color, face_color=color, symbol=symbol, size=size)
     view.add(scatter)
     visuals.XYZAxis(parent=view.scene)
     view.camera = camera
@@ -51,20 +52,37 @@ def _seg_tseg_view(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
 
 
 def plot_event(event: pd.DataFrame, seg: np.ndarray = None, kdims: Iterable = ('x', 'y', 'z'),
-               fig_size: Tuple[int, int] = (1024, 768), camera='turntable') -> SceneCanvas:
+               fig_size: Tuple[int, int] = (1024, 768), camera='turntable', black_white=False) -> SceneCanvas:
     kdims = list(kdims)
     canvas = SceneCanvas(bgcolor='white', size=fig_size)
     grid = canvas.central_widget.add_grid()
-
-    color = np.where((event.track.to_numpy() == -1)[..., np.newaxis], [.8, .1, .1], [.1, .8, .1])
-    fakes_view = _hits_view(event, kdims, color, camera=camera)
+    
+    if black_white:
+        color = 'black'
+        symbol = np.where((event.track.to_numpy() == -1), 'x', 'o')
+        size = 4
+    else:
+        color = np.where((event.track.to_numpy() == -1)[..., np.newaxis], [.8, .1, .1], [.1, .8, .1])
+        symbol = 'o'
+        size = 5
+    fakes_view = _hits_view(event, kdims, color, symbol, size=size, camera=camera)
     grid.add_widget(fakes_view)
 
-    cmap = colormap.MatplotlibColormap('tab20')
     event = event[event.track != -1]
-    track_enum = {t: np.random.rand() for t in event.track.unique()}
-    color = cmap.map(event.track.map(track_enum))
-    track_view = _hits_view(event, kdims, color, fakes_view.camera)
+    tracks = event.track.unique()
+    track_map = {t: i for i, t in enumerate(tracks)}
+    if black_white:
+        symbols = ['disc', 'x', 'cross', 'triangle_down', 'star', 'ring', 'arrow', 'clobber', 'square', 'diamond', 'vbar', 'hbar',  'tailed_arrow', 'triangle_up']
+        color = 'black'
+        symbol = event.track.map(lambda t: symbols[track_map[t]%len(symbols)])
+        size = 4
+    else:
+        cmap = colormap.MatplotlibColormap('tab20')
+        color = cmap.map(event.track.map(track_map)/(len(tracks)-1))
+        symbol = 'o'
+        size = 5
+
+    track_view = _hits_view(event, kdims, color, symbol, size, fakes_view.camera)
     grid.add_widget(track_view)
 
     if seg is not None:
