@@ -32,7 +32,6 @@ dependencies:
 # opengl plotting
   - vispy
   - jupyter-rfb
-  - pillow
 
 # dev
 # no profiling dependencies compared to the normal env
@@ -40,4 +39,5 @@ dependencies:
   - pytest-cov
   - pip
   - pip:
+      - simplejpeg # improve jupyter-rfb performance (vispy in jupyter)
       - git+https://github.com/LAL/trackml-library@master#egg=trackml  # trackml dataset reader

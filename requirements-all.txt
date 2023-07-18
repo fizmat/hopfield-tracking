@@ -29,7 +29,7 @@ plotly
 # fast 3d visualization with opengl
 vispy
 jupyter-rfb # jupyter browser-side library
-pillow # image library neede by vispy (TODO: check if it's only needed in jupyter)
+simplejpeg # image library needed by vispy
 pyglfw # one lightweight opengl backend
 
 # extra profiling libraries
