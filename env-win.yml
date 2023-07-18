@@ -14,12 +14,9 @@ dependencies:
   - pathos
   - py-cpuinfo
 
-# black box hyperparameter optimization
-  - hpbandster
-
 # notebooks
-# full jupyter is not needed, just ipykernel to register this env as a kernel in the server's jupyter
-  - ipykernel
+  - jupyter
+  - jupyterlab
   - nb-clean  # for git commit filter for jupyter
 
 # plotting
@@ -35,9 +32,11 @@ dependencies:
   - pillow
 
 # dev
-# no profiling dependencies compared to the normal env
+  - memory_profiler
+  - line_profiler
   - pytest
   - pytest-cov
   - pip
   - pip:
+      - line-profiler-pycharm
       - git+https://github.com/LAL/trackml-library@master#egg=trackml  # trackml dataset reader

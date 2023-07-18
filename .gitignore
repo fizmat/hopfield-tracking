@@ -11,4 +11,5 @@ data/**/*.zip
 *.pclprof
 .pytest_cache
 .tox/
+tox_conda_tmp*.yaml
 venv/
