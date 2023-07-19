@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
-import random
 import math
+import random
+import sys
 from typing import Tuple, Optional
 
 import numpy as np
-from numpy import pi
 import pandas as pd
+from numpy import pi
 
 
 def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: float, rc: np.ndarray
@@ -58,9 +58,12 @@ def get_hits_spdsim_one_event(event_size=10, efficiency=1.):
     return get_hits_spdsim(1, event_size, efficiency)
 
 
-def get_hits_spdsim(n_events: Optional[int] = 100, event_size: int = 10, efficiency: float = 1.) -> pd.DataFrame:
+def get_hits_spdsim(n_events: Optional[int] = 100, event_size: Optional[int] = 10,
+                    efficiency: float = 1.) -> pd.DataFrame:
     if n_events is None:
         n_events = 100
+    if event_size is None:
+        event_size = 10
     return gen_spdsim(n_events, event_size, efficiency).rename(
         columns={'station': 'layer', 'evt': 'event_id', 'trk': 'track'}
     )[['x', 'y', 'z', 'layer', 'track', 'event_id']]
@@ -74,7 +77,7 @@ def gen_spdsim(n_events=100, event_size=10, efficiency=1.):
         vtxx = random.gauss(0, 10)
         vtxy = random.gauss(0, 10)
         vtxz = random.uniform(-300, 300)  # mm
-        ntrk = int(random.uniform(1, event_size))
+        ntrk = int(random.uniform(1, event_size + 1))
         for trk in range(0, ntrk):
 
             pt = random.uniform(100, 1000)  # MeV/c

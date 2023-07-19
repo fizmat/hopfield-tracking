@@ -25,8 +25,8 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class Optimizer:
-    def __init__(self, dataset: str, n_events: int = None):
-        self.hits = get_hits(dataset, n_events=n_events)
+    def __init__(self, dataset: str, n_events: int = None, event_size: int = None):
+        self.hits = get_hits(dataset, n_events=n_events, event_size=event_size)
         self.events = {str(eid): event.reset_index(drop=True) for eid, event in self.hits.groupby('event_id')}
 
     def evaluate(self, config: Configuration, instance: str) -> Dict:
@@ -86,6 +86,9 @@ def main():
     parser.add_argument('--batch', action='store_true', help='Share output directory')
     parser.add_argument('--n-events', type=int, default=100,
                         help='Total number of events to read/generate for training.')
+    parser.add_argument('--max-event-size', type=int, default=10, help='Max event size (in tracks).')
+    parser.add_argument('--example-event-size', type=int, default=10,
+                        help='Event size (in tracks) to visualize one sample event.')
     parser.add_argument('--runcount-limit', type=int, default=10,
                         help='Maximum number of runs to perform')
     parser.add_argument('--output-directory', type=str, default=None,
@@ -96,9 +99,11 @@ def main():
     if args.batch:
         raise ArgumentError(args.shared_directory,
                             'Shared output directory is required when running in a batch system')
-    best_config, history, trajectory, vtrain_history, vtest_history = Optimizer(args.dataset, args.n_events).run(args)
+    optimizer = Optimizer(args.dataset, args.n_events, args.max_event_size)
+    best_config, history, trajectory, vtrain_history, vtest_history = optimizer.run(args)
     print(best_config.get_dictionary())
-    event = get_hits(args.dataset, 1)
+    event = [event for eid, event in optimizer.hits.groupby('event_id')
+             if event[event.track >= 0].track.nunique() == args.example_event_size][0].reset_index(drop=True)
     seg, acts, positives = iterate.run(event, **best_config)
     tseg = gen_seg_track_layered(event)
     perfect_act = gen_perfect_act(seg, tseg)

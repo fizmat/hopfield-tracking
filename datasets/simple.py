@@ -7,9 +7,11 @@ from numpy import ndarray
 from numpy.random import default_rng
 
 
-def get_hits_simple(n_events: Optional[int] = 100, event_size: int = 10) -> pd.DataFrame:
+def get_hits_simple(n_events: Optional[int] = 100, event_size: Optional[int] = 10) -> pd.DataFrame:
     if n_events is None:
         n_events = 100
+    if event_size is None:
+        event_size = 10
     hits_list = []
     for i, event in enumerate(SimpleEventGenerator().gen_many_events(n_events, event_size)):
         hits, seg = event
