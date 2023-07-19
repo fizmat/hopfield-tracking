@@ -3,10 +3,9 @@ import logging
 from argparse import ArgumentError
 from typing import Dict
 
-import ConfigSpace as CS
 import pandas as pd
 import seaborn as sns
-from ConfigSpace import Configuration
+from ConfigSpace import ConfigurationSpace, Configuration
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 from smac.facade.smac_mf_facade import SMAC4MF
@@ -39,24 +38,24 @@ class Optimizer:
         return score['trackml loss']
 
     def get_configspace(self):
-        config_space = CS.ConfigurationSpace()
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('alpha', lower=0, upper=20))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('gamma', lower=0, upper=20))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('bias', lower=-10, upper=10))
-        config_space.add_hyperparameter(CS.Constant('threshold', value=0.5))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_power', lower=0, upper=20))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_allowed', lower=-1, upper=1))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_rewarded', lower=0, upper=1))
-        config_space.add_hyperparameter(CS.CategoricalHyperparameter('distance_op', ['sum', 'prod']))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
-        config_space.add_hyperparameter(CS.Constant('t_min', value=1.))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('t_max', lower=1, upper=100))
-        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('cooling_steps', lower=1, upper=100))
-        config_space.add_hyperparameter(CS.UniformIntegerHyperparameter('rest_steps', lower=0, upper=50))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('initial_act', lower=0, upper=1))
-        config_space.add_hyperparameter(CS.Constant('dropout', value=0))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
-        return config_space
+        return ConfigurationSpace({
+            'alpha': (0., 20.),
+            'gamma': (0., 20.),
+            'bias': (-10.0, 10.0),
+            'threshold': 0.5,
+            'cosine_power': (0.0, 20.0),
+            'cosine_min_allowed': (-1., 1.),
+            'cosine_min_rewarded': (0., 1.),
+            'distance_op': ['sum', 'prod'],
+            'distance_power': (0., 3.),
+            't_min': 1.,
+            't_max': (1., 100.),
+            'cooling_steps': (1, 100),
+            'rest_steps': (1, 50),
+            'initial_act': (0., 1.),
+            'dropout': 0,
+            'learning_rate': (0., 1.)
+        })
 
     def run(self, args, n_jobs=-1):
         train, test = train_test_split(list(self.events.keys()))

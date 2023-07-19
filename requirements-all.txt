@@ -42,4 +42,5 @@ pytest
 pytest-cov
 
 # metaparameter optimizer
-hpbandster
+smac<2
+configspace

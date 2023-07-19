@@ -16,6 +16,7 @@ dependencies:
 
 # black box hyperparameter optimization
   - smac
+  - configspace
 
 # notebooks
 # full jupyter is not needed, just ipykernel to register this env as a kernel in the server's jupyter
