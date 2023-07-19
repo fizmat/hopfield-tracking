@@ -4,60 +4,39 @@ from argparse import ArgumentError
 from typing import Dict, Tuple
 
 import ConfigSpace as CS
-import numpy as np
 import pandas as pd
+from ConfigSpace import Configuration
 from smac.facade.smac_bb_facade import SMAC4BB
 from smac.scenario.scenario import Scenario
 
 from datasets import get_hits, get_datasets
-from hopfield.energy.cross import cross_energy_matrix
-from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
-from hopfield.iterate import annealing_curve, hopfield_history
+from hopfield import iterate
 from metrics.tracks import track_metrics
-from segment.candidate import gen_seg_layered
 from segment.track import gen_seg_track_layered
 
 logging.basicConfig(level=logging.WARNING)
 
 
 class MyWorker:
-    def __init__(self, n_events, total_steps, dataset, *args, **kwargs):
+    def __init__(self, n_events, total_steps, dataset):
         self.total_steps = total_steps
         self.dataset = dataset.lower()
-        hits = get_hits(self.dataset, n_events=n_events * 2)
-        events = hits.event_id.unique()
-        self.train_batch = [hits[hits.event_id == event] for event in events[:n_events]]
-        self.test_batch = [hits[hits.event_id == event] for event in events[n_events:]]
+        self.hits = get_hits(self.dataset, n_events=n_events)
 
-    def compute(self, config: Dict, instance, seed: int) -> Tuple[float, Dict]:
-        score = []
-        for batch in (self.train_batch, self.test_batch):
-            event_metrics = []
-            for hits in batch:
-                hits.reset_index(drop=True, inplace=True)
-                pos = hits[['x', 'y', 'z']].to_numpy()
-                seg = gen_seg_layered(hits)
-                pairs = segment_adjacent_pairs(seg)
-                crossing_matrix = cross_energy_matrix(seg)
-                curvature_matrix = curvature_energy_matrix(pos, seg, pairs, config['alpha'], config['gamma'],
-                                                           config['cosine_power'], config['cosine_min_rewarded'],
-                                                           config['distance_power'], config['cosine_min_allowed'])
-                energy_matrix = crossing_matrix + curvature_matrix
-                temp_curve = annealing_curve(config['tmin'], config['tmax'], config['anneal_steps'],
-                                             config['total_steps'] - config['anneal_steps'])
-                starting_act = np.full(len(seg), config['starting_act'])
-                act = hopfield_history(energy_matrix, temp_curve, starting_act, config['dropout'], config['learning_rate'],
-                                       config['bias'])[-1]
-                tseg = gen_seg_track_layered(hits)
-                event_metrics.append(track_metrics(hits, seg, tseg, act, config['threshold']))
-            event_metrics = pd.DataFrame(event_metrics)
-            score.append(event_metrics.mean().to_dict())
+    def compute(self, config: Configuration, instance, seed: int) -> Tuple[float, Dict]:
+        event_metrics = []
+        config = config.get_dictionary().copy()
+        threshold = config.pop('threshold')
+        for eid, event in self.hits.groupby('event_id'):
+            event.reset_index(drop=True, inplace=True)
+            seg, acts = iterate.run(event, **config)
+            tseg = gen_seg_track_layered(event)
+            event_metrics.append(track_metrics(event, seg, tseg, acts[-1], threshold))
+        event_metrics = pd.DataFrame(event_metrics)
+        score = event_metrics.mean()
         return (
-            1. - score[0]['trackml'],
-            {
-                "train_score": score[0],
-                "test_score": score[1]
-            }
+            1. - score.trackml,
+            score.to_dict()
         )
 
     def get_configspace(self):
@@ -70,12 +49,11 @@ class MyWorker:
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_allowed', lower=-1, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('cosine_min_rewarded', lower=0, upper=1))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('distance_power', lower=0, upper=3))
-        config_space.add_hyperparameter(CS.Constant('tmin', value=1.))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('tmax', lower=1, upper=100))
-        config_space.add_hyperparameter(CS.Constant('total_steps', value=self.total_steps))
-        config_space.add_hyperparameter(
-            CS.UniformIntegerHyperparameter('anneal_steps', lower=0, upper=self.total_steps))
-        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('starting_act', lower=0, upper=1))
+        config_space.add_hyperparameter(CS.Constant('t_min', value=1.))
+        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('t_max', lower=1, upper=100))
+        config_space.add_hyperparameter(CS.Constant('cooling_steps', value=20))
+        config_space.add_hyperparameter(CS.Constant('rest_steps', value=5))
+        config_space.add_hyperparameter(CS.UniformFloatHyperparameter('initial_act', lower=0, upper=1))
         config_space.add_hyperparameter(CS.Constant('dropout', value=0))
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
         return config_space
@@ -93,7 +71,6 @@ def run(args):
         scenario.output_dir = args.output_directory
         scenario.input_psmac_dirs = args.output_directory
     scenario.shared_model = args.batch
-
 
     optimizer = SMAC4BB(scenario=scenario, tae_runner=worker.compute)
     best_config = optimizer.optimize()
@@ -124,7 +101,8 @@ def main():
     best_config, history, trajectory = run(args)
     print(pd.DataFrame([best_config]).T)
     print(pd.DataFrame(trajectory).drop(columns='incumbent').T)
-    for (config_id, instance_id, seed, budget), (cost, time, status, starttime, endtime, additional_info) in history.data.items():
+    for (config_id, instance_id, seed, budget), (
+            cost, time, status, starttime, endtime, additional_info) in history.data.items():
         print(config_id, instance_id, seed, budget)
         print(cost, time, status, starttime, endtime, additional_info)
 

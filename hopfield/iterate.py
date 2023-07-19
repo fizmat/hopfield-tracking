@@ -10,7 +10,8 @@ from datasets import get_hits
 from hopfield.energy import energy_gradient
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
-from metrics.tracks import trackml_score
+from metrics.tracks import trackml_score, track_metrics
+from metrics.segments import gen_perfect_act
 from segment.candidate import gen_seg_layered
 from segment.track import gen_seg_track_layered
 
@@ -49,32 +50,53 @@ def should_stop(act: ndarray, acts: List[ndarray], min_act_change: float = 1e-5,
     return max(np.max(act - a0) for a0 in acts[-lookback:]) < min_act_change
 
 
-def main():
-    from vispy import app
-    from vispy.scene import SceneCanvas
-    from metrics.segments import gen_perfect_act
-    from hopfield.plot import _act_view, _result_view
-
-    event = get_hits('spdsim', 1)
+def run(event: pd.DataFrame,
+        alpha, gamma,
+        cosine_min_rewarded, cosine_min_allowed, cosine_power,
+        distance_power,
+        t_min, t_max, cooling_steps, rest_steps,
+        initial_act, learning_rate, bias, dropout=0):
     pos = event[['x', 'y', 'z']].to_numpy()
     seg = gen_seg_layered(event)
     pairs = segment_adjacent_pairs(seg)
     crossing_matrix = cross_energy_matrix(seg)
-    curvature_matrix = curvature_energy_matrix(pos, seg, pairs, alpha=17, gamma=14,
-                                               cosine_threshold=0.8, cosine_min_allowed=-0.8, curvature_cosine_power=9,
-                                               distance_prod_power_in_denominator=1.)
+    curvature_matrix = curvature_energy_matrix(
+        pos, seg, pairs, alpha=alpha, gamma=gamma,
+        cosine_threshold=cosine_min_rewarded, cosine_min_allowed=cosine_min_allowed,
+        curvature_cosine_power=cosine_power,
+        distance_prod_power_in_denominator=distance_power
+    )
     energy_matrix = crossing_matrix + curvature_matrix
-    temp_curve = annealing_curve(1., 11.5, 20, 80)
-    starting_act = np.full(len(seg), 0.92)
-    acts = hopfield_history(energy_matrix, temp_curve, starting_act, learning_rate=0.165, bias=1.1)
+    temp_curve = annealing_curve(t_min, t_max, cooling_steps, rest_steps)
+    starting_act = np.full(len(seg), initial_act)
+    return seg, hopfield_history(energy_matrix, temp_curve, starting_act,
+                                 learning_rate=learning_rate, bias=bias, dropout=dropout)
+
+
+def metric_history(event:pd.DataFrame, seg:ndarray, acts: List[ndarray], threshold: float) -> pd.DataFrame:
+    tseg = gen_seg_track_layered(event)
+    return pd.DataFrame([track_metrics(event, seg, tseg, act, threshold) for act in acts])
+
+
+def main():
+    from vispy import app
+    from vispy.scene import SceneCanvas
+    from hopfield.plot import _act_view, _result_view
+
+    event = get_hits('spdsim', 1)
+    seg, acts = run(event, alpha=1, gamma=2,
+                    cosine_power=3, cosine_min_allowed=-2, cosine_min_rewarded=0.8,
+                    distance_power=0.,
+                    t_min=1, t_max=10, cooling_steps=100, rest_steps=10,
+                    initial_act=0.5, learning_rate=0.1, bias=-2)
 
     canvas = SceneCanvas(bgcolor='white', size=(1024, 768))
     grid = canvas.central_widget.add_grid()
     tseg = gen_seg_track_layered(event)
     perfect_act = gen_perfect_act(seg, tseg)
     act = acts[-1]
-    df = pd.DataFrame({'trackml_score': [trackml_score(event, seg, a) for a in acts]})
-    df.plot()
+    metrics = metric_history(event, seg, acts, threshold=0.5)
+    metrics.plot()
     plt.show()
     act_view = _act_view(event, seg, act)
     grid.add_widget(act_view)
