@@ -1,20 +1,16 @@
-from ConfigSpace import ConfigurationSpace
-from smac.facade.smac_bb_facade import SMAC4BB
-from smac.scenario.scenario import Scenario
+from ConfigSpace import ConfigurationSpace, Configuration
+from smac import HyperparameterOptimizationFacade, Scenario
 
 
-def evaluate(config):
+def evaluate(config: Configuration, seed: int = 0) -> float:
     return config['x'] ** 2 + 10 * config['y'] ** 2
 
 
 def test_smac():
-    scenario = Scenario({
-        'run_obj': 'quality',
-        'runcount-limit': 10,
-        'cs': ConfigurationSpace({'x': (-1., 1.), 'y': (-1., 1.)})
-    })
-    optimizer = SMAC4BB(scenario=scenario, tae_runner=evaluate)
-    best_config = optimizer.optimize()
+    scenario = Scenario(ConfigurationSpace({'x': (-1., 1.), 'y': (-1., 1.)}),
+                        deterministic=True, n_trials=100)
+    smac = HyperparameterOptimizationFacade(scenario, evaluate)
+    best_config = smac.optimize()
     print(best_config)
 
 

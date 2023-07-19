@@ -6,7 +6,7 @@ dependencies:
   - pandas
   - numpy
   - scipy
-  - scikit-learn<1.2  # newer not compatible with smac3==1.4
+  - scikit-learn
   - networkx
 
 # parallelism
@@ -15,7 +15,7 @@ dependencies:
   - py-cpuinfo
 
 # black box hyperparameter optimization
-  - smac
+  - smac~=2.0
 
 # notebooks
   - jupyter

@@ -6,7 +6,7 @@ dependencies:
   - pandas
   - numpy
   - scipy
-  - scikit-learn<1.2  # newer not compatible with smac3==1.4
+  - scikit-learn
   - networkx
 
 # parallelism
@@ -41,7 +41,7 @@ dependencies:
   - pytest-cov
   - pip
   - pip:
-      - smac<2.0 # black box hyperparameter optimization
+      - smac~=2.0 # black box hyperparameter optimization
       - configspace
       - simplejpeg>=1.7.0rc1 # release candidate for apple silicon
       - line-profiler-pycharm
