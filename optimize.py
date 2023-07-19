@@ -6,7 +6,7 @@ from typing import Dict, Tuple
 import ConfigSpace as CS
 import pandas as pd
 from ConfigSpace import Configuration
-from smac.facade.smac_bb_facade import SMAC4BB
+from smac.facade.smac_hpo_facade import SMAC4HPO
 from smac.scenario.scenario import Scenario
 
 from datasets import get_hits, get_datasets
@@ -17,21 +17,17 @@ from segment.track import gen_seg_track_layered
 logging.basicConfig(level=logging.WARNING)
 
 
-class MyWorker:
-    def __init__(self, n_events, total_steps, dataset):
-        self.total_steps = total_steps
-        self.dataset = dataset.lower()
-        self.hits = get_hits(self.dataset, n_events=n_events)
+class Optimizer:
+    def __init__(self, dataset: str, n_events: int = None):
+        self.hits = get_hits(dataset, n_events=n_events)
 
-    def compute(self, config: Configuration, instance, seed: int) -> Tuple[float, Dict]:
+    def compute(self, config: Configuration) -> Tuple[float, Dict]:
         event_metrics = []
-        config = config.get_dictionary().copy()
-        threshold = config.pop('threshold')
         for eid, event in self.hits.groupby('event_id'):
             event.reset_index(drop=True, inplace=True)
-            seg, acts = iterate.run(event, **config)
+            seg, acts, positives = iterate.run(event, **config)
             tseg = gen_seg_track_layered(event)
-            event_metrics.append(track_metrics(event, seg, tseg, acts[-1], threshold))
+            event_metrics.append(track_metrics(event, seg, tseg, acts[-1], positives[-1]))
         event_metrics = pd.DataFrame(event_metrics)
         score = event_metrics.mean()
         return (
@@ -58,23 +54,21 @@ class MyWorker:
         config_space.add_hyperparameter(CS.UniformFloatHyperparameter('learning_rate', lower=0, upper=1))
         return config_space
 
+    def run(self, args):
+        scenario = Scenario({
+            'run_obj': 'quality',
+            'runcount-limit': args.runcount_limit,
+            'cs': self.get_configspace()
+        })
 
-def run(args):
-    worker = MyWorker(n_events=args.max_budget, total_steps=args.hopfield_iterations, dataset=args.dataset)
-    scenario = Scenario({
-        "run_obj": "quality",
-        "runcount-limit": args.runcount_limit,
-        'cs': worker.get_configspace(),
-    })
+        if args.output_directory:
+            scenario.output_dir = args.output_directory
+            scenario.input_psmac_dirs = args.output_directory
+        scenario.shared_model = args.batch
 
-    if args.output_directory:
-        scenario.output_dir = args.output_directory
-        scenario.input_psmac_dirs = args.output_directory
-    scenario.shared_model = args.batch
-
-    optimizer = SMAC4BB(scenario=scenario, tae_runner=worker.compute)
-    best_config = optimizer.optimize()
-    return best_config, optimizer.get_runhistory(), optimizer.get_trajectory()
+        optimizer = SMAC4HPO(scenario=scenario, tae_runner=self.compute)
+        best_config = optimizer.optimize()
+        return best_config, optimizer.get_runhistory(), optimizer.get_trajectory()
 
 
 def main():
@@ -98,7 +92,7 @@ def main():
     if args.batch:
         raise ArgumentError(args.shared_directory,
                             'Shared output directory is required when running in a batch system')
-    best_config, history, trajectory = run(args)
+    best_config, history, trajectory = Optimizer(args.dataset, args.max_budget).run(args)
     print(pd.DataFrame([best_config]).T)
     print(pd.DataFrame(trajectory).drop(columns='incumbent').T)
     for (config_id, instance_id, seed, budget), (

@@ -65,7 +65,7 @@ def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
 
 
 def track_metrics(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
-                  act: np.ndarray, threshold: float) -> Dict[str, int]:
+                  act: np.ndarray, positive: np.ndarray) -> Dict[str, int]:
     # perfect_act = gen_perfect_act(seg, tseg)
     # reds = np.sum((act > threshold) & (perfect_act < threshold))
     # segmented_tracks = build_segmented_tracks(event).values()
@@ -75,20 +75,20 @@ def track_metrics(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
         # 'reds': reds,
         # 'tracks': tracks,
         # 'crosses': crosses,
-        'trackml': trackml_score(event, seg, act, threshold)
+        'trackml': trackml_score(event, seg, positive)
     }
 
 
-def reconstruct_tracks(seg: np.ndarray, act: np.ndarray, threshold: float = 0.5) -> pd.DataFrame:
-    g = nx.Graph([(a, b) for a, b in seg[act > threshold]])
+def reconstruct_tracks(seg: np.ndarray, positive: np.ndarray) -> pd.DataFrame:
+    g = nx.Graph([(a, b) for a, b in seg[positive]])
     df = pd.DataFrame([(hit_id, track_id)
                        for track_id, hit_indices in enumerate(nx.connected_components(g))
                        for hit_id in hit_indices], columns=('hit_id', 'track_id'))
     return df
 
 
-def trackml_score(event, seg, act, threshold=0.5):
-    reconstruction = reconstruct_tracks(seg, act, threshold)
+def trackml_score(event, seg, positive):
+    reconstruction = reconstruct_tracks(seg, positive)
     truth = event.reset_index().rename(columns={'index': 'hit_id', 'track': 'particle_id'})
     if 'weight' not in truth:
         truth['weight'] = 1.
@@ -102,7 +102,7 @@ def main():
     seg = gen_seg_layered(event)
     tseg = gen_seg_track_sequential(event)
     act = gen_perfect_act(seg, tseg)
-    print(trackml_score(event, seg, act))
+    print(trackml_score(event, seg, act >= 0.5))
 
 
 if __name__ == '__main__':
