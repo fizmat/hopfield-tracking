@@ -64,14 +64,19 @@ def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
     return (kol_crosses // 2)
 
 
-def track_metrics(hits: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
+def track_metrics(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
                   act: np.ndarray, threshold: float) -> Dict[str, int]:
-    perfect_act = gen_perfect_act(seg, tseg)
-    reds = np.sum((act > threshold) & (perfect_act < threshold))
-    segmented_tracks = build_segmented_tracks(hits).values()
-    tracks = found_tracks(seg, act, segmented_tracks)
-    crosses = found_crosses(seg, act)
-    return {'reds': reds, 'tracks': tracks, 'crosses': crosses}
+    # perfect_act = gen_perfect_act(seg, tseg)
+    # reds = np.sum((act > threshold) & (perfect_act < threshold))
+    # segmented_tracks = build_segmented_tracks(event).values()
+    # tracks = found_tracks(seg, act, segmented_tracks)
+    # crosses = found_crosses(seg, act)
+    return {
+        # 'reds': reds,
+        # 'tracks': tracks,
+        # 'crosses': crosses,
+        'trackml': trackml_score(event, seg, act, threshold)
+    }
 
 
 def reconstruct_tracks(seg: np.ndarray, act: np.ndarray, threshold: float = 0.5) -> pd.DataFrame:

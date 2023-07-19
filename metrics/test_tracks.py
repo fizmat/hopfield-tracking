@@ -65,13 +65,17 @@ def test_found_crosses():
 
 
 def test_track_metrics():
-    assert track_metrics(_hits, _seg, _tseg, np.zeros(len(_seg)), 0.5) == {'reds': 0, 'tracks': 1, 'crosses': 0}
-    assert track_metrics(_hits, _seg, _tseg, np.ones(len(_seg)), 0.5) == {'reds': 15, 'tracks': 3, 'crosses': 36}
+    assert track_metrics(_hits, _seg, _tseg, np.zeros(len(_seg)), 0.5) == {'trackml': 0.0}
+    #{'reds': 0, 'tracks': 1, 'crosses': 0}
+    assert track_metrics(_hits, _seg, _tseg, np.ones(len(_seg)), 0.5) == {'trackml': 0.0}
+    #{'reds': 15, 'tracks': 3, 'crosses': 36}
     assert track_metrics(_hits, _seg, _tseg, np.array([1, 0, 0, 0, 1, 0, 0, 0, 1,
-                                                       1, 0, 0, 0, 1, 0, 0, 0, 1]), 0.5) == {'reds': 3,
-                                                                                             'tracks': 3,
-                                                                                             'crosses': 0}
+                                                       1, 0, 0, 0, 1, 0, 0, 0, 1]), 0.5) == {'trackml': 0.7142857142857142}
+                                                                                            # {'reds': 3,
+                                                                                            #  'tracks': 3,
+                                                                                            #  'crosses': 0}
     assert track_metrics(_hits, _seg, _tseg, np.array([0, 0, 0, 0, 0, 0, 0, 0, 1,
-                                                       1, 0, 0, 0, 0, 0, 0, 0, 1]), 0.5) == {'reds': 0,
-                                                                                             'tracks': 3,
-                                                                                             'crosses': 0}
+                                                       1, 0, 0, 0, 0, 0, 0, 0, 1]), 0.5) == {'trackml': 0.7142857142857142}
+                                                                                            # {'reds': 0,
+                                                                                            #  'tracks': 3,
+                                                                                            #  'crosses': 0}
