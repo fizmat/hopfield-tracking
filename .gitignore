@@ -14,3 +14,4 @@ data/**/*.zip
 tox_conda_tmp*.yaml
 venv/
 smac3-output_*/
+*.png
