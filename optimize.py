@@ -34,9 +34,9 @@ class Optimizer:
         seg, acts, positives = iterate.run(event, **config)
         tseg = gen_seg_track_layered(event)
         score = track_metrics(event, seg, tseg, acts[-1], positives[-1])
-        score['total_steps'] = config['cooling_steps'] + config['rest_steps']
-        score['trackml_loss'] = 1. - score['trackml score']
-        return score
+        score['total steps'] = config['cooling_steps'] + config['rest_steps']
+        score['trackml loss'] = 1. - score['trackml score']
+        return score['trackml loss']
 
     def get_configspace(self):
         config_space = CS.ConfigurationSpace()
@@ -65,8 +65,7 @@ class Optimizer:
             'runcount-limit': args.runcount_limit,
             'cs': self.get_configspace(),
             'instances': [[s] for s in train],
-            'test_instances': [[s] for s in test],
-            'multi_objectives': ['trackml_loss', 'total_steps', 'false positive segments']
+            'test_instances': [[s] for s in test]
         })
 
         if args.output_directory:
@@ -124,19 +123,17 @@ def main():
     plot_result(event, seg, act, perfect_act, positives[-1]).show()
     df_val = pd.DataFrame([{'kind': 'train',
                             'event': int(k.instance_id),
-                            'trackml_cost': v.cost[0],
-                            'fp': v.cost[2]}
+                            'trackml_cost': v.cost
+                            }
                            for k, v in vtrain_history.items()] +
                           [{'kind': 'test',
                             'event': int(k.instance_id),
-                            'trackml_cost': v.cost[0],
-                            'fp': v.cost[2]}
+                            'trackml_cost': v.cost
+                            }
                            for k, v in vtest_history.items()]
                           ).set_index('event').sort_index()
     print(df_val)
     sns.stripplot(data=df_val, y='trackml_cost', x='kind')
-    plt.show()
-    sns.stripplot(data=df_val, y='fp', x='kind')
     plt.show()
     app.run()
 
