@@ -6,13 +6,16 @@ dependencies:
   - pandas
   - numpy
   - scipy
-  - scikit-learn
+  - scikit-learn<1.2  # newer not compatible with smac3==1.4
   - networkx
 
 # parallelism
   - tqdm
   - pathos
   - py-cpuinfo
+
+# black box hyperparameter optimization
+  - pyrfr
 
 # notebooks
   - jupyter
@@ -38,7 +41,7 @@ dependencies:
   - pytest-cov
   - pip
   - pip:
-      - hpbandster  # black box hyperparameter optimization
+      - smac<2.0 # black box hyperparameter optimization
       - simplejpeg>=1.7.0rc1 # release candidate for apple silicon
       - line-profiler-pycharm
       - git+https://github.com/LAL/trackml-library@master#egg=trackml  # trackml dataset reader
