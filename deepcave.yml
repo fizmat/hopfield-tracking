@@ -1,0 +1,12 @@
+name: deepcave
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python~=3.9.0
+  - numpy
+  - pandas
+  - pyrfr  # to avoid needing swig for installing from pip
+  - pip
+  - pip:
+      - deepcave
