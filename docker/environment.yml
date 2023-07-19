@@ -1,0 +1,44 @@
+name: hopfield-tracking
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python<3.11  # pyrfr (required by smac) from pypi does not support 3.11 for now
+
+  - pandas
+  - numpy
+  - scipy
+  - scikit-learn<1.2  # newer not compatible with smac3==1.4
+  - networkx
+
+# parallelism
+  - tqdm
+  - pathos
+  - py-cpuinfo
+
+# notebooks
+  - jupyter
+  - jupyterlab
+  - nb-clean  # for git commit filter for jupyter
+
+# plotting
+  - seaborn
+  - holoviews
+  - bokeh
+  - matplotlib
+  - plotly
+
+# opengl plotting
+  - vispy
+  - jupyter-rfb
+
+# dev
+  - memory_profiler
+  - line_profiler
+  - pytest
+  - pytest-cov
+  - pip
+  - pip:
+      - simplejpeg
+      - line-profiler-pycharm
+      - git+https://github.com/LAL/trackml-library@master#egg=trackml  # trackml dataset reader
