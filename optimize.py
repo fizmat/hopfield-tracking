@@ -25,7 +25,6 @@ def main():
         'cooling_steps': (1, 100),
         'rest_steps': (1, 50),
         'initial_act': (0., 1.),
-        'dropout': 0,
         'learning_rate': (0., 1.)
     })
 

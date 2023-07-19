@@ -17,12 +17,12 @@ from segment.track import gen_seg_track_layered
 
 
 def hopfield_history(energy_matrix: spmatrix, temp_curve: np.ndarray, starting_act: np.ndarray,
-                     dropout: float = 0, learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
+                    learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
     act = starting_act.copy()
     acts = [act.copy()]
     for i, t in enumerate(temp_curve):
         grad = energy_gradient(energy_matrix, act)
-        update_layer_grad(act, grad, t, dropout, learning_rate, bias)
+        update_layer_grad(act, grad, t, learning_rate, bias)
         acts.append(act.copy())
     return acts
 
@@ -33,17 +33,11 @@ def annealing_curve(t_min: float, t_max: float, cooling_steps: int, rest_steps: 
         np.full(rest_steps, t_min)])
 
 
-def update_layer_grad(act: ndarray, grad: ndarray, t: float, dropout_rate: float = 0.,
+def update_layer_grad(act: ndarray, grad: ndarray, t: float,
                       learning_rate: float = 1., bias: float = 0.) -> None:
     n = len(act)
-    if dropout_rate:
-        not_dropout = np.random.choice(n, round(n * (1. - dropout_rate)), replace=False)
-        next_act = 0.5 * (1 + np.tanh((- grad[not_dropout] + bias) / t))
-        updated_act = next_act * learning_rate + act[not_dropout] * (1. - learning_rate)
-        act[not_dropout] = updated_act
-    else:
-        next_act = 0.5 * (1 + np.tanh((- grad + bias) / t))
-        act[:] = next_act * learning_rate + act * (1. - learning_rate)
+    next_act = 0.5 * (1 + np.tanh((- grad + bias) / t))
+    act[:] = next_act * learning_rate + act * (1. - learning_rate)
 
 
 def should_stop(act: ndarray, acts: List[ndarray], min_act_change: float = 1e-5, lookback: int = 1) -> bool:
@@ -55,7 +49,7 @@ def run(event: pd.DataFrame,
         cosine_min_rewarded, cosine_min_allowed, cosine_power,
         distance_op, distance_power,
         t_min, t_max, cooling_steps, rest_steps,
-        initial_act, learning_rate, bias, threshold=0.5, dropout=0):
+        initial_act, learning_rate, bias, threshold=0.5):
     pos = event[['x', 'y', 'z']].to_numpy()
     seg = gen_seg_layered(event)
     pairs = segment_adjacent_pairs(seg)
@@ -70,7 +64,7 @@ def run(event: pd.DataFrame,
     temp_curve = annealing_curve(t_min, t_max, cooling_steps, rest_steps)
     starting_act = np.full(len(seg), initial_act)
     acts = hopfield_history(energy_matrix, temp_curve, starting_act,
-                            learning_rate=learning_rate, bias=bias, dropout=dropout)
+                            learning_rate=learning_rate, bias=bias)
     positive = [act >= threshold for act in acts]
     return seg, acts, positive
 
