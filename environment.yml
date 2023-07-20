@@ -19,7 +19,7 @@ dependencies:
 
 # notebooks
   - jupyter
-  - jupyterlab
+  - notebook<7 # for vispy widget
   - nb-clean  # for git commit filter for jupyter
 
 # plotting

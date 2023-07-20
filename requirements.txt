@@ -11,7 +11,7 @@ git+https://github.com/LAL/trackml-library@master#egg=trackml
 
 # jupyter notebooks for prototyping and easy visualizing results
 jupyter
-jupyterlab
+notebook<7 # for vispy widget
 nb-clean # clean up notebook outputs before git commit
 
 # plotting libraries
