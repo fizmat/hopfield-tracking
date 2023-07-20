@@ -13,6 +13,7 @@ git+https://github.com/LAL/trackml-library@master#egg=trackml
 tqdm # progress bar
 pathos # easy parallelization library
 py-cpuinfo # log cpu info together with performance
+dask # mainly for report now
 
 # jupyter notebooks for prototyping and easy visualizing results
 jupyter

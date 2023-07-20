@@ -13,6 +13,7 @@ dependencies:
   - tqdm
   - pathos
   - py-cpuinfo
+  - dask
 
 # black box hyperparameter optimization
   - pyrfr
