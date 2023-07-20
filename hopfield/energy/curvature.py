@@ -1,8 +1,10 @@
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 from numpy import ndarray
 from scipy.sparse import coo_matrix, csr_matrix
+from sklearn.utils.extmath import cartesian
 
 
 def curvature_pairwise(a: ndarray, b: ndarray, c: ndarray, do_sum_r: bool = True) -> Tuple[ndarray, ndarray]:
@@ -28,20 +30,23 @@ def curvature_energy(cosines: np.ndarray, denominator: np.ndarray,
     return alpha * kink - gamma * curve
 
 
-def segment_adjacent_pairs(seg: ndarray) -> ndarray:
-    n = len(seg)
-    if n == 0:
-        return np.empty((0, 2), dtype=int)
-    starts = seg[:, 0]
-    ends = seg[:, 1]
+def group_curve(a: ndarray, b: ndarray) -> Tuple[ndarray, ndarray]:
+    a = pd.DataFrame({'hit_id': a}).groupby('hit_id').apply(lambda g: g.index)
+    b = pd.DataFrame({'hit_id': b}).groupby('hit_id').apply(lambda g: g.index)
+    df = pd.concat((a, b), axis=1, join='inner')
     ii = []
     jj = []
-    for i in range(n):
-        is_kink = starts == ends[i]
-        jj.append(is_kink.nonzero()[0])
-        ii.append([i] * len(jj[-1]))
-    jj = [j for aj in jj for j in aj]
-    ii = [i for ai in ii for i in ai]
+    for _, (a, b) in df.iterrows():
+        ij = cartesian([a, b])
+        ii.append(ij[:, 0])
+        jj.append(ij[:, 1])
+    ii = np.concatenate(ii) if ii else np.empty(0, int)
+    jj = np.concatenate(jj) if jj else np.empty(0, int)
+    return ii, jj
+
+
+def segment_adjacent_pairs(seg: ndarray) -> ndarray:
+    ii, jj = group_curve(seg[:, 1], seg[:, 0])
     return np.stack([ii, jj], axis=1)
 
 
