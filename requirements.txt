@@ -9,6 +9,11 @@ networkx # graph library to reconstruct tracks for the trackml score function
 # also provides a tracking quality score function
 git+https://github.com/LAL/trackml-library@master#egg=trackml
 
+# parallelization of the brute force plotting of neighbor filter effectiveness
+tqdm # progress bar
+pathos # easy parallelization library
+py-cpuinfo # log cpu info together with performance
+
 # jupyter notebooks for prototyping and easy visualizing results
 jupyter
 notebook<7 # for vispy widget
@@ -35,3 +40,7 @@ line-profiler-pycharm
 # unit testing libraries
 pytest
 pytest-cov
+
+# metaparameter optimizer
+smac~=2
+configspace

@@ -3,16 +3,11 @@ pandas # tables (dataframes)
 numpy # arrays
 scipy # sparse matrices
 scikit-learn # nearest neighbors filter and error metrics
-networkx # graph library to reconstruct tracks fro trackml score function
+networkx # graph library to reconstruct tracks for the trackml score function
 
 # utility to read trackml data
-# also provides a tracking quality metric function
+# also provides a tracking quality score function
 git+https://github.com/LAL/trackml-library@master#egg=trackml
-
-# parallelization of the brute force plotting of neighbor filter effectiveness
-tqdm # progress bar
-pathos # easy parallelization library
-py-cpuinfo # log cpu info together with performance
 
 # jupyter notebooks for prototyping and easy visualizing results
 jupyter
@@ -40,7 +35,3 @@ line-profiler-pycharm
 # unit testing libraries
 pytest
 pytest-cov
-
-# metaparameter optimizer
-smac~=2
-configspace
