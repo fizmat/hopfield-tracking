@@ -28,15 +28,15 @@ def main():
         'learning_rate': (0., 1.)
     })
 
-    N_EVENTS = 20
+    N_EVENTS = 3
     scenario = Scenario(
         configspace,
-        n_trials=200,
-        n_workers=-1,
+        n_trials=10,
+        n_workers=1,
         min_budget=1,
         max_budget=N_EVENTS
     )
-    events = get_hits('spdsim', n_events=N_EVENTS, n_noise_hits=100, event_size=10)
+    events = get_hits('spdsim', n_events=N_EVENTS, n_noise_hits=1000, event_size=10)
 
     events = {eid: event.reset_index(drop=True) for eid, event in events.groupby('event_id')}
     eids = tuple(events.keys())
@@ -54,7 +54,7 @@ def main():
             scores.append(score)
         return pd.DataFrame(scores).mean()['trackml loss']
 
-    optimizer = MultiFidelityFacade(scenario, evaluate)
+    optimizer = MultiFidelityFacade(scenario, evaluate, overwrite=True)
     best_config = optimizer.optimize()
     print(dict(best_config))
     print(pd.DataFrame(optimizer.intensifier.trajectory))
