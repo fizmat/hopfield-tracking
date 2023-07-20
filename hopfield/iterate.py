@@ -45,11 +45,11 @@ def should_stop(act: ndarray, acts: List[ndarray], min_act_change: float = 1e-5,
 
 
 def run(event: pd.DataFrame,
-        alpha, gamma,
-        cosine_min_rewarded, cosine_min_allowed, cosine_power,
-        distance_op, distance_power,
-        t_min, t_max, cooling_steps, rest_steps,
-        initial_act, learning_rate, bias, threshold=0.5):
+        alpha=1., gamma=1.,
+        cosine_min_rewarded=.0, cosine_min_allowed=-1., cosine_power=1.0,
+        distance_op='sum', distance_power=1.,
+        t_min=1.0, t_max=1.0, cooling_steps=50, rest_steps=50,
+        initial_act=0.5, learning_rate=1.0, bias=0., threshold=0.5):
     pos = event[['x', 'y', 'z']].to_numpy()
     seg = gen_seg_layered(event)
     pairs = segment_adjacent_pairs(seg)
