@@ -43,5 +43,5 @@ pytest
 pytest-cov
 
 # metaparameter optimizer
-smac~=2
+smac~=2.0
 configspace
