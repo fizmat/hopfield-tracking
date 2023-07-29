@@ -24,8 +24,7 @@ def hopfield_history(energy_matrix: spmatrix, temp_curve: np.ndarray, starting_a
 def anneal(energy_matrix: spmatrix, temp_curve: np.ndarray, act: np.ndarray,
            learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
     for t in temp_curve:
-        grad = energy_gradient(energy_matrix, act)
-        update_layer_grad(act, grad, t, learning_rate, bias)
+        update_act_bulk(energy_matrix, act, t, learning_rate, bias)
         yield act
 
 
@@ -35,10 +34,10 @@ def annealing_curve(t_min: float, t_max: float, cooling_steps: int, rest_steps: 
         np.full(rest_steps, t_min)])
 
 
-def update_layer_grad(act: ndarray, grad: ndarray, t: float,
-                      learning_rate: float = 1., bias: float = 0.) -> None:
-    n = len(act)
-    next_act = 0.5 * (1 + np.tanh((- grad + bias) / t))
+def update_act_bulk(energy_matrix: spmatrix, act: ndarray, temperature: float = 1.,
+                    learning_rate: float = 1., bias: float = 0.) -> None:
+    grad = energy_gradient(energy_matrix, act)
+    next_act = 0.5 * (1 + np.tanh((- grad + bias) / temperature))
     act[:] = next_act * learning_rate + act * (1. - learning_rate)
 
 
@@ -61,8 +60,7 @@ def run(event: pd.DataFrame,
     energy_matrix = crossing_matrix + curvature_matrix
     temp_curve = annealing_curve(t_min, t_max, cooling_steps, rest_steps)
     starting_act = np.full(len(seg), initial_act)
-    acts = hopfield_history(energy_matrix, temp_curve, starting_act,
-                            learning_rate=learning_rate, bias=bias)
+    acts = hopfield_history(energy_matrix, temp_curve, starting_act, learning_rate, bias)
     positive = [act >= threshold for act in acts]
     return seg, acts, positive
 

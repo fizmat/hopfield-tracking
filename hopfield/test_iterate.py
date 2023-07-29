@@ -1,22 +1,36 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal_nulp
-from pytest import approx
+import pytest
+from numpy.testing import assert_array_almost_equal_nulp, assert_allclose
+from scipy.sparse import csr_matrix
 
-from hopfield.iterate import annealing_curve, update_layer_grad
+from hopfield.iterate import annealing_curve, update_act_bulk
 
 
 def test_annealing_curve():
     assert_array_almost_equal_nulp(annealing_curve(10, 40, 3, 2), [40., 20, 10, 10, 10])
 
 
-def test_update_layer_grad():
-    grad = np.array([0., 1.])
-    sigmoid_minus_one = 1 / (1 + np.exp(2.))
-    assert sigmoid_minus_one == approx(0.5 * (1 + np.tanh(-1)))
-    act = np.array([.5, .5])
-    update_layer_grad(act, grad, 1.)
-    assert_array_almost_equal_nulp(act, [.5, sigmoid_minus_one], 2)
-    act = np.array([.5, .5])
-    update_layer_grad(act, grad, 1., learning_rate=0.5)
-    assert_array_almost_equal_nulp(act, [.5, (0.5 + sigmoid_minus_one) / 2], 2)
-    act = np.array([.5, .5])
+class TestUpdateActBulk:
+    @pytest.fixture
+    def energy_matrix(self):
+        return csr_matrix(np.array([[0, 1], [1, 0]]))
+
+    @pytest.fixture
+    def act(self):
+        return np.array([0., 1.])
+
+    def test_trivial(self, energy_matrix, act):
+        update_act_bulk(energy_matrix, act)
+        assert_allclose(act, [0.5 * (1 + np.tanh((- 2))), .5])
+
+    def test_learning_rate(self, energy_matrix, act):
+        update_act_bulk(energy_matrix, act, learning_rate=0.5)
+        assert_allclose(act, [0.25 * (1 + np.tanh((- 2))), .75])
+
+    def test_temperature(self, energy_matrix, act):
+        update_act_bulk(energy_matrix, act, temperature=2.)
+        assert_allclose(act, [0.5 * (1 + np.tanh((-1))), .5])
+
+    def test_bias(self, energy_matrix, act):
+        update_act_bulk(energy_matrix, act, bias=1.)
+        assert_allclose(act, [0.5 * (1 + np.tanh((-1))), 0.5 * (1 + np.tanh(1))])
