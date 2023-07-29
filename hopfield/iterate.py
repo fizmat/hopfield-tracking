@@ -1,4 +1,5 @@
-from typing import List
+from functools import partial
+from typing import List, Callable
 
 import numpy as np
 import pandas as pd
@@ -18,14 +19,14 @@ from segment.track import gen_seg_track_layered
 
 
 def hopfield_history(energy_matrix: spmatrix, temp_curve: np.ndarray, starting_act: np.ndarray,
-                     learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
-    return [act.copy() for act in anneal(energy_matrix, temp_curve, starting_act, learning_rate, bias)]
+                     update_act: Callable, bias: float = 0) -> List[np.ndarray]:
+    return [act.copy() for act in anneal(energy_matrix, temp_curve, starting_act, update_act, bias)]
 
 
 def anneal(energy_matrix: spmatrix, temp_curve: np.ndarray, act: np.ndarray,
-           learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
+           update_act: Callable, bias: float = 0.) -> List[np.ndarray]:
     for t in temp_curve:
-        update_act_bulk(energy_matrix, act, t, learning_rate, bias)
+        update_act(energy_matrix, act, temperature=t, bias=bias)
         yield act
 
 
@@ -66,7 +67,7 @@ def run(event: pd.DataFrame,
         cosine_min_rewarded=.0, cosine_min_allowed=-1., cosine_power=1.0,
         distance_op='sum', distance_power=1.,
         t_min=1.0, t_max=1.0, cooling_steps=50, rest_steps=50,
-        initial_act=0.5, learning_rate=1.0, bias=0., threshold=0.5):
+        initial_act=0.5, learning_rate=1.0, bias=0., use_sequential_update=False, threshold=0.5):
     pos = event[['x', 'y', 'z']].to_numpy()
     seg = gen_seg_layered(event)
     pairs = segment_adjacent_pairs(seg)
@@ -80,7 +81,9 @@ def run(event: pd.DataFrame,
     energy_matrix = crossing_matrix + curvature_matrix
     temp_curve = annealing_curve(t_min, t_max, cooling_steps, rest_steps)
     starting_act = np.full(len(seg), initial_act)
-    acts = hopfield_history(energy_matrix, temp_curve, starting_act, learning_rate, bias)
+    update_act = update_act_sequential if use_sequential_update else partial(update_act_bulk,
+                                                                             learning_rate=learning_rate)
+    acts = hopfield_history(energy_matrix, temp_curve, starting_act, update_act, bias)
     positive = [act >= threshold for act in acts]
     return seg, acts, positive
 
