@@ -10,6 +10,7 @@ dependencies:
   - scipy
   - scikit-learn
   - networkx
+  - numba
 
 # notebooks
   - jupyter

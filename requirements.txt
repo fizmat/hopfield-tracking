@@ -4,6 +4,7 @@ numpy # arrays
 scipy # sparse matrices
 scikit-learn # nearest neighbors filter and error metrics
 networkx # graph library to reconstruct tracks for the trackml score function
+numba # compile python and numpy functions
 
 # utility to read trackml data
 # also provides a tracking quality score function

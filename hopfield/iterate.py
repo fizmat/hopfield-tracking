@@ -3,8 +3,9 @@ from typing import List
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from numba import njit
 from numpy import ndarray
-from scipy.sparse import spmatrix
+from scipy.sparse import spmatrix, csr_matrix
 
 from datasets import get_hits
 from hopfield.energy import energy_gradient
@@ -39,6 +40,25 @@ def update_act_bulk(energy_matrix: spmatrix, act: ndarray, temperature: float = 
     grad = energy_gradient(energy_matrix, act)
     next_act = 0.5 * (1 + np.tanh((- grad + bias) / temperature))
     act[:] = next_act * learning_rate + act * (1. - learning_rate)
+
+
+@njit
+def _update_act_sequential(indptr: ndarray, indices: ndarray, data: ndarray,
+                           act: ndarray, temperature: float = 1.,
+                           bias: float = 0.) -> None:
+    for i in range(len(act)):
+        a, b = indptr[i], indptr[i + 1]
+        ind = indices[a:b]
+        val = data[a:b]
+        grad = 2 * (act[ind] * val).sum()
+        act[i] = 0.5 * (1 + np.tanh((- grad + bias) / temperature))
+
+
+def update_act_sequential(energy_matrix: csr_matrix,
+                          act: ndarray, temperature: float = 1.,
+                          bias: float = 0.) -> None:
+    _update_act_sequential(energy_matrix.indptr, energy_matrix.indices, energy_matrix.data,
+                           act, temperature, bias)
 
 
 def run(event: pd.DataFrame,
