@@ -94,7 +94,7 @@ def main():
     plt.show()
     act_view = _act_view(event, seg, act)
     grid.add_widget(act_view)
-    grid.add_widget(_result_view(event, seg, act, perfect_act, camera=act_view.camera))
+    grid.add_widget(_result_view(event, seg, act, perfect_act, positive=positives[-1], camera=act_view.camera))
     canvas.show()
     app.run()
 
