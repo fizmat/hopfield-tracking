@@ -42,10 +42,6 @@ def update_layer_grad(act: ndarray, grad: ndarray, t: float,
     act[:] = next_act * learning_rate + act * (1. - learning_rate)
 
 
-def should_stop(act: ndarray, acts: List[ndarray], min_act_change: float = 1e-5, lookback: int = 1) -> bool:
-    return max(np.max(act - a0) for a0 in acts[-lookback:]) < min_act_change
-
-
 def run(event: pd.DataFrame,
         alpha=1., gamma=1.,
         cosine_min_rewarded=.0, cosine_min_allowed=-1., cosine_power=1.0,
