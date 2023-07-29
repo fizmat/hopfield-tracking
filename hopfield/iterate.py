@@ -17,14 +17,16 @@ from segment.track import gen_seg_track_layered
 
 
 def hopfield_history(energy_matrix: spmatrix, temp_curve: np.ndarray, starting_act: np.ndarray,
-                    learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
-    act = starting_act.copy()
-    acts = [act.copy()]
-    for i, t in enumerate(temp_curve):
+                     learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
+    return [act.copy() for act in anneal(energy_matrix, temp_curve, starting_act, learning_rate, bias)]
+
+
+def anneal(energy_matrix: spmatrix, temp_curve: np.ndarray, act: np.ndarray,
+           learning_rate: float = 1, bias: float = 0) -> List[np.ndarray]:
+    for t in temp_curve:
         grad = energy_gradient(energy_matrix, act)
         update_layer_grad(act, grad, t, learning_rate, bias)
-        acts.append(act.copy())
-    return acts
+        yield act
 
 
 def annealing_curve(t_min: float, t_max: float, cooling_steps: int, rest_steps: int) -> np.ndarray:
