@@ -62,32 +62,6 @@ def update_act_sequential(energy_matrix: csr_matrix,
                            act, temperature, bias)
 
 
-def run(event: pd.DataFrame,
-        alpha=1., gamma=1.,
-        cosine_min_rewarded=.0, cosine_min_allowed=-1., cosine_power=1.0,
-        distance_op='sum', distance_power=1.,
-        t_min=1.0, t_max=1.0, cooling_steps=50, rest_steps=50,
-        initial_act=0.5, learning_rate=1.0, bias=0., use_sequential_update=False, threshold=0.5):
-    pos = event[['x', 'y', 'z']].to_numpy()
-    seg = gen_seg_layered(event)
-    pairs = segment_adjacent_pairs(seg)
-    crossing_matrix = alpha * cross_energy_matrix(seg)
-    curvature_matrix = curvature_energy_matrix(
-        pos, seg, pairs, alpha=alpha, gamma=gamma,
-        cosine_threshold=cosine_min_rewarded, cosine_min_allowed=cosine_min_allowed,
-        curvature_cosine_power=cosine_power,
-        do_sum_r=distance_op == 'sum', distance_prod_power_in_denominator=distance_power
-    )
-    energy_matrix = crossing_matrix + curvature_matrix
-    temp_curve = annealing_curve(t_min, t_max, cooling_steps, rest_steps)
-    starting_act = np.full(len(seg), initial_act)
-    update_act = update_act_sequential if use_sequential_update else partial(update_act_bulk,
-                                                                             learning_rate=learning_rate)
-    acts = hopfield_history(energy_matrix, temp_curve, starting_act, update_act, bias)
-    positive = [act >= threshold for act in acts]
-    return seg, acts, positive
-
-
 def metric_history(event: pd.DataFrame, seg: ndarray, tseg: ndarray, acts: List[ndarray],
                    positives: List[ndarray]) -> pd.DataFrame:
     return pd.DataFrame([track_metrics(event, seg, tseg, act, positive) for act, positive in zip(acts, positives)])
@@ -99,11 +73,19 @@ def main():
     from hopfield.plot import _act_view, _result_view
 
     event = get_hits('spdsim', 1)
-    seg, acts, positives = run(event, alpha=1, gamma=2,
-                               cosine_power=3, cosine_min_allowed=-2, cosine_min_rewarded=0.8,
-                               distance_op='sum', distance_power=0.,
-                               t_min=1, t_max=10, cooling_steps=100, rest_steps=10,
-                               initial_act=0.5, learning_rate=0.1, bias=-2)
+    alpha = 1.
+    seg = gen_seg_layered(event)
+    crossing_matrix = alpha * cross_energy_matrix(seg)
+    curvature_matrix = curvature_energy_matrix(
+        pos=event[['x', 'y', 'z']].to_numpy(), seg=seg, pairs=segment_adjacent_pairs(seg),
+        alpha=alpha, gamma=2., distance_prod_power_in_denominator=0.
+    )
+    energy_matrix = crossing_matrix + curvature_matrix
+    temp_curve = annealing_curve(1., 10., cooling_steps=100, rest_steps=10)
+    starting_act = np.full(len(seg), 0.5)
+    update_act = partial(update_act_bulk, learning_rate=0.1)
+    acts = hopfield_history(energy_matrix, temp_curve, starting_act, update_act, bias=-2)
+    positives = [act >= 0.5 for act in acts]
 
     canvas = SceneCanvas(bgcolor='white', size=(1024, 768))
     grid = canvas.central_widget.add_grid()
