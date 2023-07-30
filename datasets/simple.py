@@ -7,13 +7,13 @@ from numpy import ndarray
 from numpy.random import default_rng
 
 
-def get_hits_simple(n_events: Optional[int] = 100, event_size: Optional[int] = 10) -> pd.DataFrame:
+def get_hits_simple(n_events: Optional[int] = 100, event_size: Optional[int] = 10, seed=1) -> pd.DataFrame:
     if n_events is None:
         n_events = 100
     if event_size is None:
         event_size = 10
     hits_list = []
-    for i, event in enumerate(SimpleEventGenerator().gen_many_events(n_events, event_size)):
+    for i, event in enumerate(SimpleEventGenerator(seed=seed).gen_many_events(n_events, event_size)):
         hits, seg = event
         hits['event_id'] = i
         hits_list.append(hits)
@@ -28,7 +28,7 @@ def get_hits_simple_one_event(event_size=10):
 
 class SimpleEventGenerator:
     def __init__(self, halfwidth_degrees: float = 15, n_layers: int = 8, layers_thickness=0.5,
-                 field_strength=1., xy_hit_deviation=0.005, noisiness=1., seed=None, box_size=None):
+                 field_strength=1., xy_hit_deviation=0.005, noisiness=1., seed=1, box_size=None):
         self.halfwidth = math.radians(halfwidth_degrees)
         self.rng = default_rng(seed)
         self.n_layers = n_layers
