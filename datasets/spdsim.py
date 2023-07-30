@@ -73,6 +73,7 @@ def gen_spdsim(n_events=100, event_size=10, efficiency=1., n_noise_hits=100, see
     radii = np.linspace(270, 850, 35)  # mm
     rng = random.Random(seed)
     np_rng = np.random.default_rng(seed)
+    np_rng2 = np.random.default_rng(seed)  # for coordinate measurement error, should not depend on n_events
 
     records = []
     for evt in range(0, n_events):
@@ -109,11 +110,16 @@ def gen_spdsim(n_events=100, event_size=10, efficiency=1., n_noise_hits=100, see
     hits = pd.DataFrame(records,
                         columns=['evt', 'x', 'y', 'z', 'station', 'trk',
                                  'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
-    hits.z += np_rng.normal(0, 0.1, len(hits))
-    phit = np.arctan2(hits.x, hits.y)
-    delta = np_rng.normal(0, 0.1, len(hits))
-    hits.x += delta * np.sin(phit)
-    hits.y -= delta * np.cos(phit)
+
+    def add_measurement_error(hits):
+        hits.z += np_rng2.normal(0, 0.1, len(hits))
+        phit = np.arctan2(hits.x, hits.y)
+        delta = np_rng2.normal(0, 0.1, len(hits))
+        hits.x += delta * np.sin(phit)
+        hits.y -= delta * np.cos(phit)
+        return hits
+
+    hits = hits.groupby('evt').apply(add_measurement_error)
     return hits
 
 

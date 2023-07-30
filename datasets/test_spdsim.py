@@ -27,3 +27,8 @@ def test_spdsim_same_seed():
 def test_spdsim_different_seed():
     with pytest.raises(AssertionError):
         assert_array_equal(get_hits_spdsim(seed=13), get_hits_spdsim(seed=1))
+
+
+def test_spdsim_generates_the_same_event_sequence():
+    hits = get_hits_spdsim()
+    assert_array_equal(get_hits_spdsim(2), hits[hits.event_id < 2])
