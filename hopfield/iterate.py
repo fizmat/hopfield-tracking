@@ -71,7 +71,7 @@ def run(event: pd.DataFrame,
     pos = event[['x', 'y', 'z']].to_numpy()
     seg = gen_seg_layered(event)
     pairs = segment_adjacent_pairs(seg)
-    crossing_matrix = cross_energy_matrix(seg)
+    crossing_matrix = alpha * cross_energy_matrix(seg)
     curvature_matrix = curvature_energy_matrix(
         pos, seg, pairs, alpha=alpha, gamma=gamma,
         cosine_threshold=cosine_min_rewarded, cosine_min_allowed=cosine_min_allowed,
