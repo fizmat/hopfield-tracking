@@ -54,51 +54,53 @@ def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: flo
     return stations, x, y, z, tax, tay, pz
 
 
-def get_hits_spdsim_one_event(event_size=10, efficiency=1., n_noise_hits=100):
-    return get_hits_spdsim(1, event_size, efficiency, n_noise_hits)
+def get_hits_spdsim_one_event(event_size=10, efficiency=1., n_noise_hits=100, seed=1):
+    return get_hits_spdsim(1, event_size, efficiency, n_noise_hits, seed)
 
 
 def get_hits_spdsim(n_events: Optional[int] = 100, event_size: Optional[int] = 10,
-                    efficiency: float = 1., n_noise_hits: int = 100) -> pd.DataFrame:
+                    efficiency: float = 1., n_noise_hits: int = 100, seed=1) -> pd.DataFrame:
     if n_events is None:
         n_events = 100
     if event_size is None:
         event_size = 10
-    return gen_spdsim(n_events, event_size, efficiency, n_noise_hits).rename(
+    return gen_spdsim(n_events, event_size, efficiency, n_noise_hits, seed).rename(
         columns={'station': 'layer', 'evt': 'event_id', 'trk': 'track'}
     )[['x', 'y', 'z', 'layer', 'track', 'event_id']]
 
 
-def gen_spdsim(n_events=100, event_size=10, efficiency=1., n_noise_hits=100):
+def gen_spdsim(n_events=100, event_size=10, efficiency=1., n_noise_hits=100, seed=1):
     radii = np.linspace(270, 850, 35)  # mm
+    rng = random.Random(seed)
+    np_rng = np.random.default_rng(seed)
 
     records = []
     for evt in range(0, n_events):
-        vtxx = random.gauss(0, 10)
-        vtxy = random.gauss(0, 10)
-        vtxz = random.uniform(-300, 300)  # mm
+        vtxx = rng.gauss(0, 10)
+        vtxy = rng.gauss(0, 10)
+        vtxz = rng.uniform(-300, 300)  # mm
         ntrk = event_size
         for trk in range(0, ntrk):
             while True:
-                pt = random.uniform(100, 1000)  # MeV/c
-                phi = random.uniform(0, 2 * pi)
-                theta = math.acos(random.uniform(-1, 1))
-                charge = random.choice((-1, 1))
+                pt = rng.uniform(100, 1000)  # MeV/c
+                phi = rng.uniform(0, 2 * pi)
+                theta = math.acos(rng.uniform(-1, 1))
+                charge = rng.choice((-1, 1))
                 stations, x, y, z, px, py, pz = extrapolate_to_r(pt, charge, theta, phi, vtxz, radii)
                 if np.logical_and(z < 2386, z > -2386).sum() > 5:
                     break
             for i, station in enumerate(stations):
                 if z[i] >= 2386 or z[i] <= -2386:
                     continue
-                if random.uniform(0, 1) > efficiency:
+                if rng.uniform(0, 1) > efficiency:
                     continue
                 records.append((evt, x[i], y[i], z[i], station, trk, px[i], py[i], pz, vtxx, vtxy, vtxz))
 
         nhit = n_noise_hits
-        sta = np.random.randint(0, 35, nhit)
+        sta = np_rng.integers(0, 35, nhit)
         r = radii[sta]
-        phi = np.random.uniform(0, 2 * pi, nhit)
-        z = np.random.uniform(-2386, 2386, nhit)
+        phi = np_rng.uniform(0, 2 * pi, nhit)
+        z = np_rng.uniform(-2386, 2386, nhit)
         x = r * np.cos(phi)
         y = r * np.sin(phi)
         for i in range(nhit):
@@ -107,9 +109,9 @@ def gen_spdsim(n_events=100, event_size=10, efficiency=1., n_noise_hits=100):
     hits = pd.DataFrame(records,
                         columns=['evt', 'x', 'y', 'z', 'station', 'trk',
                                  'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
-    hits.z += np.random.normal(0, 0.1, len(hits))
+    hits.z += np_rng.normal(0, 0.1, len(hits))
     phit = np.arctan2(hits.x, hits.y)
-    delta = np.random.normal(0, 0.1, len(hits))
+    delta = np_rng.normal(0, 0.1, len(hits))
     hits.x += delta * np.sin(phit)
     hits.y -= delta * np.cos(phit)
     return hits
