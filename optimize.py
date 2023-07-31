@@ -5,7 +5,7 @@ import pandas as pd
 from ConfigSpace import ConfigurationSpace, Configuration
 from smac import Scenario, MultiFidelityFacade
 
-from datasets import get_hits
+from datasets import get_hits, bman
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import curvature_energy_matrix, kink_energy_matrix, \
     prep_curvature
@@ -33,52 +33,64 @@ CONFIG_DEFAULTS = {
 }
 
 
-def main():
-    configspace = ConfigurationSpace({
-        'alpha': (0., 20.),
-        'gamma': (0., 20.),
-        'bias': (-10.0, 10.0),
-        'cosine_power': (0.0, 20.0),
-        'cosine_min_allowed': (-1., 1.),
-        'cosine_min_rewarded': (0., 1.),
-        'distance_op': ['sum', 'prod'],
-        'distance_power': (0., 3.),
-        't_max': (1., 100.),
-        'cooling_steps': (1, 100),
-        'rest_steps': (1, 50),
-        'initial_act': (0., 1.),
-        'learning_rate': (0., 1.)
-    })
+def preprocess(g):
+    event = g.reset_index(drop=True)
+    seg = gen_seg_layered(event)
+    pairs, cosines, r1, r2 = prep_curvature(event[['x', 'y', 'z']].to_numpy(), seg)
+    return {
+        'event': event,
+        'seg': seg,
+        'pairs': pairs,
+        'cosines': cosines,
+        'r1': r1,
+        'r2': r2,
+        'cross_matrix': cross_energy_matrix(seg),
+    }
 
-    N_EVENTS = 3
+
+def main():
+    N_EVENTS = 50
+    N_TRIALS = 200
+
+    hits = get_hits('bman', n_events=N_EVENTS)
+    hits[['x', 'y', 'z']] /= bman.LAYER_DIST
+    hits = hits[hits['track'] != -1]
+    geometry = hits.groupby('event_id').apply(preprocess)
+
+    extra_conf = {
+        'cooling_steps': 50,
+        'rest_steps': 5,
+    }
+
     scenario = Scenario(
-        configspace,
-        n_trials=10,
-        n_workers=1,
+        ConfigurationSpace({
+            'alpha': (0., 1000.),
+            'gamma': (0., 2000.),
+            'bias': (-200.0, 200.0),
+            'cosine_power': (0.0, 50.0),
+            'cosine_min_rewarded': (0., 1.),
+            't_max': (1., 1000.),
+            'initial_act': (0., 1.),
+        }),
+        'bulk-norate',
+        n_trials=N_TRIALS,
         min_budget=1,
         max_budget=N_EVENTS
     )
-    events = get_hits('spdsim', n_events=N_EVENTS, n_noise_hits=1000, event_size=10)
 
-    events = {eid: event.reset_index(drop=True) for eid, event in events.groupby('event_id')}
-    eids = tuple(events.keys())
-
-    def evaluate(config: Configuration, seed: int, budget: float = 10) -> float:
+    def evaluate(config: Configuration, seed: int, budget: float) -> float:
         conf = CONFIG_DEFAULTS.copy()
+        conf.update(extra_conf)
         conf.update(config)
         rng = np.random.default_rng(seed=seed)
         scores = []
-        for eid in rng.choice(eids, int(budget), replace=False):
-            event = events[eid]
-            seg = gen_seg_layered(event)
-            crossing_matrix = cross_energy_matrix(seg)
-            pairs, cosines, r1, r2 = prep_curvature(event[['x', 'y', 'z']].to_numpy(), seg)
+        for eid in rng.choice(geometry.index, int(budget), replace=False):
+            event, seg, pairs, cosines, r1, r2, crossing_matrix = geometry[eid].values()
             curvature_matrix = curvature_energy_matrix(
                 len(seg), pairs, cosines, r1, r2,
                 cosine_power=conf['cosine_power'], cosine_threshold=conf['cosine_min_rewarded'],
                 distance_power=conf['distance_power']
             )
-
             kink_matrix = kink_energy_matrix(len(seg), pairs, cosines, conf['cosine_min_allowed'])
             energy_matrix = conf['alpha'] * (crossing_matrix + kink_matrix) - conf['gamma'] * curvature_matrix
             temp_curve = annealing_curve(conf['t_min'], conf['t_max'],
