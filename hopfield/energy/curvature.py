@@ -17,16 +17,17 @@ def _curvature_pairwise(a: ndarray, b: ndarray, c: ndarray) -> Tuple[ndarray, nd
     return cosines, r1, r2
 
 
-def curvature_energy(cosines: np.ndarray, denominator: np.ndarray,
-                     alpha: float, gamma: float,
-                     cosine_power: float = 3., cosine_threshold: float = 0.,
-                     distance_prod_power_in_denominator: float = 1.,
-                     cosine_min_allowed: float = -2.) -> ndarray:
+def _curvature_energy_pairwise(cosines: np.ndarray, r1: np.ndarray, r2: np.ndarray,
+                               cosine_power: float = 3., cosine_threshold: float = 0.,
+                               distance_power: float = 1., sum_distances: bool = True) -> ndarray:
     curve = cosines.copy()
     curve[cosines < cosine_threshold] = 0
-    curve = curve ** cosine_power / denominator ** distance_prod_power_in_denominator
-    kink = (cosines < cosine_min_allowed).astype(int)
-    return alpha * kink - gamma * curve
+    denominator = r1 + r2 if sum_distances else r1 * r2
+    return curve ** cosine_power / denominator ** distance_power
+
+
+def _kink_energy_pairwise(cosines: np.ndarray, kink_threshold: float = 0.) -> ndarray:
+    return (cosines < kink_threshold).astype(int)
 
 
 def _find_indices_with_equal_values(a: ndarray, b: ndarray) -> Tuple[ndarray, ndarray]:
@@ -49,23 +50,26 @@ def find_consecutive_segments(seg: ndarray) -> ndarray:
     return np.stack([ii, jj], axis=1)
 
 
-def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
-                            alpha: float, gamma: float,
-                            curvature_cosine_power: float = 3.,
-                            cosine_threshold: float = 0.,
-                            do_sum_r: bool = True,
-                            distance_prod_power_in_denominator: float = 1.,
-                            cosine_min_allowed: float = -2.) -> csr_matrix:
-    if len(pairs) == 0:
-        return csr_matrix(np.empty((len(seg), len(seg)), dtype=float))
+def prep_curvature(pos: ndarray, seg: ndarray) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    pairs = find_consecutive_segments(seg)
     s1, s2 = seg[pairs.T]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
     cosines, r1, r2 = _curvature_pairwise(a, b, c)
-    denominator = r1 + r2 if do_sum_r else r1 * r2
-    w = curvature_energy(cosines, denominator, alpha, gamma, cosine_power=curvature_cosine_power,
-                         cosine_threshold=cosine_threshold,
-                         distance_prod_power_in_denominator=distance_prod_power_in_denominator,
-                         cosine_min_allowed=cosine_min_allowed)
-    m = coo_matrix((w, pairs.T), shape=(len(seg), len(seg)))
+    return pairs, cosines, r1, r2
+
+
+def curvature_energy_matrix(size: int, pairs: ndarray,
+                            cosines: ndarray, r1: ndarray, r2: ndarray,
+                            cosine_power: float = 3., cosine_threshold: float = 0.,
+                            distance_power: float = 1., do_sum_distances: bool = True):
+    v = _curvature_energy_pairwise(cosines, r1, r2, cosine_power, cosine_threshold, distance_power, do_sum_distances)
+    m = coo_matrix((v, pairs.T), shape=(size, size))
     m.eliminate_zeros()
-    return (m + m.transpose()).tocsr()
+    m = m.tocsr()
+    return m + m.transpose()
+
+
+def kink_energy_matrix(size: int, pairs: ndarray, cosines: ndarray, kink_threshold: float = 0.) -> csr_matrix:
+    v = _kink_energy_pairwise(cosines, kink_threshold)
+    m = coo_matrix((v, pairs.T), shape=(size, size)).tocsr()
+    return m + m.transpose()

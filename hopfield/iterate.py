@@ -1,4 +1,3 @@
-from functools import partial
 from typing import List, Callable
 
 import numpy as np
@@ -11,9 +10,9 @@ from scipy.sparse import spmatrix, csr_matrix
 from datasets import get_hits
 from hopfield.energy import energy_gradient
 from hopfield.energy.cross import cross_energy_matrix
-from hopfield.energy.curvature import find_consecutive_segments, curvature_energy_matrix
+from hopfield.energy.curvature import curvature_energy_matrix, kink_energy_matrix, prep_curvature
 from metrics.segments import gen_perfect_act
-from metrics.tracks import track_metrics, trackml_score
+from metrics.tracks import track_metrics
 from segment.candidate import gen_seg_layered
 from segment.track import gen_seg_track_layered
 
@@ -77,18 +76,22 @@ def main():
     event = event[event.event_id == 1].reset_index(drop=True)
     event[['x', 'y', 'z']] /= bman.LAYER_DIST
     alpha = 924.3062112667407
+    gamma = 740.3731323900522
     seg = gen_seg_layered(event)
-    crossing_matrix = alpha * cross_energy_matrix(seg)
+    crossing_matrix = cross_energy_matrix(seg)
+    pairs, cosines, r1, r2 = prep_curvature(event[['x', 'y', 'z']].to_numpy(), seg)
     curvature_matrix = curvature_energy_matrix(
-        pos=event[['x', 'y', 'z']].to_numpy(), seg=seg, pairs=find_consecutive_segments(seg),
-        cosine_threshold=0.5658048189789646, curvature_cosine_power=45.37892813716288,
-        alpha=alpha, gamma=740.3731323900522, distance_prod_power_in_denominator=0.
+        len(seg), pairs, cosines, r1, r2,
+        cosine_power=45.37892813716288,
+        cosine_threshold=0.5658048189789646,
+        distance_power=0.
     )
-    energy_matrix = crossing_matrix + curvature_matrix
+    kink_matrix = kink_energy_matrix(len(seg), pairs, cosines, kink_threshold=0.)
+    energy_matrix = alpha * crossing_matrix - gamma * curvature_matrix + alpha * kink_matrix
     temp_curve = annealing_curve(1., 449.20928874777286, cooling_steps=50, rest_steps=0)
     starting_act = np.full(len(seg), 0.027148322467310068)
     update_act = update_act_sequential
-    acts = hopfield_history(energy_matrix, temp_curve, starting_act, update_act, bias=-1.3528558786458618,)
+    acts = hopfield_history(energy_matrix, temp_curve, starting_act, update_act, bias=-1.3528558786458618, )
     positives = [act >= 0.5 for act in acts]
 
     canvas = SceneCanvas(bgcolor='white', size=(1024, 768))
