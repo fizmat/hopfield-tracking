@@ -57,3 +57,12 @@ def get_hits_trackml_one_event_by_volume():
     hits = hits[hits.volume_id == 7]
     hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
     return hits
+
+
+def main():
+    df = get_hits_trackml()
+    df.info()
+
+
+if __name__ == '__main__':
+    main()
