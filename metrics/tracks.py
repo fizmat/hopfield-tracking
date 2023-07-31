@@ -87,6 +87,8 @@ def reconstruct_tracks(seg: np.ndarray, positive: np.ndarray) -> pd.DataFrame:
 
 def score_event(truth, submission):
     tracks = _analyze_tracks(truth, submission)
+    # TODO: also zero score weight for one-hit track hits?
+    tracks = tracks[np.logical_not(np.isnan(tracks.track_id))]
     purity_rec = np.true_divide(tracks['major_nhits'], tracks['nhits'])
     purity_maj = np.true_divide(tracks['major_nhits'], tracks['major_particle_nhits'])
     good_track = (0.5 < purity_rec) & (0.5 < purity_maj)
@@ -103,8 +105,6 @@ def trackml_score(event, seg, positive):
     trackml, n_tracks_good = score_event(truth, reconstruction)
     fakes = n_tracks_total - n_tracks_good
     missed = len(set(truth.particle_id) - {-1}) - n_tracks_good
-    if fakes == -1:
-        print(reconstruction.groupby('track_id').count())
     return trackml, fakes, missed
 
 
