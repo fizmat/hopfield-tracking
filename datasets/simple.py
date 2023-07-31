@@ -8,21 +8,24 @@ from numpy.random import default_rng
 
 LAYER_DIST = 0.5
 
-def get_hits_simple(n_events: Optional[int] = 100, event_size: Optional[int] = 10, seed=1) -> pd.DataFrame:
+
+def get_hits_simple(n_events: Optional[int] = 100, noisiness=1., event_size: Optional[int] = 10,
+                    seed=1) -> pd.DataFrame:
     if n_events is None:
         n_events = 100
     if event_size is None:
         event_size = 10
     hits_list = []
-    for i, event in enumerate(SimpleEventGenerator(seed=seed).gen_many_events(n_events, event_size)):
+    for i, event in enumerate(SimpleEventGenerator(
+            seed=seed, noisiness=noisiness).gen_many_events(n_events, event_size)):
         hits, seg = event
         hits['event_id'] = i
         hits_list.append(hits)
     return pd.concat(hits_list, ignore_index=True)
 
 
-def get_hits_simple_one_event(event_size=10):
-    hits, seg = next(SimpleEventGenerator().gen_many_events(1, event_size))
+def get_hits_simple_one_event(event_size=10, noisiness=1., seed=1):
+    hits, seg = next(SimpleEventGenerator(seed=seed, noisiness=noisiness).gen_many_events(1, event_size))
     hits['event_id'] = 0
     return hits
 
