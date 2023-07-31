@@ -4,6 +4,8 @@ from zipfile import ZipFile, BadZipFile
 
 import pandas as pd
 
+LAYER_DIST = 20.
+
 
 def _read(prefix: str = None, file: str = 'simdata_ArPb_3.2AGeV_mb_1.zip') -> pd.DataFrame:
     if prefix is None:

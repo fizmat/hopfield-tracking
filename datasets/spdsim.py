@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from numpy import pi
 
+LAYER_DIST = 35.  # mm
+
 
 def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: float, rc: np.ndarray
                      ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:

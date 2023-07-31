@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import Optional
 from zipfile import ZipFile
-from trackml.dataset import load_dataset, load_event
 
 import pandas as pd
+from trackml.dataset import load_dataset, load_event
+
+LAYER_DIST = 1e4  # actually peaks at 20 and 1e4-1e5
 
 
 def _transform(hits, blacklist_hits):

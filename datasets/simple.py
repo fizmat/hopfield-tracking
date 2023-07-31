@@ -6,6 +6,7 @@ import pandas as pd
 from numpy import ndarray
 from numpy.random import default_rng
 
+LAYER_DIST = 0.5
 
 def get_hits_simple(n_events: Optional[int] = 100, event_size: Optional[int] = 10, seed=1) -> pd.DataFrame:
     if n_events is None:
@@ -27,12 +28,12 @@ def get_hits_simple_one_event(event_size=10):
 
 
 class SimpleEventGenerator:
-    def __init__(self, halfwidth_degrees: float = 15, n_layers: int = 8, layers_thickness=0.5,
+    def __init__(self, halfwidth_degrees: float = 15, n_layers: int = 8,
                  field_strength=1., xy_hit_deviation=0.005, noisiness=1., seed=1, box_size=None):
         self.halfwidth = math.radians(halfwidth_degrees)
         self.rng = default_rng(seed)
         self.n_layers = n_layers
-        self.layers_thickness = layers_thickness
+        self.layers_thickness = LAYER_DIST
         self.field_strength = field_strength
         self.xy_hit_deviation = xy_hit_deviation
         self.noisiness = noisiness
