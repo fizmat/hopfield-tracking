@@ -9,7 +9,7 @@ from datasets import get_hits, bman
 from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import curvature_energy_matrix, kink_energy_matrix, \
     prep_curvature
-from hopfield.iterate import annealing_curve, update_act_bulk, anneal
+from hopfield.iterate import annealing_curve, update_act_bulk, anneal, update_act_sequential
 from metrics.segments import gen_perfect_act
 from metrics.tracks import track_metrics
 from segment.candidate import gen_seg_layered
@@ -54,12 +54,15 @@ def preprocess(g):
 
 
 def main():
-    N_EVENTS = 50
-    N_TRIALS = 200
+    N_EVENTS = 20
+    N_TRIALS = 100
 
     hits = get_hits('bman', n_events=N_EVENTS)
     hits[['x', 'y', 'z']] /= bman.LAYER_DIST
-    hits = hits[hits['track'] != -1]
+    hits = pd.concat([
+        hits[hits['track'] != -1],
+        hits[hits['track'] == -1].sample(frac=0.5)
+    ])
     geometry = hits.groupby('event_id').apply(preprocess)
 
     extra_conf = {
@@ -101,7 +104,8 @@ def main():
             temp_curve = annealing_curve(conf['t_min'], conf['t_max'],
                                          conf['cooling_steps'], conf['rest_steps'])
             act = np.full(len(seg), conf['initial_act'])
-            update_act = partial(update_act_bulk, learning_rate=conf['learning_rate'])
+            # update_act = partial(update_act_bulk, learning_rate=conf['learning_rate'])
+            update_act = update_act_sequential
             for _ in anneal(energy_matrix, temp_curve, act, update_act, bias=conf['bias']):
                 pass
 

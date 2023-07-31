@@ -3,7 +3,7 @@ from typing import List, Callable
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from numba import njit
+from numba import njit, prange
 from numpy import ndarray
 from scipy.sparse import spmatrix, csr_matrix
 
@@ -42,11 +42,12 @@ def update_act_bulk(energy_matrix: spmatrix, act: ndarray, temperature: float = 
     act[:] = next_act * learning_rate + act * (1. - learning_rate)
 
 
+# @njit(parallel=True) is a little faster, but causes unpredictable results and flaky tests
 @njit
 def _update_act_sequential(indptr: ndarray, indices: ndarray, data: ndarray,
                            act: ndarray, temperature: float = 1.,
                            bias: float = 0.) -> None:
-    for i in range(len(act)):
+    for i in prange(len(act)):
         a, b = indptr[i], indptr[i + 1]
         ind = indices[a:b]
         val = data[a:b]
