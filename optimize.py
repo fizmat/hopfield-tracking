@@ -36,10 +36,12 @@ CONFIG_DEFAULTS = {
 def preprocess(g):
     event = g.reset_index(drop=True)
     seg = gen_seg_layered(event)
+    tseg = gen_seg_track_layered(event)
     pairs, cosines, r1, r2 = prep_curvature(event[['x', 'y', 'z']].to_numpy(), seg)
     return {
         'event': event,
         'seg': seg,
+        'tseg': tseg,
         'pairs': pairs,
         'cosines': cosines,
         'r1': r1,
@@ -85,7 +87,7 @@ def main():
         rng = np.random.default_rng(seed=seed)
         scores = []
         for eid in rng.choice(geometry.index, int(budget), replace=False):
-            event, seg, pairs, cosines, r1, r2, crossing_matrix = geometry[eid].values()
+            event, seg, tseg, pairs, cosines, r1, r2, crossing_matrix = geometry[eid].values()
             curvature_matrix = curvature_energy_matrix(
                 len(seg), pairs, cosines, r1, r2,
                 cosine_power=conf['cosine_power'], cosine_threshold=conf['cosine_min_rewarded'],
@@ -99,7 +101,7 @@ def main():
             update_act = partial(update_act_bulk, learning_rate=conf['learning_rate'])
             for _ in anneal(energy_matrix, temp_curve, act, update_act, bias=conf['bias']):
                 pass
-            tseg = gen_seg_track_layered(event)
+
             positive = act > conf['threshold']
             score = track_metrics(event, seg, tseg, act, positive)
             score['total steps'] = conf['cooling_steps'] + conf['rest_steps']
