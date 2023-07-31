@@ -64,9 +64,10 @@ def found_crosses(seg: np.ndarray, act: np.ndarray) -> int:
     return (kol_crosses // 2)
 
 
-def track_metrics(event: pd.DataFrame, seg: np.ndarray, tseg: np.ndarray,
-                  act: np.ndarray, positive: np.ndarray) -> Dict[str, float]:
-    perfect_act = gen_perfect_act(seg, tseg)
+def track_metrics(event: pd.DataFrame,
+                  seg: np.ndarray, tseg: np.ndarray,
+                  act: np.ndarray, perfect_act: np.ndarray,
+                  positive: np.ndarray) -> Dict[str, float]:
     n_fp_seg = np.sum(positive & (perfect_act < 0.5))
     trackml, fakes, missed = trackml_score(event, seg, positive)
     return {

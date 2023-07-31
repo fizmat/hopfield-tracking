@@ -61,9 +61,10 @@ def update_act_sequential(energy_matrix: csr_matrix,
                            act, temperature, bias)
 
 
-def metric_history(event: pd.DataFrame, seg: ndarray, tseg: ndarray, acts: List[ndarray],
+def metric_history(event: pd.DataFrame, seg: ndarray, tseg: ndarray,
+                   acts: List[ndarray], perfect_act: ndarray,
                    positives: List[ndarray]) -> pd.DataFrame:
-    return pd.DataFrame([track_metrics(event, seg, tseg, act, positive) for act, positive in zip(acts, positives)])
+    return pd.DataFrame([track_metrics(event, seg, tseg, act, perfect_act, positive) for act, positive in zip(acts, positives)])
 
 
 def main():
@@ -99,7 +100,7 @@ def main():
     tseg = gen_seg_track_layered(event)
     perfect_act = gen_perfect_act(seg, tseg)
     act = acts[-1]
-    metrics = metric_history(event, seg, tseg, acts, positives)
+    metrics = metric_history(event, seg, tseg, acts, perfect_act, positives)
     metrics.plot()
     plt.show()
     act_view = _act_view(event, seg, act)

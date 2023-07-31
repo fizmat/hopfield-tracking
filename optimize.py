@@ -10,6 +10,7 @@ from hopfield.energy.cross import cross_energy_matrix
 from hopfield.energy.curvature import curvature_energy_matrix, kink_energy_matrix, \
     prep_curvature
 from hopfield.iterate import annealing_curve, update_act_bulk, anneal
+from metrics.segments import gen_perfect_act
 from metrics.tracks import track_metrics
 from segment.candidate import gen_seg_layered
 from segment.track import gen_seg_track_layered
@@ -37,11 +38,13 @@ def preprocess(g):
     event = g.reset_index(drop=True)
     seg = gen_seg_layered(event)
     tseg = gen_seg_track_layered(event)
+    perfect_act = gen_perfect_act(seg, tseg)
     pairs, cosines, r1, r2 = prep_curvature(event[['x', 'y', 'z']].to_numpy(), seg)
     return {
         'event': event,
         'seg': seg,
         'tseg': tseg,
+        'perfect_act': perfect_act,
         'pairs': pairs,
         'cosines': cosines,
         'r1': r1,
@@ -87,7 +90,7 @@ def main():
         rng = np.random.default_rng(seed=seed)
         scores = []
         for eid in rng.choice(geometry.index, int(budget), replace=False):
-            event, seg, tseg, pairs, cosines, r1, r2, crossing_matrix = geometry[eid].values()
+            event, seg, tseg, perfect_act, pairs, cosines, r1, r2, crossing_matrix = geometry[eid].values()
             curvature_matrix = curvature_energy_matrix(
                 len(seg), pairs, cosines, r1, r2,
                 cosine_power=conf['cosine_power'], cosine_threshold=conf['cosine_min_rewarded'],
@@ -103,7 +106,7 @@ def main():
                 pass
 
             positive = act > conf['threshold']
-            score = track_metrics(event, seg, tseg, act, positive)
+            score = track_metrics(event, seg, tseg, act, perfect_act, positive)
             score['total steps'] = conf['cooling_steps'] + conf['rest_steps']
             score['trackml loss'] = 1. - score['trackml score']
             scores.append(score)

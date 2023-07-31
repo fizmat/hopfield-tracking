@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from metrics.segments import gen_perfect_act
 from metrics.tracks import build_segmented_tracks, enumerate_segmented_track, found_tracks, found_crosses, \
     track_metrics, score_event
 
@@ -16,6 +17,7 @@ _seg = np.array([(0, 3), (0, 4), (0, 5),
 
 _tracks = {1: [], 3: [(2, 5), (5, 8)], 5: [(3, 6)]}
 _tseg = np.array([(2, 5), (5, 8), (3, 6)])
+_perfect_act = gen_perfect_act(_seg, _tseg)
 
 
 def test_build_segmented_tracks():
@@ -66,13 +68,13 @@ def test_found_crosses():
 def test_score_event():
     truth = pd.DataFrame({'hit_id': range(3),
                           'particle_id': [0, 0, 0],
-                          'weight': [1/3, 1/3, 1/3]})
+                          'weight': [1 / 3, 1 / 3, 1 / 3]})
     assert score_event(truth,
                        pd.DataFrame({'hit_id': range(3), 'track_id': [2, 2, 2]})) == (1, 1)
     assert score_event(truth,
                        pd.DataFrame({'hit_id': range(3), 'track_id': [1, 2, 3]})) == (0, 0)
     assert score_event(truth,
-                       pd.DataFrame({'hit_id': range(3), 'track_id': [0, 0, 1]})) == (2/3, 1)
+                       pd.DataFrame({'hit_id': range(3), 'track_id': [0, 0, 1]})) == (2 / 3, 1)
     truth = pd.DataFrame({'hit_id': range(3),
                           'particle_id': [0, 0, 0],
                           'weight': [1, 1, 1]})
@@ -81,31 +83,44 @@ def test_score_event():
     assert score_event(truth,
                        pd.DataFrame({'hit_id': range(3), 'track_id': [1, 2, 3]})) == (0, 0)
     assert score_event(truth,
-                       pd.DataFrame({'hit_id': range(3), 'track_id': [0, 0, 1]})) == (2/3, 1)
+                       pd.DataFrame({'hit_id': range(3), 'track_id': [0, 0, 1]})) == (2 / 3, 1)
 
 
-def test_track_metrics():
+def test_track_metrics_zeros():
     assert track_metrics(_hits, _seg, _tseg,
-                         np.zeros(len(_seg)),
+                         np.zeros(len(_seg)), _perfect_act,
                          np.full(len(_seg), False)) == {'false positive segments': 0,
                                                         'trackml score': 0.0,
                                                         'false tracks': 0,
                                                         'missed tracks': 3}
+
+
+def test_track_metrics_ones():
     assert track_metrics(_hits, _seg, _tseg,
-                         np.ones(len(_seg)),
+                         np.ones(len(_seg)), _perfect_act,
                          np.full(len(_seg), True)) == {'false positive segments': 15,
                                                        'trackml score': 0.0,
                                                        'false tracks': 1,
                                                        'missed tracks': 3}
+
+
+def test_track_metrics_fals_positives():
     act = np.array([1, 0, 0, 0, 1, 0, 0, 0, 1,
                     1, 0, 0, 0, 1, 0, 0, 0, 1]).astype(bool)
-    assert track_metrics(_hits, _seg, _tseg, act, act.astype(bool)) == {'trackml score': 0.7142857142857142,
-                                                                        'false positive segments': 3,
-                                                                        'false tracks': 0,
-                                                                        'missed tracks': 0}
+    assert track_metrics(_hits, _seg, _tseg,
+                         act, _perfect_act,
+                         act.astype(bool)) == {'trackml score': 0.7142857142857142,
+                                               'false positive segments': 3,
+                                               'false tracks': 0,
+                                               'missed tracks': 0}
+
+
+def test_track_metrics_missed():
     act = np.array([0, 0, 0, 0, 0, 0, 0, 0, 1,
                     1, 0, 0, 0, 0, 0, 0, 0, 1])
-    assert track_metrics(_hits, _seg, _tseg, act, act.astype(bool)) == {'trackml score': 0.7142857142857142,
-                                                                        'false positive segments': 0,
-                                                                        'false tracks': 0,
-                                                                        'missed tracks': 1}
+    assert track_metrics(_hits, _seg, _tseg,
+                         act, _perfect_act,
+                         act.astype(bool)) == {'trackml score': 0.7142857142857142,
+                                               'false positive segments': 0,
+                                               'false tracks': 0,
+                                               'missed tracks': 1}
