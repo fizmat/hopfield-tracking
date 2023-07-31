@@ -6,28 +6,22 @@ from hopfield.energy.curvature import curvature_pairwise, curvature_energy, curv
 from hopfield.energy import energy, energy_gradient
 
 
-def test_curvature_pairwise():
-    cosines, denominator = curvature_pairwise(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), False)
+def test_curvature_pairwise_empty():
+    cosines, rab, rbc = curvature_pairwise(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)))
     assert_array_equal(cosines, np.zeros(0))
-    assert_array_equal(denominator, np.zeros(0))
-    a = np.array([[0., 0], [0., 1], [0., 2], [0., 1]])
-    b = np.array([[1., 0], [1., 1], [1., 2], [1., 1]])
-    c = np.array([[2., 0], [2., 0], [3., 4], [0., 2]])
-    r2 = np.sqrt(2)
-    cosines, denominator = curvature_pairwise(a, b, c, False)
-    assert_array_equal(cosines, [1, 1/r2, 1/r2, -1/r2])
-    assert_array_equal(denominator, [1, r2, 2*r2, r2])
+    assert_array_equal(rab, np.zeros(0))
+    assert_array_equal(rbc, np.zeros(0))
 
-    cosines, denominator = curvature_pairwise(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), True)
-    assert_array_equal(cosines, np.zeros(0))
-    assert_array_equal(denominator, np.zeros(0))
+
+def test_curvature_pairwise():
     a = np.array([[0., 0], [0., 1], [0., 2], [0., 1]])
     b = np.array([[1., 0], [1., 1], [1., 2], [1., 1]])
     c = np.array([[2., 0], [2., 0], [3., 4], [0., 2]])
     r2 = np.sqrt(2)
-    cosines, denominator = curvature_pairwise(a, b, c, True)
+    cosines, rab, rbc = curvature_pairwise(a, b, c)
     assert_array_equal(cosines, [1, 1/r2, 1/r2, -1/r2])
-    assert_array_equal(denominator, [2, 1 + r2, 1 + 2*r2, 1 + r2])
+    assert_array_equal(rab, [1, 1, 1, 1])
+    assert_array_equal(rbc, [1, r2, 2*r2, r2])
 
 
 def test_curvature_energy():

@@ -7,15 +7,14 @@ from scipy.sparse import coo_matrix, csr_matrix
 from sklearn.utils.extmath import cartesian
 
 
-def curvature_pairwise(a: ndarray, b: ndarray, c: ndarray, do_sum_r: bool = True) -> Tuple[ndarray, ndarray]:
+def curvature_pairwise(a: ndarray, b: ndarray, c: ndarray) -> Tuple[ndarray, ndarray, ndarray]:
     d1 = b - a
     d2 = c - b
     r1 = np.linalg.norm(d1, axis=-1)
     r2 = np.linalg.norm(d2, axis=-1)
     rr = r1 * r2
     cosines = (d1 * d2).sum(axis=-1) / rr
-    denominator = r1 + r2 if do_sum_r else rr
-    return cosines, denominator
+    return cosines, r1, r2
 
 
 def curvature_energy(cosines: np.ndarray, denominator: np.ndarray,
@@ -61,7 +60,8 @@ def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
         return csr_matrix(np.empty((len(seg), len(seg)), dtype=float))
     s1, s2 = seg[pairs.T]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
-    cosines, denominator = curvature_pairwise(a, b, c, do_sum_r)
+    cosines, r1, r2 = curvature_pairwise(a, b, c)
+    denominator = r1 + r2 if do_sum_r else r1 * r2
     w = curvature_energy(cosines, denominator, alpha, gamma, cosine_power=curvature_cosine_power,
                          cosine_threshold=cosine_threshold,
                          distance_prod_power_in_denominator=distance_prod_power_in_denominator,
