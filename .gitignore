@@ -2,7 +2,7 @@
 *.pyc
 __pycache__/
 .ipynb_checkpoints/
-*.html
+htmlReport/
 Miniconda3-*.sh
 *.tar.lz4
 workdir/
@@ -15,3 +15,4 @@ tox_conda_tmp*.yaml
 venv/
 smac3_output/
 *.png
+.DS_Store
