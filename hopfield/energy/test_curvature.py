@@ -1,6 +1,6 @@
 import numpy as np
 from _pytest.python_api import approx
-from numpy.testing import assert_array_equal, assert_array_almost_equal_nulp
+from numpy.testing import assert_array_equal, assert_allclose
 
 from hopfield.energy.curvature import _curvature_pairwise, curvature_energy, curvature_energy_matrix, find_consecutive_segments
 from hopfield.energy import energy, energy_gradient
@@ -33,7 +33,7 @@ def test_curvature_energy():
                        [-1, -1/2, -1/8, -1/24, 0])
     assert_array_equal(curvature_energy(cosines, rr, 1., 1., cosine_power=1),
                        [-1, -1/2, -1/2, -1/6, 0])
-    assert_array_almost_equal_nulp(curvature_energy(cosines, rr, 1., 1., cosine_power=0.5),
+    assert_allclose(curvature_energy(cosines, rr, 1., 1., cosine_power=0.5),
                                    [-1, -1/2, -1/np.sqrt(2), -np.sqrt(2)/6, 0])
     assert_array_equal(curvature_energy(cosines, rr, 1., 1., cosine_threshold=0.8),
                        [-1, -1/2, 0, 0, 0])
@@ -71,7 +71,7 @@ def test_curvature_energy_matrix():
     s = -1.  # straight cosine energy
     c = -1 / 4  # 45 degrees cosine energy
     l = -1 / 2  # straight diagonal
-    assert_array_almost_equal_nulp(w.A, [
+    assert_allclose(w.A, [
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, s, c, c, 0, 0],
@@ -102,4 +102,4 @@ def test_curvature_energy_gradient():
     w = curvature_energy_matrix(pos, seg, find_consecutive_segments(seg), 1., 1., do_sum_r=False)
     act = np.array([1, 1, 0, 0, 0, 0])
     g = energy_gradient(w, act)
-    assert_array_almost_equal_nulp(g, -np.array([2, 2, 1. / 2, 1. / 2, 1, 1. / 4]), 3)
+    assert_allclose(g, -np.array([2, 2, 1. / 2, 1. / 2, 1, 1. / 4]), 3)
