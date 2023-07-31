@@ -1,41 +1,53 @@
 from pathlib import Path
 from typing import Optional
-from zipfile import ZipFile, BadZipFile
+from zipfile import ZipFile
 
 import pandas as pd
 
 LAYER_DIST = 20.
+PATH = Path(__file__).parents[1] / 'data' / 'bman'
+FILE_NAME = 'simdata_ArPb_3.2AGeV_mb_1'
+ZIP_FILE = PATH / f'{FILE_NAME}.zip'
+FEATHER_FILE = PATH / f'{FILE_NAME}.feather'
+CSV_EVENT = PATH / 'event6.csv'
+COLUMN_NAMES = ['event_id', 'x', 'y', 'z', 'detector', 'station', 'track', 'px', 'py', 'pz', 'vx', 'vy', 'vz']
+KEEP_COLUMNS = ['event_id', 'x', 'y', 'z', 'layer', 'track']
 
 
-def _read(prefix: str = None, file: str = 'simdata_ArPb_3.2AGeV_mb_1.zip') -> pd.DataFrame:
-    if prefix is None:
-        prefix = Path(__file__).parents[1] / 'data/bman'
-    file = Path(prefix) / file
-    col_names = ['event_id', 'x', 'y', 'z', 'detector', 'station', 'track', 'px', 'py', 'pz', 'vx', 'vy', 'vz']
-    try:
-        with ZipFile(file) as z:
-            with z.open(f'simdata_ArPb_3.2AGeV_mb_1.txt') as f:
-                return pd.read_csv(f, sep='\t', names=col_names)
-    except BadZipFile:
-        return pd.read_csv(file, sep='\t', names=col_names)
-
-
-def _transform(simdata):
-    simdata['layer'] = simdata.detector * 3 + simdata.station
-    return simdata[['event_id', 'x', 'y', 'z', 'layer', 'track']]
-
-
-def _copy_hits_bman_event6():
-    hits = _read()
-    e6 = hits[hits.event_id == 6]
-    e6.to_csv(Path(__file__).parents[1] / 'data/bman/event6.csv',
-              sep='\t', header=False, index=False)
+def _read_zip() -> pd.DataFrame:
+    with ZipFile(ZIP_FILE) as z:
+        with z.open(f'{FILE_NAME}.txt') as f:
+            df = pd.read_csv(f, sep='\t', names=COLUMN_NAMES)
+            df['layer'] = df.detector * 3 + df.station
+            return df[KEEP_COLUMNS]
 
 
 def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
-    hits = _transform(_read())
-    return hits if n_events is None else hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
+    if FEATHER_FILE.exists():
+        hits = pd.read_feather(FEATHER_FILE)
+    else:
+        hits = _read_zip()
+    if n_events is not None:
+        event_ids = hits.event_id.unique()[:n_events]
+        hits = hits[hits.event_id.isin(event_ids)]
+    return hits
 
 
 def get_hits_bman_one_event():
-    return _transform(_read(file='event6.csv'))
+    return pd.read_csv(CSV_EVENT)
+
+
+def _copy_hits_bman_event6():
+    hits = _read_zip()
+    e6 = hits[hits.event_id == 6]
+    e6.to_csv(CSV_EVENT, index=False)
+
+
+def _copy_hits_bman_feather():
+    hits = _read_zip()
+    hits.to_feather(FEATHER_FILE, compression='zstd', compression_level=18)
+
+
+if __name__ == '__main__':
+    # _copy_hits_bman_event6()
+    _copy_hits_bman_feather()

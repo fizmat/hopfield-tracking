@@ -16,3 +16,4 @@ venv/
 smac3_output/
 *.png
 .DS_Store
+*.feather
