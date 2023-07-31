@@ -2,36 +2,36 @@ import numpy as np
 from numpy.testing import assert_array_equal
 from scipy.sparse import csr_matrix
 
-from hopfield.energy.cross import cross_energy_matrix, segment_forks, segment_joins
+from hopfield.energy.cross import cross_energy_matrix, find_forking_segments, find_joining_segments
 from hopfield.energy import energy, energy_gradient
 
 
-def test_segment_forks():
+def test_find_forking_segments():
     null_segments = np.empty((0, 2), dtype=int)
-    assert_array_equal(segment_forks(null_segments).todense(), np.empty((0, 0)))
-    assert_array_equal(segment_forks(np.array([[0, 1]])).todense(), [[0]])
-    assert_array_equal(segment_forks(np.array([[0, 1], [0, 2]])).todense(), [[0, 1],
-                                                                             [1, 0]])
-    assert_array_equal(segment_forks(np.array([[0, 2], [1, 2]])).todense(), np.zeros((2, 2)))
+    assert_array_equal(find_forking_segments(null_segments).todense(), np.empty((0, 0)))
+    assert_array_equal(find_forking_segments(np.array([[0, 1]])).todense(), [[0]])
+    assert_array_equal(find_forking_segments(np.array([[0, 1], [0, 2]])).todense(), [[0, 1],
+                                                                                     [1, 0]])
+    assert_array_equal(find_forking_segments(np.array([[0, 2], [1, 2]])).todense(), np.zeros((2, 2)))
     segments = np.array([[0, 2], [0, 3], [1, 2], [1, 3]])
-    assert_array_equal(segment_forks(segments).todense(), [[0, 1, 0, 0],
-                                                           [1, 0, 0, 0],
-                                                           [0, 0, 0, 1],
-                                                           [0, 0, 1, 0]])
+    assert_array_equal(find_forking_segments(segments).todense(), [[0, 1, 0, 0],
+                                                                   [1, 0, 0, 0],
+                                                                   [0, 0, 0, 1],
+                                                                   [0, 0, 1, 0]])
 
 
-def test_segment_joins():
+def test_find_joining_segments():
     null_segments = np.empty((0, 2), dtype=int)
-    assert_array_equal(segment_joins(null_segments).todense(), np.empty((0, 0)))
-    assert_array_equal(segment_joins(np.array([[0, 1]])).todense(), [[0]])
-    assert_array_equal(segment_joins(np.array([[0, 1], [0, 2]])).todense(), np.zeros((2, 2)))
-    assert_array_equal(segment_joins(np.array([[0, 2], [1, 2]])).todense(), [[0, 1],
-                                                                             [1, 0]])
+    assert_array_equal(find_joining_segments(null_segments).todense(), np.empty((0, 0)))
+    assert_array_equal(find_joining_segments(np.array([[0, 1]])).todense(), [[0]])
+    assert_array_equal(find_joining_segments(np.array([[0, 1], [0, 2]])).todense(), np.zeros((2, 2)))
+    assert_array_equal(find_joining_segments(np.array([[0, 2], [1, 2]])).todense(), [[0, 1],
+                                                                                     [1, 0]])
     segments = np.array([[0, 2], [0, 3], [1, 2], [1, 3]])
-    assert_array_equal(segment_joins(segments).todense(), [[0, 0, 1, 0],
-                                                           [0, 0, 0, 1],
-                                                           [1, 0, 0, 0],
-                                                           [0, 1, 0, 0]])
+    assert_array_equal(find_joining_segments(segments).todense(), [[0, 0, 1, 0],
+                                                                   [0, 0, 0, 1],
+                                                                   [1, 0, 0, 0],
+                                                                   [0, 1, 0, 0]])
 
 
 def test_cross_energy_matrix():

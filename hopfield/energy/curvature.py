@@ -7,7 +7,7 @@ from scipy.sparse import coo_matrix, csr_matrix
 from sklearn.utils.extmath import cartesian
 
 
-def curvature_pairwise(a: ndarray, b: ndarray, c: ndarray) -> Tuple[ndarray, ndarray, ndarray]:
+def _curvature_pairwise(a: ndarray, b: ndarray, c: ndarray) -> Tuple[ndarray, ndarray, ndarray]:
     d1 = b - a
     d2 = c - b
     r1 = np.linalg.norm(d1, axis=-1)
@@ -29,7 +29,7 @@ def curvature_energy(cosines: np.ndarray, denominator: np.ndarray,
     return alpha * kink - gamma * curve
 
 
-def group_curve(a: ndarray, b: ndarray) -> Tuple[ndarray, ndarray]:
+def _find_indices_with_equal_values(a: ndarray, b: ndarray) -> Tuple[ndarray, ndarray]:
     a = pd.DataFrame({'hit_id': a}).groupby('hit_id').apply(lambda g: g.index)
     b = pd.DataFrame({'hit_id': b}).groupby('hit_id').apply(lambda g: g.index)
     df = pd.concat((a, b), axis=1, join='inner')
@@ -44,8 +44,8 @@ def group_curve(a: ndarray, b: ndarray) -> Tuple[ndarray, ndarray]:
     return ii, jj
 
 
-def segment_adjacent_pairs(seg: ndarray) -> ndarray:
-    ii, jj = group_curve(seg[:, 1], seg[:, 0])
+def find_consecutive_segments(seg: ndarray) -> ndarray:
+    ii, jj = _find_indices_with_equal_values(seg[:, 1], seg[:, 0])
     return np.stack([ii, jj], axis=1)
 
 
@@ -60,7 +60,7 @@ def curvature_energy_matrix(pos: ndarray, seg: ndarray, pairs: ndarray,
         return csr_matrix(np.empty((len(seg), len(seg)), dtype=float))
     s1, s2 = seg[pairs.T]
     a, b, c = pos[s1[:, 0]], pos[s1[:, 1]], pos[s2[:, 1]]
-    cosines, r1, r2 = curvature_pairwise(a, b, c)
+    cosines, r1, r2 = _curvature_pairwise(a, b, c)
     denominator = r1 + r2 if do_sum_r else r1 * r2
     w = curvature_energy(cosines, denominator, alpha, gamma, cosine_power=curvature_cosine_power,
                          cosine_threshold=cosine_threshold,

@@ -11,7 +11,7 @@ from scipy.sparse import spmatrix, csr_matrix
 from datasets import get_hits
 from hopfield.energy import energy_gradient
 from hopfield.energy.cross import cross_energy_matrix
-from hopfield.energy.curvature import segment_adjacent_pairs, curvature_energy_matrix
+from hopfield.energy.curvature import find_consecutive_segments, curvature_energy_matrix
 from metrics.segments import gen_perfect_act
 from metrics.tracks import track_metrics, trackml_score
 from segment.candidate import gen_seg_layered
@@ -80,7 +80,7 @@ def main():
     seg = gen_seg_layered(event)
     crossing_matrix = alpha * cross_energy_matrix(seg)
     curvature_matrix = curvature_energy_matrix(
-        pos=event[['x', 'y', 'z']].to_numpy(), seg=seg, pairs=segment_adjacent_pairs(seg),
+        pos=event[['x', 'y', 'z']].to_numpy(), seg=seg, pairs=find_consecutive_segments(seg),
         cosine_threshold=0.5658048189789646, curvature_cosine_power=45.37892813716288,
         alpha=alpha, gamma=740.3731323900522, distance_prod_power_in_denominator=0.
     )

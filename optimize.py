@@ -7,7 +7,7 @@ from smac import MultiFidelityFacade, Scenario
 
 from datasets import get_hits
 from hopfield.energy.cross import cross_energy_matrix
-from hopfield.energy.curvature import curvature_energy_matrix, segment_adjacent_pairs
+from hopfield.energy.curvature import curvature_energy_matrix, find_consecutive_segments
 from hopfield.iterate import annealing_curve, update_act_bulk, anneal
 from metrics.tracks import track_metrics
 from segment.candidate import gen_seg_layered
@@ -74,7 +74,7 @@ def main():
             crossing_matrix = conf['alpha'] * cross_energy_matrix(seg)
             curvature_matrix = curvature_energy_matrix(
                 pos=event[['x', 'y', 'z']].to_numpy(),
-                seg=seg, pairs=segment_adjacent_pairs(seg), alpha=conf['alpha'], gamma=conf['gamma'],
+                seg=seg, pairs=find_consecutive_segments(seg), alpha=conf['alpha'], gamma=conf['gamma'],
                 cosine_threshold=conf['cosine_min_rewarded'], cosine_min_allowed=conf['cosine_min_allowed'],
                 curvature_cosine_power=conf['cosine_power'],
                 do_sum_r=conf['distance_op'] == 'sum', distance_prod_power_in_denominator=conf['distance_power']

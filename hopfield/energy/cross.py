@@ -5,7 +5,7 @@ from scipy.sparse import csr_matrix
 from sklearn.utils.extmath import cartesian
 
 
-def group_cross(hit_ids: ndarray) -> csr_matrix:
+def _find_index_pairs_with_equal_values(hit_ids: ndarray) -> csr_matrix:
     df = pd.DataFrame({'hit_id': hit_ids})
     ii = []
     jj = []
@@ -22,13 +22,13 @@ def group_cross(hit_ids: ndarray) -> csr_matrix:
     return csr_matrix((np.ones(len(ii), dtype=int), (ii, jj)), shape=(n, n))
 
 
-def segment_forks(seg: ndarray) -> csr_matrix:
-    return group_cross(seg[:, 0])
+def find_forking_segments(seg: ndarray) -> csr_matrix:
+    return _find_index_pairs_with_equal_values(seg[:, 0])
 
 
-def segment_joins(seg: ndarray) -> csr_matrix:
-    return group_cross(seg[:, 1])
+def find_joining_segments(seg: ndarray) -> csr_matrix:
+    return _find_index_pairs_with_equal_values(seg[:, 1])
 
 
 def cross_energy_matrix(seg: ndarray) -> csr_matrix:
-    return segment_forks(seg) + segment_joins(seg)
+    return find_forking_segments(seg) + find_joining_segments(seg)
