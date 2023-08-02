@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Optional
-from zipfile import ZipFile
 
 import pandas as pd
 
@@ -15,11 +14,9 @@ KEEP_COLUMNS = ['event_id', 'x', 'y', 'z', 'layer', 'track']
 
 
 def _read_zip() -> pd.DataFrame:
-    with ZipFile(ZIP_FILE) as z:
-        with z.open(f'{FILE_NAME}.txt') as f:
-            df = pd.read_csv(f, sep='\t', names=COLUMN_NAMES)
-            df['layer'] = df.detector * 3 + df.station
-            return df[KEEP_COLUMNS]
+    df = pd.read_csv(ZIP_FILE, sep='\t', names=COLUMN_NAMES)
+    df['layer'] = df.detector * 3 + df.station
+    return df[KEEP_COLUMNS]
 
 
 def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
