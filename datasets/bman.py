@@ -17,13 +17,12 @@ SCHEMA = {
     'px': double, 'py': double, 'pz': double,
     'vx': double, 'vy': double, 'vz': double
 }
-KEEP_COLUMNS = ['event_id', 'x', 'y', 'z', 'layer', 'track']
 
 
 def _read_zip() -> pd.DataFrame:
     df = pd.read_csv(ZIP_FILE, sep='\t', names=list(SCHEMA.keys()), dtype=SCHEMA)
     df['layer'] = df.detector * 3 + df.station
-    return df[KEEP_COLUMNS]
+    return df
 
 
 def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
