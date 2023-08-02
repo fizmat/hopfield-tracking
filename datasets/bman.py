@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
+from numpy import single, short, byte, double
 
 LAYER_DIST = 20.
 PATH = Path(__file__).parents[1] / 'data' / 'bman'
@@ -9,12 +10,18 @@ FILE_NAME = 'simdata_ArPb_3.2AGeV_mb_1'
 ZIP_FILE = PATH / f'{FILE_NAME}.zip'
 FEATHER_FILE = PATH / f'{FILE_NAME}.feather'
 CSV_EVENT = PATH / 'event6.csv'
-COLUMN_NAMES = ['event_id', 'x', 'y', 'z', 'detector', 'station', 'track', 'px', 'py', 'pz', 'vx', 'vy', 'vz']
+SCHEMA = {
+    'event_id': short,
+    'x': single, 'y': single, 'z': single,
+    'detector': byte, 'station': byte, 'track': short,
+    'px': double, 'py': double, 'pz': double,
+    'vx': double, 'vy': double, 'vz': double
+}
 KEEP_COLUMNS = ['event_id', 'x', 'y', 'z', 'layer', 'track']
 
 
 def _read_zip() -> pd.DataFrame:
-    df = pd.read_csv(ZIP_FILE, sep='\t', names=COLUMN_NAMES)
+    df = pd.read_csv(ZIP_FILE, sep='\t', names=list(SCHEMA.keys()), dtype=SCHEMA)
     df['layer'] = df.detector * 3 + df.station
     return df[KEEP_COLUMNS]
 
@@ -31,7 +38,7 @@ def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
 
 
 def get_hits_bman_one_event():
-    return pd.read_csv(CSV_EVENT)
+    return pd.read_csv(CSV_EVENT, dtype=SCHEMA)
 
 
 def _copy_hits_bman_event6():
