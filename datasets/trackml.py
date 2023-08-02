@@ -12,6 +12,8 @@ EVENT_PREFIX = (PATH / f'event000001000').resolve()
 SAMPLE_ZIP = PATH / 'train_sample.zip'
 TRAIN1_ZIP = PATH / 'train_1.zip'
 BLACKLIST_ZIP = PATH / 'blacklist_training.zip'
+EVENT_FEATHER = PATH / 'event000001000.feather'
+SAMPLE_FEATHER = PATH / 'train_sample.feather'
 
 
 def _transform(hits, blacklist_hits):
@@ -48,12 +50,23 @@ def _csv_one_event():
     return hits
 
 
+def _feather_one_event() -> pd.DataFrame:
+    return pd.read_feather(EVENT_FEATHER).set_index('hit_id')
+
+
+def _feather_sample(n_events: Optional[int] = None) -> pd.DataFrame:
+    hits = pd.read_feather(SAMPLE_FEATHER)
+    if n_events is None:
+        return hits
+    return hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
+
+
 def get_one_event() -> pd.DataFrame:
-    return _csv_one_event()
+    return _feather_one_event() if EVENT_FEATHER.exists() else _csv_one_event()
 
 
 def get_sample(n_events: Optional[int] = None) -> pd.DataFrame:
-    return _zip_sample(n_events, SAMPLE_ZIP)
+    return _feather_sample(n_events) if SAMPLE_FEATHER.exists() else _zip_sample(n_events, SAMPLE_ZIP)
 
 
 def get_train_1(n_events: Optional[int] = None) -> pd.DataFrame:
@@ -77,8 +90,10 @@ def get_one_event_by_volume():
 
 
 def main():
-    df = get_hits_trackml()
-    df.info()
+    hits = _csv_one_event().reset_index()
+    hits.to_feather(EVENT_FEATHER, compression='zstd', compression_level=18)
+    hits = _zip_sample()
+    hits.to_feather(SAMPLE_FEATHER, compression='zstd', compression_level=18)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ from pandas import Index
 from pandas.testing import assert_frame_equal
 
 from datasets.trackml import _transform, get_one_event_by_volume, get_sample_by_volume, get_one_event, \
-    get_sample, get_train_1
+    get_sample, get_train_1, _csv_one_event, _feather_one_event, _zip_sample, _feather_sample
 
 _test_event = pd.DataFrame({
     'hit_id': [1, 2, 3, 4, 5],
@@ -28,7 +28,7 @@ _test_event = pd.DataFrame({
 _test_blacklist = pd.DataFrame(index=Index([1, 5], name='hit_id'))
 
 
-def test__transform():
+def test_transform():
     hits = _transform(_test_event, _test_blacklist)
     assert_frame_equal(hits, pd.DataFrame({
         'hit_id': [2, 3, 4],
@@ -49,7 +49,16 @@ def test__transform():
     }).set_index('hit_id'))
 
 
+def test_feather_event():
+    assert_frame_equal(_csv_one_event(), _feather_one_event())
+
+
 @pytest.mark.slow
+@pytest.mark.trackml
+def test_feather_sample():
+    assert_frame_equal(_zip_sample(), _feather_sample())
+
+
 @pytest.mark.trackml
 def test_get_hits_trackml():
     events = get_sample()
@@ -80,7 +89,6 @@ def test_get_hits_trackml_one_event():
     assert events.track.dtype == 'int64'
 
 
-@pytest.mark.slow
 @pytest.mark.trackml
 def test_get_hits_trackml_by_volume():
     events = get_sample_by_volume()

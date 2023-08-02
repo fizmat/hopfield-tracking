@@ -11,7 +11,7 @@ def test_get_hits_one_event(dataset):
 
 @pytest.mark.parametrize("dataset",
                          ('simple', 'spdsim',
-                          pytest.param('bman', marks=(pytest.mark.bman, pytest.mark.slow)),
+                          pytest.param('bman', marks=pytest.mark.bman),
                           pytest.param('trackml', marks=pytest.mark.trackml),
                           pytest.param('trackml_volume', marks=pytest.mark.trackml)
                           )
