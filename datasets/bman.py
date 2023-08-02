@@ -20,9 +20,7 @@ SCHEMA = {
 
 
 def _read_zip() -> pd.DataFrame:
-    df = pd.read_csv(ZIP_FILE, sep='\t', names=list(SCHEMA.keys()), dtype=SCHEMA)
-    df['layer'] = df.detector * 3 + df.station
-    return df
+    return pd.read_csv(ZIP_FILE, sep='\t', names=list(SCHEMA.keys()), dtype=SCHEMA)
 
 
 def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
@@ -33,11 +31,14 @@ def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
     if n_events is not None:
         event_ids = hits.event_id.unique()[:n_events]
         hits = hits[hits.event_id.isin(event_ids)]
+    hits['layer'] = hits.detector * 3 + hits.station
     return hits
 
 
-def get_hits_bman_one_event():
-    return pd.read_csv(CSV_EVENT, dtype=SCHEMA)
+def get_hits_bman_one_event() -> pd.DataFrame:
+    hits = pd.read_csv(CSV_EVENT, dtype=SCHEMA)
+    hits['layer'] = hits.detector * 3 + hits.station
+    return hits
 
 
 def main():
