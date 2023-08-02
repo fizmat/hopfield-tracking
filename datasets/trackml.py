@@ -17,7 +17,7 @@ SAMPLE_FEATHER = PATH / 'train_sample.feather'
 
 
 def _transform(hits, blacklist_hits):
-    hits = hits.drop(index=blacklist_hits.index, errors='ignore')
+    hits = hits[~hits.hit_id.isin(set(blacklist_hits.hit_id))].reset_index(drop=True)
     hits.rename(columns={'layer_id': 'layer', 'particle_id': 'track'}, inplace=True)
     hits.track = hits.track.where(hits.track != 0, other=-1)
     hits['layer'] = hits.layer // 2
@@ -28,11 +28,9 @@ def _zip_sample(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.DataFrame
     events = []
     with ZipFile(BLACKLIST_ZIP) as bz:
         for event_id, hits, truth in load_dataset(path, nevents=n_events, parts=['hits', 'truth']):
-            hits.set_index('hit_id', inplace=True)
-            truth.set_index('hit_id', inplace=True)
-            hits = hits.join(truth)
+            hits = hits.set_index('hit_id').join(truth.set_index('hit_id')).reset_index()
             with bz.open(f'event{event_id:09}-blacklist_hits.csv') as f:
-                blacklist_hits = pd.read_csv(f, index_col='hit_id')
+                blacklist_hits = pd.read_csv(f)
             hits = _transform(hits, blacklist_hits)
             hits['event_id'] = event_id
             events.append(hits)
@@ -41,17 +39,15 @@ def _zip_sample(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.DataFrame
 
 def _csv_one_event():
     hits, truth = load_event(EVENT_PREFIX, ['hits', 'truth'])
-    hits.set_index('hit_id', inplace=True)
-    truth.set_index('hit_id', inplace=True)
-    hits = hits.join(truth)
-    blacklist_hits = pd.read_csv(f'{EVENT_PREFIX}-blacklist_hits.csv', index_col='hit_id')
-    hits = _transform(hits, blacklist_hits)
+    hits = hits.set_index('hit_id').join(truth.set_index('hit_id')).reset_index()
+    blacklist_hits = pd.read_csv(f'{EVENT_PREFIX}-blacklist_hits.csv')
+    hits = _transform(hits, blacklist_hits).reset_index()
     hits['event_id'] = 1000
     return hits
 
 
 def _feather_one_event() -> pd.DataFrame:
-    return pd.read_feather(EVENT_FEATHER).set_index('hit_id')
+    return pd.read_feather(EVENT_FEATHER)
 
 
 def _feather_sample(n_events: Optional[int] = None) -> pd.DataFrame:
@@ -90,7 +86,7 @@ def get_one_event_by_volume():
 
 
 def main():
-    hits = _csv_one_event().reset_index()
+    hits = _csv_one_event()
     hits.to_feather(EVENT_FEATHER, compression='zstd', compression_level=18)
     hits = _zip_sample()
     hits.to_feather(SAMPLE_FEATHER, compression='zstd', compression_level=18)
