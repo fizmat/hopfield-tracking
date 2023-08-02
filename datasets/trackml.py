@@ -4,6 +4,7 @@ from typing import Optional, Generator
 from zipfile import ZipFile
 
 import pandas as pd
+from numpy.testing import assert_array_equal
 from trackml.dataset import load_dataset, load_event
 
 LAYER_DIST = 1e4  # actually peaks at 20 and 1e4-1e5
@@ -17,8 +18,13 @@ EVENT_FEATHER = PATH / 'event000001000.feather'
 SAMPLE_FEATHER = PATH / 'train_sample.feather'
 
 
-def _transform(hits, blacklist_hits):
-    hits = hits[~hits.hit_id.isin(set(blacklist_hits.hit_id))].reset_index(drop=True)
+def _blacklist_hits(hits, blacklist_hits, blacklist_particles):
+    hits['blacklisted'] = hits.hit_id.isin(set(blacklist_hits.hit_id))
+    assert_array_equal(hits.blacklisted, hits.particle_id.isin(set(blacklist_particles.particle_id)))
+    return hits
+
+
+def _transform(hits):
     hits.rename(columns={'layer_id': 'layer', 'particle_id': 'track'}, inplace=True)
     hits.track = hits.track.where(hits.track != 0, other=-1)
     hits['layer'] = hits.layer // 2
@@ -31,7 +37,9 @@ def _zip_sample_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP) -> Ge
             hits = hits.set_index('hit_id').join(truth.set_index('hit_id')).reset_index()
             with bz.open(f'event{event_id:09}-blacklist_hits.csv') as f:
                 blacklist_hits = pd.read_csv(f)
-            hits = _transform(hits, blacklist_hits)
+            with bz.open(f'event{event_id:09}-blacklist_particles.csv') as f:
+                blacklist_particles = pd.read_csv(f)
+            hits = _blacklist_hits(hits, blacklist_hits, blacklist_particles)
             hits['event_id'] = event_id
             yield hits
 
@@ -44,7 +52,8 @@ def _csv_one_event():
     hits, truth = load_event(EVENT_PREFIX, ['hits', 'truth'])
     hits = hits.set_index('hit_id').join(truth.set_index('hit_id')).reset_index()
     blacklist_hits = pd.read_csv(f'{EVENT_PREFIX}-blacklist_hits.csv')
-    hits = _transform(hits, blacklist_hits).reset_index()
+    blacklist_particles = pd.read_csv(f'{EVENT_PREFIX}-blacklist_particles.csv')
+    hits = _blacklist_hits(hits, blacklist_hits, blacklist_particles).reset_index()
     hits['event_id'] = 1000
     return hits
 
@@ -61,15 +70,17 @@ def _feather_sample(n_events: Optional[int] = None) -> pd.DataFrame:
 
 
 def get_one_event() -> pd.DataFrame:
-    return _feather_one_event() if EVENT_FEATHER.exists() else _csv_one_event()
+    event = _feather_one_event() if EVENT_FEATHER.exists() else _csv_one_event()
+    return _transform(event)
 
 
 def get_sample(n_events: Optional[int] = None) -> pd.DataFrame:
-    return _feather_sample(n_events) if SAMPLE_FEATHER.exists() else _zip_sample(n_events, SAMPLE_ZIP)
+    sample = _feather_sample(n_events) if SAMPLE_FEATHER.exists() else _zip_sample(n_events, SAMPLE_ZIP)
+    return _transform(sample)
 
 
 def get_train_1(n_events: Optional[int] = None) -> Generator[pd.DataFrame, None, None]:
-    yield from _zip_sample_generator(n_events)
+    yield from map(_transform, _zip_sample_generator(n_events))
 
 
 def get_sample_by_volume(n_events: Optional[int] = None) -> pd.DataFrame:
