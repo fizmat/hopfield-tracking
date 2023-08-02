@@ -2,10 +2,10 @@ import pandas as pd
 import pytest
 from numpy.testing import assert_array_equal
 from pandas import Index
-from pandas._testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
-from datasets.trackml import _transform, get_hits_trackml, get_hits_trackml_by_volume, \
-    get_hits_trackml_one_event, get_hits_trackml_one_event_by_volume, TRAIN1_ZIP
+from datasets.trackml import _transform, get_one_event_by_volume, get_sample_by_volume, get_one_event, \
+    get_sample, get_train_1
 
 _test_event = pd.DataFrame({
     'hit_id': [1, 2, 3, 4, 5],
@@ -52,7 +52,7 @@ def test__transform():
 @pytest.mark.slow
 @pytest.mark.trackml
 def test_get_hits_trackml():
-    events = get_hits_trackml()
+    events = get_sample()
     assert_array_equal(events.index, range(10952747))
     assert_array_equal(events.event_id.unique(), range(1000, 1100))
     assert set(events.layer.unique()) == set(range(1, 8))
@@ -63,7 +63,7 @@ def test_get_hits_trackml():
 @pytest.mark.slow
 @pytest.mark.trackml_1
 def test_get_hits_trackml_1():
-    events = get_hits_trackml(n_events=200, path=TRAIN1_ZIP)
+    events = get_train_1(n_events=200)
     assert len(events) == 21899747
     assert_array_equal(events.event_id.unique(), range(1000, 1200))
     assert set(events.layer.unique()) == set(range(1, 8))
@@ -72,7 +72,7 @@ def test_get_hits_trackml_1():
 
 
 def test_get_hits_trackml_one_event():
-    events = get_hits_trackml_one_event()
+    events = get_one_event()
     assert len(events) == 120940 - 179
     assert_array_equal(events.event_id.unique(), 1000)
     assert set(events.layer.unique()) == set(range(1, 8))
@@ -83,9 +83,10 @@ def test_get_hits_trackml_one_event():
 @pytest.mark.slow
 @pytest.mark.trackml
 def test_get_hits_trackml_by_volume():
-    events = get_hits_trackml_by_volume()
+    events = get_sample_by_volume()
     assert len(events) == 10952747
-    assert_array_equal(events.event_id.str.fullmatch(r'\d{4}-\d{1,2}'), True)
+    assert events.event_id.max() == 109918
+    assert events.event_id.min() == 100007
     assert set(events.layer.unique()) == set(range(1, 8))
     assert events.track.min() == -1
     assert events.track.dtype == 'int64'
@@ -93,20 +94,21 @@ def test_get_hits_trackml_by_volume():
 
 @pytest.mark.trackml
 def test_get_hits_by_volume_limited():
-    events = get_hits_trackml_by_volume(n_events=200)
+    events = get_sample_by_volume(n_events=200)
     assert len(events) == 2522884
-    assert_array_equal(events.event_id.str.fullmatch(r'\d{4}-\d{1,2}'), True)
+    assert events.event_id.max() == 102208
+    assert events.event_id.min() == 100007
     assert set(events.layer.unique()) == set(range(1, 8))
     assert events.track.min() == -1
     assert events.track.dtype == 'int64'
 
 
 def test_get_hits_trackml_one_event_by_volume():
-    events = get_hits_trackml_one_event_by_volume()
+    events = get_one_event_by_volume()
     assert len(events) == 16873 - 15
     assert events.index.min() == 1
     assert events.index.max() == 16873
-    assert_array_equal(events.event_id, '1000-7')
+    assert_array_equal(events.event_id, 100007)
     assert set(events.layer.unique()) == set(range(1, 8))
     assert events.track.min() == -1
     assert events.track.dtype == 'int64'

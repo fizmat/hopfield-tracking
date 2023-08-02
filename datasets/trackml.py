@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from typing import Optional
 from zipfile import ZipFile
@@ -21,7 +22,7 @@ def _transform(hits, blacklist_hits):
     return hits
 
 
-def get_hits_trackml(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.DataFrame:
+def _zip_sample(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.DataFrame:
     events = []
     with ZipFile(BLACKLIST_ZIP) as bz:
         for event_id, hits, truth in load_dataset(path, nevents=n_events, parts=['hits', 'truth']):
@@ -36,7 +37,7 @@ def get_hits_trackml(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.Data
     return pd.concat(events, ignore_index=True)
 
 
-def get_hits_trackml_one_event():
+def _csv_one_event():
     hits, truth = load_event(EVENT_PREFIX, ['hits', 'truth'])
     hits.set_index('hit_id', inplace=True)
     truth.set_index('hit_id', inplace=True)
@@ -47,16 +48,31 @@ def get_hits_trackml_one_event():
     return hits
 
 
-def get_hits_trackml_by_volume(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.DataFrame:
-    hits = get_hits_trackml(n_events=n_events, path=path)
-    hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
-    return hits if n_events is None else hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
+def get_one_event() -> pd.DataFrame:
+    return _csv_one_event()
 
 
-def get_hits_trackml_one_event_by_volume():
-    hits = get_hits_trackml_one_event()
+def get_sample(n_events: Optional[int] = None) -> pd.DataFrame:
+    return _zip_sample(n_events, SAMPLE_ZIP)
+
+
+def get_train_1(n_events: Optional[int] = None) -> pd.DataFrame:
+    return _zip_sample(n_events, TRAIN1_ZIP)
+
+
+def get_sample_by_volume(n_events: Optional[int] = None) -> pd.DataFrame:
+    to_read = None if n_events is None else math.ceil(n_events / 9)
+    hits = get_sample(n_events=to_read)
+    hits.event_id = hits.event_id * 100 + hits.volume_id
+    if n_events is None:
+        return hits
+    return hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
+
+
+def get_one_event_by_volume():
+    hits = get_one_event()
     hits = hits[hits.volume_id == 7]
-    hits.event_id = hits.event_id.astype(str) + '-' + hits.volume_id.astype(str)
+    hits.event_id = hits.event_id * 100 + hits.volume_id
     return hits
 
 
