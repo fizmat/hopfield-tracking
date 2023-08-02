@@ -41,17 +41,11 @@ def get_hits_bman_one_event():
     return pd.read_csv(CSV_EVENT, dtype=SCHEMA)
 
 
-def _copy_hits_bman_event6():
+def main():
     hits = _read_zip()
-    e6 = hits[hits.event_id == 6]
-    e6.to_csv(CSV_EVENT, index=False)
-
-
-def _copy_hits_bman_feather():
-    hits = _read_zip()
+    hits[hits.event_id == 6].to_csv(CSV_EVENT, index=False)
     hits.to_feather(FEATHER_FILE, compression='zstd', compression_level=18)
 
 
 if __name__ == '__main__':
-    # _copy_hits_bman_event6()
-    _copy_hits_bman_feather()
+    main()
