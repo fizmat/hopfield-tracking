@@ -73,12 +73,13 @@ def test_get_hits_trackml():
 @pytest.mark.slow
 @pytest.mark.trackml_1
 def test_get_hits_trackml_1():
-    events = get_train_1(n_events=200)
-    assert_array_equal(events.index, range(21899747))
-    assert_array_equal(events.event_id.unique(), range(1000, 1200))
-    assert set(events.layer.unique()) == set(range(1, 8))
-    assert events.track.min() == -1
-    assert events.track.dtype == 'int64'
+    for i, event in enumerate(get_train_1(n_events=200)):
+        assert_array_equal(event.index, range(len(event)))
+        assert_array_equal(event.event_id, i + 1000)
+        assert set(event.layer.unique()) == set(range(1, 8))
+        assert event.track.min() == -1
+        assert event.track.dtype == 'int64'
+    assert i == 199
 
 
 def test_get_hits_trackml_one_event():
