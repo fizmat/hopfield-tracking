@@ -145,14 +145,22 @@ def test_get_hits_trackml_one_event_by_volume():
 
 
 @pytest.mark.trackml_1
+def test_dask_head():
+    df = dd.read_parquet(HITS_PARQUET).head(500)
+    assert_frame_equal(_transform(df), get_one_event().iloc[:500])
+
+
+@pytest.mark.trackml_1
 def test_dask_one_event():
-    df = dd.read_parquet(HITS_PARQUET).loc[1000].compute().reset_index()
+    df = dd.read_parquet(HITS_PARQUET, index='event_id', calculate_divisions=True) \
+        .loc[1000].reset_index().compute()
     assert_frame_equal(_transform(df), get_one_event())
 
 
+@pytest.mark.slow
 @pytest.mark.trackml
 @pytest.mark.trackml_1
 def test_dask_sample():
-    df = dd.read_parquet(HITS_PARQUET).loc[:1100].compute().reset_index()
-    df.set_index()
+    df = dd.read_parquet(HITS_PARQUET, index='event_id', calculate_divisions=True) \
+             .loc[:1099].compute().reset_index()
     assert_frame_equal(_transform(df), get_sample())

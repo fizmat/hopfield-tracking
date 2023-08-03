@@ -5,7 +5,9 @@ from zipfile import ZipFile
 
 import dask.dataframe as dd
 import pandas as pd
+from dask import delayed
 from numpy.testing import assert_array_equal
+from tqdm.dask import TqdmCallback
 from trackml.dataset import load_dataset, load_event
 
 LAYER_DIST = 1e4  # actually peaks at 20 and 1e4-1e5
@@ -36,9 +38,10 @@ def _transform(hits):
     return hits
 
 
-def _zip_sample_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP) -> Generator[pd.DataFrame, None, None]:
+def _zip_sample_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP, skip: Optional[int] = None,
+                          ) -> Generator[pd.DataFrame, None, None]:
     with ZipFile(BLACKLIST_ZIP) as bz:
-        for event_id, hits, truth in load_dataset(path, nevents=n_events, parts=['hits', 'truth']):
+        for event_id, hits, truth in load_dataset(path, nevents=n_events, skip=skip, parts=['hits', 'truth']):
             hits = hits.set_index('hit_id').join(truth.set_index('hit_id')).reset_index()
             with bz.open(f'event{event_id:09}-blacklist_hits.csv') as f:
                 blacklist_hits = pd.read_csv(f)
@@ -49,19 +52,32 @@ def _zip_sample_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP) -> Ge
             yield hits
 
 
-def _zip_extra_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP, parts: str = 'particles'
-                         ) -> Generator[pd.DataFrame, None, None]:
-    for event_id, df in load_dataset(path, nevents=n_events, parts=[parts]):
+def _zip_extra_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP, skip: Optional[int] = None,
+                         parts: str = 'particles') -> Generator[pd.DataFrame, None, None]:
+    for event_id, df in load_dataset(path, nevents=n_events, skip=skip, parts=[parts]):
         df.insert(0, 'event_id', event_id)
         yield df
 
 
-def _zip_sample(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.DataFrame:
-    return pd.concat(list(_zip_sample_generator(n_events, path)), ignore_index=True)
+def _zip_sample(n_events: Optional[int] = None, path: Path = SAMPLE_ZIP,
+                skip: Optional[int] = None) -> pd.DataFrame:
+    return pd.concat(list(_zip_sample_generator(n_events, path, skip)), ignore_index=True)
 
 
-def _zip_extra(n_events: Optional[int] = None, path=SAMPLE_ZIP, parts: str = 'particles') -> pd.DataFrame:
-    return pd.concat(list(_zip_extra_generator(n_events, path, parts)), ignore_index=True)
+def _zip_extra(n_events: Optional[int] = None, path: Path = SAMPLE_ZIP,
+               skip: Optional[int] = None, parts: str = 'particles') -> pd.DataFrame:
+    events = list(_zip_extra_generator(n_events, path, skip, parts))
+    return pd.concat(events, ignore_index=True) if events else None
+
+
+def _zip_hits_dask(n_events: int = 1770, path=TRAIN1_ZIP, batch_size=50) -> dd.DataFrame:
+    return dd.from_delayed([delayed(_zip_sample)(batch_size, path, cursor)
+                            for cursor in range(0, n_events, batch_size)])
+
+
+def _zip_extra_dask(n_events: int = 1770, path=TRAIN1_ZIP, batch_size=50, parts: str = 'particles') -> dd.DataFrame:
+    return dd.from_delayed([delayed(_zip_extra)(batch_size, path, cursor, parts)
+                            for cursor in range(0, n_events, batch_size)])
 
 
 def _csv_one_event():
@@ -122,27 +138,21 @@ def _create_feathers():
     _zip_extra(parts='cells').to_feather(CELLS_FEATHER, compression='zstd', compression_level=18)
 
 
-def _create_parquet(generator: Generator[pd.DataFrame, None, None], dest: Path, batch_size) -> None:
-    dest.mkdir(exist_ok=True, parents=True)
-    batch = eid = None
-    for i, df in enumerate(generator):
-        if batch is None:
-            batch, eid = [], df.event_id.iloc[0]
-        print(eid, len(batch))
-        batch.append(df.set_index('event_id'))
-        if len(batch) == batch_size:
-            pd.concat(batch).to_parquet(dest / f'event{eid:09}.parquet', compression='brotli')
-            batch = None
-    if batch:
-        pd.concat(batch).to_parquet(dest / f'event{eid:09}.parquet', compression='brotli')
+def _create_parquets() -> None:
+    with TqdmCallback(desc="hits"):
+        _zip_hits_dask(batch_size=50).to_parquet(
+            HITS_PARQUET, overwrite=True, write_metadata_file=True, compression='zstd', compression_level=18)
+    with TqdmCallback(desc="particles"):
+        _zip_extra_dask(batch_size=400).to_parquet(
+            PARTICLES_PARQUET, overwrite=True, write_metadata_file=True, compression='zstd', compression_level=18)
+    with TqdmCallback(desc="cells"):
+        _zip_extra_dask(batch_size=20, parts='cells').to_parquet(
+            CELLS_PARQUET, overwrite=True, write_metadata_file=True, compression='zstd', compression_level=18)
 
 
 def main():
     _create_feathers()
-    _create_parquet(_zip_sample_generator(), HITS_PARQUET, 50)
-    _create_parquet(_zip_extra_generator(), PARTICLES_PARQUET, 200)
-    _create_parquet(_zip_extra_generator(parts='cells'), CELLS_PARQUET, 50)
-    pass
+    _create_parquets()
 
 
 if __name__ == '__main__':
