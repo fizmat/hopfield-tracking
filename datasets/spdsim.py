@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import math
 import random
 import sys
@@ -113,17 +111,21 @@ def gen_spdsim(n_events=100, event_size=10, efficiency=1., n_noise_hits=100, see
                         columns=['evt', 'x', 'y', 'z', 'station', 'trk',
                                  'px', 'py', 'pz', 'vtxx', 'vtxy', 'vtxz'])
 
-    def add_measurement_error(hits):
-        hits.z += np_rng2.normal(0, 0.1, len(hits))
-        phit = np.arctan2(hits.x, hits.y)
-        delta = np_rng2.normal(0, 0.1, len(hits))
-        hits.x += delta * np.sin(phit)
-        hits.y -= delta * np.cos(phit)
-        return hits
+    def add_measurement_error(event):
+        event.z += np_rng2.normal(0, 0.1, len(event))
+        phit = np.arctan2(event.x, event.y)
+        delta = np_rng2.normal(0, 0.1, len(event))
+        event.x += delta * np.sin(phit)
+        event.y -= delta * np.cos(phit)
+        return event
 
     return hits.groupby('evt', group_keys=False).apply(add_measurement_error)
 
 
-if __name__ == '__main__':
+def main():
     hits = gen_spdsim(int(sys.argv[1]))
     hits.to_csv('output.tsv', sep='\t', index=False, header=False)
+
+
+if __name__ == '__main__':
+    main()
