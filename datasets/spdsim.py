@@ -121,8 +121,7 @@ def gen_spdsim(n_events=100, event_size=10, efficiency=1., n_noise_hits=100, see
         hits.y -= delta * np.cos(phit)
         return hits
 
-    hits = hits.groupby('evt').apply(add_measurement_error)
-    return hits
+    return hits.groupby('evt', group_keys=False).apply(add_measurement_error)
 
 
 if __name__ == '__main__':
