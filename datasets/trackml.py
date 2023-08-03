@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, Generator
 from zipfile import ZipFile
 
+import dask.dataframe as dd
 import pandas as pd
 from numpy.testing import assert_array_equal
 from trackml.dataset import load_dataset, load_event
@@ -12,10 +13,14 @@ PATH = Path(__file__).parents[1] / 'data' / 'trackml'
 EVENT_PREFIX = (PATH / f'event000001000').resolve()
 SAMPLE_ZIP = PATH / 'train_sample.zip'
 TRAIN1_ZIP = PATH / 'train_1.zip'
-TRAIN1_DIR = PATH / 'train_1'
 BLACKLIST_ZIP = PATH / 'blacklist_training.zip'
 EVENT_FEATHER = PATH / 'event000001000.feather'
-SAMPLE_FEATHER = PATH / 'train_sample.feather'
+HITS_FEATHER = PATH / 'train_sample.feather'
+PARTICLES_FEATHER = PATH / 'train_sample.particles.feather'
+CELLS_FEATHER = PATH / 'train_sample.cells.feather'
+HITS_PARQUET = PATH / 'train_1' / 'hits'
+PARTICLES_PARQUET = PATH / 'train_1' / 'particles'
+CELLS_PARQUET = PATH / 'train_1' / 'cells'
 
 
 def _blacklist_hits(hits, blacklist_hits, blacklist_particles):
@@ -40,12 +45,23 @@ def _zip_sample_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP) -> Ge
             with bz.open(f'event{event_id:09}-blacklist_particles.csv') as f:
                 blacklist_particles = pd.read_csv(f)
             hits = _blacklist_hits(hits, blacklist_hits, blacklist_particles)
-            hits['event_id'] = event_id
+            hits.insert(0, 'event_id', event_id)
             yield hits
+
+
+def _zip_extra_generator(n_events: Optional[int] = None, path=TRAIN1_ZIP, parts: str = 'particles'
+                         ) -> Generator[pd.DataFrame, None, None]:
+    for event_id, df in load_dataset(path, nevents=n_events, parts=[parts]):
+        df.insert(0, 'event_id', event_id)
+        yield df
 
 
 def _zip_sample(n_events: Optional[int] = None, path=SAMPLE_ZIP) -> pd.DataFrame:
     return pd.concat(list(_zip_sample_generator(n_events, path)), ignore_index=True)
+
+
+def _zip_extra(n_events: Optional[int] = None, path=SAMPLE_ZIP, parts: str = 'particles') -> pd.DataFrame:
+    return pd.concat(list(_zip_extra_generator(n_events, path, parts)), ignore_index=True)
 
 
 def _csv_one_event():
@@ -53,8 +69,8 @@ def _csv_one_event():
     hits = hits.set_index('hit_id').join(truth.set_index('hit_id')).reset_index()
     blacklist_hits = pd.read_csv(f'{EVENT_PREFIX}-blacklist_hits.csv')
     blacklist_particles = pd.read_csv(f'{EVENT_PREFIX}-blacklist_particles.csv')
-    hits = _blacklist_hits(hits, blacklist_hits, blacklist_particles).reset_index()
-    hits['event_id'] = 1000
+    hits = _blacklist_hits(hits, blacklist_hits, blacklist_particles)
+    hits.insert(0, 'event_id', 1000)
     return hits
 
 
@@ -63,7 +79,7 @@ def _feather_one_event() -> pd.DataFrame:
 
 
 def _feather_sample(n_events: Optional[int] = None) -> pd.DataFrame:
-    hits = pd.read_feather(SAMPLE_FEATHER)
+    hits = pd.read_feather(HITS_FEATHER)
     if n_events is None:
         return hits
     return hits[hits.event_id.isin(hits.event_id.unique()[:n_events])]
@@ -75,11 +91,11 @@ def get_one_event() -> pd.DataFrame:
 
 
 def get_sample(n_events: Optional[int] = None) -> pd.DataFrame:
-    sample = _feather_sample(n_events) if SAMPLE_FEATHER.exists() else _zip_sample(n_events, SAMPLE_ZIP)
+    sample = _feather_sample(n_events) if HITS_FEATHER.exists() else _zip_sample(n_events, SAMPLE_ZIP)
     return _transform(sample)
 
 
-def get_train_1(n_events: Optional[int] = None) -> Generator[pd.DataFrame, None, None]:
+def gen_train_1(n_events: Optional[int] = None) -> Generator[pd.DataFrame, None, None]:
     yield from map(_transform, _zip_sample_generator(n_events))
 
 
@@ -100,30 +116,32 @@ def get_one_event_by_volume():
 
 
 def _create_feathers():
-    hits = _csv_one_event()
-    hits.to_feather(EVENT_FEATHER, compression='zstd', compression_level=18)
-    hits = _zip_sample()
-    hits.to_feather(SAMPLE_FEATHER, compression='zstd', compression_level=18)
+    _csv_one_event().to_feather(EVENT_FEATHER, compression='zstd', compression_level=18)
+    _zip_sample().to_feather(HITS_FEATHER, compression='zstd', compression_level=18)
+    _zip_extra().to_feather(PARTICLES_FEATHER, compression='zstd', compression_level=18)
+    _zip_extra(parts='cells').to_feather(CELLS_FEATHER, compression='zstd', compression_level=18)
 
 
-def _create_parquets():
-    TRAIN1_DIR.mkdir(exist_ok=True)
+def _create_parquet(generator: Generator[pd.DataFrame, None, None], dest: Path, batch_size) -> None:
+    dest.mkdir(exist_ok=True, parents=True)
     batch = eid = None
-    for i, event in enumerate(_zip_sample_generator()):
+    for i, df in enumerate(generator):
         if batch is None:
-            batch, eid = [], event.event_id.iloc[0]
+            batch, eid = [], df.event_id.iloc[0]
         print(eid, len(batch))
-        batch.append(event.set_index('event_id'))
-        if len(batch) == 50:
-            pd.concat(batch).to_parquet(TRAIN1_DIR / f'event{eid:09}.parquet', compression='brotli')
+        batch.append(df.set_index('event_id'))
+        if len(batch) == batch_size:
+            pd.concat(batch).to_parquet(dest / f'event{eid:09}.parquet', compression='brotli')
             batch = None
     if batch:
-        pd.concat(batch).to_parquet(TRAIN1_DIR / f'event{eid:09}.parquet', compression='brotli')
+        pd.concat(batch).to_parquet(dest / f'event{eid:09}.parquet', compression='brotli')
 
 
 def main():
-    # _create_feathers()
-    # _create_parquets()
+    _create_feathers()
+    _create_parquet(_zip_sample_generator(), HITS_PARQUET, 50)
+    _create_parquet(_zip_extra_generator(), PARTICLES_PARQUET, 200)
+    _create_parquet(_zip_extra_generator(parts='cells'), CELLS_PARQUET, 50)
     pass
 
 
