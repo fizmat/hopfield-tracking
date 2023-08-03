@@ -1,16 +1,16 @@
 from typing import Iterable, Union, Tuple
 
 import holoviews as hv
-from holoviews import opts
 import numpy as np
 import pandas as pd
+from holoviews import opts
 from vispy.color import ColorArray, Color, colormap
 from vispy.scene import ViewBox, visuals, SceneCanvas
 
 
 def _hits_view(event: pd.DataFrame, kdims: Iterable = ('x', 'y', 'z'),
                color: Union[Color, ColorArray] = 'black',
-               symbol = 'o', size=5, camera='turntable') -> ViewBox:
+               symbol='o', size=5, camera='turntable') -> ViewBox:
     kdims = list(kdims)
     view = ViewBox(border_color='black')
     scatter = visuals.Markers()
@@ -56,7 +56,7 @@ def plot_event(event: pd.DataFrame, seg: np.ndarray = None, kdims: Iterable = ('
     kdims = list(kdims)
     canvas = SceneCanvas(bgcolor='white', size=fig_size)
     grid = canvas.central_widget.add_grid()
-    
+
     if black_white:
         color = 'black'
         symbol = np.where((event.track.to_numpy() == -1), 'x', 'o')
@@ -72,13 +72,14 @@ def plot_event(event: pd.DataFrame, seg: np.ndarray = None, kdims: Iterable = ('
     tracks = event.track.unique()
     track_map = {t: i for i, t in enumerate(tracks)}
     if black_white:
-        symbols = ['disc', 'x', 'cross', 'triangle_down', 'star', 'ring', 'arrow', 'clobber', 'square', 'diamond', 'vbar', 'hbar',  'tailed_arrow', 'triangle_up']
+        symbols = ['disc', 'x', 'cross', 'triangle_down', 'star', 'ring', 'arrow', 'clobber', 'square', 'diamond',
+                   'vbar', 'hbar', 'tailed_arrow', 'triangle_up']
         color = 'black'
-        symbol = event.track.map(lambda t: symbols[track_map[t]%len(symbols)])
+        symbol = event.track.map(lambda t: symbols[track_map[t] % len(symbols)])
         size = 4
     else:
         cmap = colormap.MatplotlibColormap('tab20')
-        color = cmap.map(event.track.map(track_map)/(len(tracks)-1))
+        color = cmap.map(event.track.map(track_map) / (len(tracks) - 1))
         symbol = 'o'
         size = 5
 
@@ -151,7 +152,7 @@ def plot_segments_plotly(hits: pd.DataFrame, seg: np.ndarray, kdims: Iterable = 
     )
 
 
-if __name__ == '__main__':
+def main():
     from datasets import get_hits
     from segment.track import gen_seg_track_layered, gen_seg_track_sequential
     from vispy import app
@@ -161,3 +162,7 @@ if __name__ == '__main__':
     app.run()
     plot_seg_diff(event, gen_seg_track_layered(event), gen_seg_track_sequential(event)).show()
     app.run()
+
+
+if __name__ == '__main__':
+    main()
