@@ -1,3 +1,4 @@
+import dask
 import dask.dataframe as dd
 import pandas as pd
 import pytest
@@ -5,7 +6,7 @@ from numpy.testing import assert_array_equal
 from pandas.testing import assert_frame_equal
 
 from datasets.trackml import _transform, get_one_event_by_volume, get_sample_by_volume, get_one_event, \
-    get_sample, gen_train_1, _csv_one_event, _feather_one_event, _zip_sample, _feather_sample, _blacklist_hits, \
+    get_sample, get_all, _csv_one_event, _feather_one_event, _zip_sample, _feather_sample, _blacklist_hits, \
     HITS_PARQUET
 
 _test_event = pd.DataFrame({
@@ -94,14 +95,13 @@ def test_get_hits_trackml():
 
 @pytest.mark.slow
 @pytest.mark.trackml_1
-def test_get_hits_trackml_1():
-    for i, event in enumerate(gen_train_1(n_events=200)):
-        assert_array_equal(event.index, range(len(event)))
-        assert_array_equal(event.event_id, i + 1000)
-        assert set(event.layer.unique()) == set(range(1, 8))
-        assert event.track.min() == -1
-        assert event.track.dtype == 'int64'
-    assert i == 199
+def test_get_all():
+    df = get_all()
+    assert df.track.dtype == 'int64'
+    assert_frame_equal(df.loc[1000].compute().reset_index(), get_one_event())
+    df = df.loc[1984]
+    assert dask.compute(df.index.size, df.track.min(),
+                        df.layer.nunique(), df.layer.min(), df.layer.max()) == (111113, -1, 7, 1, 7)
 
 
 def test_get_hits_trackml_one_event():

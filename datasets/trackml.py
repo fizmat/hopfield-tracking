@@ -32,9 +32,9 @@ def _blacklist_hits(hits, blacklist_hits, blacklist_particles):
 
 
 def _transform(hits):
-    hits.rename(columns={'layer_id': 'layer', 'particle_id': 'track'}, inplace=True)
+    hits = hits.rename(columns={'layer_id': 'layer', 'particle_id': 'track'})
     hits.track = hits.track.where(hits.track != 0, other=-1)
-    hits['layer'] = hits.layer // 2
+    hits.layer = hits.layer // 2
     return hits
 
 
@@ -75,6 +75,10 @@ def _zip_hits_dask(n_events: int = 1770, path=TRAIN1_ZIP, batch_size=50) -> dd.D
                             for cursor in range(0, n_events, batch_size)])
 
 
+def _parquet_hits_dask(path=HITS_PARQUET) -> dd.DataFrame:
+    return dd.read_parquet(str(path), index='event_id', calculate_divisions=True)
+
+
 def _zip_extra_dask(n_events: int = 1770, path=TRAIN1_ZIP, batch_size=50, parts: str = 'particles') -> dd.DataFrame:
     return dd.from_delayed([delayed(_zip_extra)(batch_size, path, cursor, parts)
                             for cursor in range(0, n_events, batch_size)])
@@ -111,8 +115,9 @@ def get_sample(n_events: Optional[int] = None) -> pd.DataFrame:
     return _transform(sample)
 
 
-def gen_train_1(n_events: Optional[int] = None) -> Generator[pd.DataFrame, None, None]:
-    yield from map(_transform, _zip_sample_generator(n_events))
+def get_all() -> dd.DataFrame:
+    df = _parquet_hits_dask() if HITS_PARQUET.exists() else _zip_hits_dask()
+    return _transform(df)
 
 
 def get_sample_by_volume(n_events: Optional[int] = None) -> pd.DataFrame:
