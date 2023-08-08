@@ -23,7 +23,7 @@ def _read_zip() -> pd.DataFrame:
     return pd.read_csv(ZIP_FILE, sep='\t', names=list(SCHEMA.keys()), dtype=SCHEMA)
 
 
-def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
+def get_hits(n_events: Optional[int] = None) -> pd.DataFrame:
     if FEATHER_FILE.exists():
         hits = pd.read_feather(FEATHER_FILE)
     else:
@@ -35,7 +35,7 @@ def get_hits_bman(n_events: Optional[int] = None) -> pd.DataFrame:
     return hits
 
 
-def get_hits_bman_one_event() -> pd.DataFrame:
+def get_one_event() -> pd.DataFrame:
     hits = pd.read_csv(CSV_EVENT, dtype=SCHEMA)
     hits['layer'] = hits.detector * 3 + hits.station
     return hits

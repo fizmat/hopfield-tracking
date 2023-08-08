@@ -5,12 +5,12 @@ import pandas as pd
 import pytest
 from numpy.testing import assert_array_equal
 
-from datasets.bman import get_hits_bman, get_hits_bman_one_event, ZIP_FILE, SCHEMA
+from datasets.bman import get_hits, get_one_event, ZIP_FILE, SCHEMA
 
 
 @pytest.mark.bman
 def test_get_hits_bman():
-    hits = get_hits_bman()
+    hits = get_hits()
     assert_array_equal(hits.index, range(15813216))
     assert_array_equal(hits.event_id.unique(), range(25000))
     assert set(hits.layer.unique()) == set(range(9))
@@ -19,7 +19,7 @@ def test_get_hits_bman():
 
 
 def test_get_hits_bman_one_event():
-    hits = get_hits_bman_one_event()
+    hits = get_one_event()
     assert_array_equal(hits.index, range(858))
     assert_array_equal(hits.event_id, [6] * 858)
     assert set(hits.layer.unique()) == set(range(9))

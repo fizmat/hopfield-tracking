@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_allclose
 
-from datasets.simple import SimpleEventGenerator, get_hits_simple, get_hits_simple_one_event
+from datasets.simple import SimpleEventGenerator, get_hits, get_one_event
 
 
 def test_gen_directions_in_cone():
@@ -123,30 +123,30 @@ def test_gen_many_events():
 
 
 def test_get_hits_simple():
-    events = get_hits_simple(13, 7)
+    events = get_hits(13, 7)
     assert_array_equal(events.event_id.unique(), range(13))
     assert_array_equal(events.columns, ['x', 'y', 'z', 'layer', 'track', 'charge', 'event_id'])
 
 
 def test_get_hits_simple_one_event():
-    events = get_hits_simple_one_event(7)
+    events = get_one_event(7)
     assert_array_equal(events.event_id, 0)
     assert_array_equal(events.columns, ['x', 'y', 'z', 'layer', 'track', 'charge', 'event_id'])
 
 
 def test_simple_default_seed():
-    assert_array_equal(get_hits_simple(), get_hits_simple())
+    assert_array_equal(get_hits(), get_hits())
 
 
 def test_simple_same_seed():
-    assert_array_equal(get_hits_simple(seed=13), get_hits_simple(seed=13))
+    assert_array_equal(get_hits(seed=13), get_hits(seed=13))
 
 
 def test_simple_different_seed():
     with pytest.raises(AssertionError):
-        assert_array_equal(get_hits_simple(seed=13), get_hits_simple(seed=1))
+        assert_array_equal(get_hits(seed=13), get_hits(seed=1))
 
 
 def test_simple_generates_the_same_event_sequence():
-    hits = get_hits_simple()
-    assert_array_equal(get_hits_simple(2), hits[hits.event_id < 2])
+    hits = get_hits()
+    assert_array_equal(get_hits(2), hits[hits.event_id < 2])

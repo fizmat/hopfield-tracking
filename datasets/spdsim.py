@@ -54,12 +54,12 @@ def extrapolate_to_r(pt: float, charge: float, theta: float, phi: float, z0: flo
     return stations, x, y, z, tax, tay, pz
 
 
-def get_hits_spdsim_one_event(event_size=10, efficiency=1., n_noise_hits=100, seed=1):
-    return get_hits_spdsim(1, event_size, efficiency, n_noise_hits, seed)
+def get_one_event(event_size=10, efficiency=1., n_noise_hits=100, seed=1):
+    return get_hits(1, event_size, efficiency, n_noise_hits, seed)
 
 
-def get_hits_spdsim(n_events: Optional[int] = 100, event_size: Optional[int] = 10,
-                    efficiency: float = 1., n_noise_hits: int = 100, seed=1) -> pd.DataFrame:
+def get_hits(n_events: Optional[int] = 100, event_size: Optional[int] = 10,
+             efficiency: float = 1., n_noise_hits: int = 100, seed=1) -> pd.DataFrame:
     if n_events is None:
         n_events = 100
     if event_size is None:
