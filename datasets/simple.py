@@ -83,41 +83,27 @@ class SimpleEventGenerator:
         hits[:, :2] += self.rng.normal(0, self.xy_hit_deviation, hits[:, :2].shape)  # inaccuracy in x and y
         return hits, self.layer_i
 
-    def gen_event(self, momenta: np.ndarray, charges: np.ndarray) -> pd.DataFrame:
-        xlist = []
-        ylist = []
-        zlist = []
-        tracklist = []
-        chargelist = []
-        layerlist = []
+    def gen_tracks(self, momenta: np.ndarray, charges: np.ndarray
+                   ) -> Generator[Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, ndarray], None, None]:
         for i, (m, q) in enumerate(zip(momenta, charges)):
             h, layers = self.run_track(m, q)
-            x, y, z = h.transpose()
-            xlist.append(x)
-            ylist.append(y)
-            zlist.append(z)
             k = len(layers)
-            layerlist.append(layers)
-            tracklist.append(np.full(k, i))
-            chargelist.append(np.full(k, q))
+            yield *h.T, layers, np.full(k, i), np.full(k, q)
 
+    def gen_noise(self) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, ndarray]:
         noise_count = self.rng.poisson(self.noisiness)
         noise_layer = self.rng.integers(0, self.n_layers, noise_count)
-        layerlist.append(noise_layer)
-        tracklist.append(np.full(noise_count, -1))
-        chargelist.append(np.full(noise_count, np.nan))
-        xlist.append(self.rng.uniform(-self.size_x, self.size_x, noise_count))
-        ylist.append(self.rng.uniform(-self.size_y, self.size_y, noise_count))
-        zlist.append(self.layer_z[noise_layer])
+        return (self.rng.uniform(-self.size_x, self.size_x, noise_count),
+                self.rng.uniform(-self.size_y, self.size_y, noise_count),
+                self.layer_z[noise_layer],
+                noise_layer,
+                np.full(noise_count, -1),
+                np.full(noise_count, np.nan))
 
-        xx = np.concatenate(xlist)
-        yy = np.concatenate(ylist)
-        zz = np.concatenate(zlist)
-        layers = np.concatenate(layerlist)
-        tracks = np.concatenate(tracklist)
-        charges = np.concatenate(chargelist)
-
-        return pd.DataFrame({'x': xx, 'y': yy, 'z': zz, 'layer': layers, 'track': tracks, 'charge': charges})
+    def gen_event(self, momenta: np.ndarray, charges: np.ndarray) -> pd.DataFrame:
+        columns = map(np.concatenate, zip(*self.gen_tracks(momenta, charges),
+                                          *[self.gen_noise()]))
+        return pd.DataFrame(dict(zip(['x', 'y', 'z', 'layer', 'track', 'charge'], columns)))
 
     def gen_many_events(self, n: int = 1000, event_size: int = 10, momentum_scale=.2) \
             -> Generator[pd.DataFrame, None, None]:
