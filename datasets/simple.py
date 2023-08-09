@@ -136,3 +136,11 @@ class SimpleEventGenerator:
                 * self.gen_directions_in_cone(event_size),
                 charges=self.rng.choice([1, -1], event_size)
             )
+
+
+def main():
+    get_hits(10000)
+
+
+if __name__ == "__main__":
+    main()
